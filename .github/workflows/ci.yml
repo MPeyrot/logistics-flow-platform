@@ -20,7 +20,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        service: [shipment-service, ingestion-service]
+        service: [shipment-service, ingestion-service, ai-service]
     defaults:
       run:
         working-directory: services/${{ matrix.service }}
