@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "scan-event.v1",
+  "title": "ScanEvent v1",
+  "description": "Événement de scan publié sur le topic Kafka `scan-events` (clé = shipmentReference). Un champ ajouté sans rupture reste en v1 ; toute rupture crée scan-event.v2.schema.json.",
+  "type": "object",
+  "required": ["eventId", "shipmentReference", "type", "site", "occurredAt"],
+  "properties": {
+    "eventId": { "type": "string", "format": "uuid", "description": "Identifiant unique, sert à l'idempotence côté consommateur." },
+    "shipmentReference": { "type": "string", "minLength": 1, "maxLength": 50 },
+    "type": { "enum": ["PICKED_UP", "ARRIVED_AT_SITE", "DELIVERED"], "description": "Types provisoires, à valider." },
+    "site": { "type": "string", "minLength": 1, "maxLength": 100 },
+    "occurredAt": { "type": "string", "format": "date-time" }
+  },
+  "additionalProperties": true,
+  "examples": [
+    {
+      "eventId": "3f1c3c1e-5a52-4d5c-9d3e-2b8f5f0c1a11",
+      "shipmentReference": "REF-1001",
+      "type": "PICKED_UP",
+      "site": "Nantes",
+      "occurredAt": "2026-10-31T10:00:00Z"
+    }
+  ]
+}
