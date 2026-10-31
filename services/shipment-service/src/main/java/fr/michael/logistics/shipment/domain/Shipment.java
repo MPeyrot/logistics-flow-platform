@@ -28,6 +28,23 @@ public record Shipment(
         return new Shipment(UUID.randomUUID(), reference, origin, destination, ShipmentStatus.CREATED, now);
     }
 
+    /** Applique un scan. Transitions provisoires. */
+    public Shipment applyScan(ScanEvent scan) {
+        ShipmentStatus next = switch (status) {
+            case CREATED -> scan.type() == ScanType.PICKED_UP ? ShipmentStatus.IN_TRANSIT : null;
+            case IN_TRANSIT -> switch (scan.type()) {
+                case ARRIVED_AT_SITE -> ShipmentStatus.IN_TRANSIT;
+                case DELIVERED -> ShipmentStatus.DELIVERED;
+                case PICKED_UP -> null;
+            };
+            case DELIVERED -> null;
+        };
+        if (next == null) {
+            throw new InvalidScanException(this, scan.type());
+        }
+        return new Shipment(id, reference, origin, destination, next, createdAt);
+    }
+
     private static void requireText(String value, String field) {
         if (value == null || value.isBlank()) {
             throw new IllegalArgumentException(field + " must not be blank");

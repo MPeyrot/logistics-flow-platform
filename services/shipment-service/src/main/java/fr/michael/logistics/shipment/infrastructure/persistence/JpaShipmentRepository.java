@@ -3,6 +3,7 @@ package fr.michael.logistics.shipment.infrastructure.persistence;
 import fr.michael.logistics.shipment.application.ShipmentRepository;
 import fr.michael.logistics.shipment.domain.Shipment;
 import java.util.List;
+import java.util.Optional;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Repository;
 
@@ -25,6 +26,11 @@ class JpaShipmentRepository implements ShipmentRepository {
         return jpa.findAll(Sort.by(Sort.Direction.DESC, "createdAt")).stream()
                 .map(ShipmentJpaEntity::toDomain)
                 .toList();
+    }
+
+    @Override
+    public Optional<Shipment> findByReference(String reference) {
+        return jpa.findByReference(reference).map(ShipmentJpaEntity::toDomain);
     }
 
     @Override

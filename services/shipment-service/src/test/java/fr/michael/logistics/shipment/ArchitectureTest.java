@@ -33,6 +33,6 @@ class ArchitectureTest {
 
     @ArchTest
     static final ArchRule applicationIgnoresPersistenceAndWeb = noClasses().that().resideInAPackage(APPLICATION)
-            .should().dependOnClassesThat().resideInAnyPackage("jakarta.persistence..", "org.springframework.web..")
-            .because("ni JPA ni HTTP dans les cas d'usage");
+            .should().dependOnClassesThat().resideInAnyPackage("jakarta.persistence..", "org.springframework.web..", "org.springframework.kafka..", "org.apache.kafka..")
+            .because("ni JPA, ni HTTP, ni Kafka dans les cas d'usage");
 }
