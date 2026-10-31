@@ -16,12 +16,15 @@ flowchart LR
     kafka -.->|erreur| dlt[(scan-events.DLT)]
     shipment --> db[(PostgreSQL)]
     user([Utilisateur]) -->|GET/POST /api/shipments| shipment
+    user -->|POST /api/delivery-notes/extract| shipment
+    shipment -->|bon de livraison| ai[ai-service :8082]
+    ai --> claude([API Claude])
 ```
 
 | Dossier | Rôle |
 | --- | --- |
 | `services/ingestion-service` | Reçoit les scans en HTTP, les valide, les publie sur Kafka (accusé du broker attendu avant le `202`). |
-| `services/shipment-service` | API des expéditions. Consomme les scans, applique les transitions de statut, garde l'historique. |
+| `services/shipment-service` | API des expéditions. Consomme les scans, applique les transitions de statut, garde l'historique. Relaie les bons de livraison à `ai-service` et retrouve l'expédition correspondante. |
 | `services/ai-service` | Extrait les données d'un bon de livraison (PDF ou image) avec l'API Claude : JSON validé, jetons et coût de chaque requête. |
 | `contracts/` | Schéma JSON versionné des messages Kafka. Pas de bibliothèque partagée entre services. |
 
@@ -59,6 +62,9 @@ curl -X POST localhost:8081/api/scans -H 'Content-Type: application/json' \
 
 # 3. le statut est passé de CREATED à IN_TRANSIT
 curl localhost:8080/api/shipments
+
+# 4. lire un bon de livraison (PDF ou image) : données extraites, coût, expédition correspondante
+curl -F file=@bon.pdf localhost:8080/api/delivery-notes/extract
 ```
 
 ## Tests

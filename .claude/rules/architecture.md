@@ -44,3 +44,4 @@ Chaque service : `src/main/java/<package>/{domain,application,infrastructure}`.
 - Coût par requête : `ModelPricing` (domaine) × `TokenUsage`, tarifs dans `ai.claude.pricing.*` (dollars par million de jetons), journalisé et renvoyé dans la réponse.
 - Clé : `ANTHROPIC_API_KEY` (absente : 503 sur l'extraction, le service démarre quand même). Modèle : `AI_CLAUDE_MODEL`, défaut `claude-opus-5-5`.
 - Tests : WireMock simule l'API Claude (`ANTHROPIC_BASE_URL` / `ai.claude.base-url`).
+- `shipment-service` appelle `ai-service` (port `DeliveryNoteReader`, adaptateur `infrastructure/ai` en `RestClient`, HTTP/1.1, lecture jusqu'à 120 s, URL dans `AI_SERVICE_URL`). `POST /api/delivery-notes/extract` rend le bon lu, son coût et l'expédition de même référence (`shipment` null si inconnue). Erreurs relayées : 415 et 422 tels quels, tout le reste 502. La réponse de l'ai-service est validée avant d'entrer dans `application`. Aucune expédition n'est créée ni modifiée.
