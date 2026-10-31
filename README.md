@@ -22,6 +22,7 @@ flowchart LR
 | --- | --- |
 | `services/ingestion-service` | Reçoit les scans en HTTP, les valide, les publie sur Kafka (accusé du broker attendu avant le `202`). |
 | `services/shipment-service` | API des expéditions. Consomme les scans, applique les transitions de statut, garde l'historique. |
+| `services/ai-service` | Extrait les données d'un bon de livraison (PDF ou image) avec l'API Claude : JSON validé, jetons et coût de chaque requête. |
 | `contracts/` | Schéma JSON versionné des messages Kafka. Pas de bibliothèque partagée entre services. |
 
 Chaque service suit l'architecture hexagonale (`domain` / `application` / `infrastructure`), vérifiée par des tests ArchUnit. Le détail des choix est dans [`.claude/rules/architecture.md`](.claude/rules/architecture.md).
@@ -42,6 +43,7 @@ docker compose up -d --wait    # PostgreSQL et Kafka
 
 (cd services/shipment-service && ./mvnw spring-boot:run) &
 (cd services/ingestion-service && ./mvnw spring-boot:run) &
+(cd services/ai-service && ANTHROPIC_API_KEY=... ./mvnw spring-boot:run) &   # clé d'API Claude, jamais dans le dépôt
 ```
 
 Exemple :
@@ -64,14 +66,15 @@ curl localhost:8080/api/shipments
 ```sh
 cd services/shipment-service && ./mvnw verify
 cd services/ingestion-service && ./mvnw verify
+cd services/ai-service && ./mvnw verify    # API Claude simulée par WireMock, aucune clé nécessaire
 ```
 
 Les tests d'intégration démarrent PostgreSQL et Kafka avec Testcontainers : Docker doit tourner.
 
 ## État du projet
 
-Fait : création et liste des expéditions, ingestion des scans, consommation Kafka idempotente avec topic d'erreurs, CI.
+Fait : création et liste des expéditions, ingestion des scans, consommation Kafka idempotente avec topic d'erreurs, extraction de bons de livraison avec l'API Claude (`ai-service`), CI.
 
-À venir : import par lot (Spring Batch), `ai-service` (extraction de bons de livraison avec l'API Claude), front Vue 3 + TypeScript, authentification JWT, déploiement sur GCP Cloud Run.
+À venir : import par lot (Spring Batch), front Vue 3 + TypeScript, authentification JWT, déploiement sur GCP Cloud Run.
 
 Les statuts d'expédition et les types de scan sont provisoires.

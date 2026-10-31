@@ -12,7 +12,7 @@ javaProject/
   services/
     shipment-service/    API expéditions, PostgreSQL, Hibernate, Flyway ; consomme les scans Kafka
     ingestion-service/   point d'entrée des scans (HTTP, puis import Spring Batch) : valide et publie sur Kafka
-    ai-service/          appel API Claude (extraction bon de livraison, explication d'anomalies)
+    ai-service/          appel API Claude (extraction bon de livraison, explication d'anomalies) ; sans base de données
   contracts/             schémas JSON des messages Kafka (versionnés)
   frontend/              Vue 3 + TS
   docker-compose.yml
@@ -34,3 +34,13 @@ Chaque service : `src/main/java/<package>/{domain,application,infrastructure}`.
 - Aucune bibliothèque partagée entre services : chacun a sa propre classe de message, le contrat JSON fait foi. Pas d'en-têtes de type Java dans les messages.
 - Consommateur (`shipment-service`) : idempotent (clé primaire `scan_event.event_id`), nouvelles tentatives pour les erreurs transitoires (expédition inconnue, base indisponible), envoi direct vers `scan-events.DLT` pour un message illisible ou une transition interdite.
 - Tests : Testcontainers avec `apache/kafka:3.8.0` (la 3.9.0 ne démarre pas avec Testcontainers).
+
+## ai-service
+- `POST /api/delivery-notes/extract` (multipart `file` : PDF, PNG, JPEG, GIF ou WebP, reconnu par ses premiers octets). Réponse : `deliveryNote`, `usage` (jetons) et `costUsd`.
+- SDK Java officiel `com.anthropic:anthropic-java`, utilisé uniquement dans `infrastructure/claude` (règle ArchUnit). Port `DeliveryNoteExtractor` côté `application`.
+- Réponse du modèle = donnée externe : JSON lu dans `DeliveryNoteDraft`, contrôlé par Bean Validation, puis converti en `DeliveryNote` (domaine). JSON invalide, référence absente ou valeur hors bornes : 422.
+- Pas de `tool_choice` forcé (refusé par claude-opus-5-5) ni de réflexion configurée : consignes de format dans le prompt système, contrôle après coup.
+- Prompt système constant et marqué `cache_control` (cache de prompt). Il ne reste en cache que s'il dépasse le seuil minimal du modèle.
+- Coût par requête : `ModelPricing` (domaine) × `TokenUsage`, tarifs dans `ai.claude.pricing.*` (dollars par million de jetons), journalisé et renvoyé dans la réponse.
+- Clé : `ANTHROPIC_API_KEY` (absente : 503 sur l'extraction, le service démarre quand même). Modèle : `AI_CLAUDE_MODEL`, défaut `claude-opus-5-5`.
+- Tests : WireMock simule l'API Claude (`ANTHROPIC_BASE_URL` / `ai.claude.base-url`).
