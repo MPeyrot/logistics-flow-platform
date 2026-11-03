@@ -5,3 +5,7 @@ target/
 .env
 *.log
 node_modules/
+
+# Orchestration des agents (skill global orchestrer-spec)
+docs/agents/*/runs.log
+docs/agents/*/STOP
