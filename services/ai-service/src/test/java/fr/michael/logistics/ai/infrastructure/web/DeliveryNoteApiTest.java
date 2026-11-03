@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
+import fr.michael.logistics.ai.infrastructure.security.TestJwt;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -35,12 +36,15 @@ class DeliveryNoteApiTest {
         registry.add("ai.claude.base-url", WIRE_MOCK::baseUrl);
         registry.add("ai.claude.api-key", () -> "test-key");
         registry.add("ai.claude.max-retries", () -> "0");
+        TestJwt.register(registry);
     }
 
     @AfterAll
     static void stop() {
         WIRE_MOCK.stop();
     }
+
+    private static final String BEARER = "Bearer " + TestJwt.service().build();
 
     @Autowired
     MockMvc mvc;
@@ -55,7 +59,7 @@ class DeliveryNoteApiTest {
         stub(200, "{\\\"reference\\\":\\\"BL-77\\\",\\\"deliveryDate\\\":\\\"2026-10-30\\\",\\\"packageCount\\\":2}",
                 1000, 100, 500, 2000);
 
-        mvc.perform(multipart("/api/delivery-notes/extract").file(file("%PDF-1.4 fake".getBytes())))
+        mvc.perform(multipart("/api/delivery-notes/extract").header("Authorization", BEARER).file(file("%PDF-1.4 fake".getBytes())))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.deliveryNote.reference").value("BL-77"))
                 .andExpect(jsonPath("$.deliveryNote.deliveryDate").value("2026-10-30"))
@@ -67,7 +71,7 @@ class DeliveryNoteApiTest {
 
     @Test
     void rejectsFilesThatAreNotPdfOrImage() throws Exception {
-        mvc.perform(multipart("/api/delivery-notes/extract").file(file("hello".getBytes())))
+        mvc.perform(multipart("/api/delivery-notes/extract").header("Authorization", BEARER).file(file("hello".getBytes())))
                 .andExpect(status().isUnsupportedMediaType());
         org.assertj.core.api.Assertions.assertThat(WIRE_MOCK.getAllServeEvents()).isEmpty();
     }
@@ -76,7 +80,7 @@ class DeliveryNoteApiTest {
     void answers422WhenNoReferenceCanBeRead() throws Exception {
         stub(200, "{\\\"reference\\\":null}", 800, 10, 0, 0);
 
-        mvc.perform(multipart("/api/delivery-notes/extract").file(file("%PDF-1.4 fake".getBytes())))
+        mvc.perform(multipart("/api/delivery-notes/extract").header("Authorization", BEARER).file(file("%PDF-1.4 fake".getBytes())))
                 .andExpect(status().isUnprocessableContent());
     }
 
@@ -86,7 +90,7 @@ class DeliveryNoteApiTest {
                 .withHeader("content-type", "application/json")
                 .withBody("{\"type\":\"error\",\"error\":{\"type\":\"overloaded_error\",\"message\":\"Overloaded\"}}")));
 
-        mvc.perform(multipart("/api/delivery-notes/extract").file(file("%PDF-1.4 fake".getBytes())))
+        mvc.perform(multipart("/api/delivery-notes/extract").header("Authorization", BEARER).file(file("%PDF-1.4 fake".getBytes())))
                 .andExpect(status().isBadGateway());
     }
 

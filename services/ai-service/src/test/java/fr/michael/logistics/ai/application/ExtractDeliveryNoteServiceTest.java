@@ -15,13 +15,14 @@ class ExtractDeliveryNoteServiceTest {
 
     private final ModelPricing pricing = new ModelPricing(
             new BigDecimal("4.00"), new BigDecimal("20.00"), new BigDecimal("5.00"), new BigDecimal("0.20"));
+    private final ExtractionQuota quota = new ExtractionQuota(100, java.time.Clock.systemUTC());
     private final SourceDocument document = new SourceDocument("%PDF-1.4".getBytes(), DocumentFormat.PDF);
 
     @Test
     void returnsNoteWithUsageAndCost() {
         var usage = new TokenUsage(1000, 100, 0, 0);
         var note = new DeliveryNote("BL-1", null, null, null, null, null, null);
-        var service = new ExtractDeliveryNoteService(doc -> new ModelExtraction(note, usage), pricing);
+        var service = new ExtractDeliveryNoteService(doc -> new ModelExtraction(note, usage), pricing, quota);
 
         ExtractionResult result = service.extract(document);
 
@@ -34,7 +35,7 @@ class ExtractDeliveryNoteServiceTest {
     void propagatesUnreadableDocument() {
         var service = new ExtractDeliveryNoteService(doc -> {
             throw new UnreadableDocumentException("no reference", new TokenUsage(10, 5, 0, 0));
-        }, pricing);
+        }, pricing, quota);
 
         assertThatThrownBy(() -> service.extract(document)).isInstanceOf(UnreadableDocumentException.class);
     }

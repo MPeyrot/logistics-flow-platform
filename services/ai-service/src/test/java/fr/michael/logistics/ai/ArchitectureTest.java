@@ -37,6 +37,12 @@ class ArchitectureTest {
             .because("ni SDK Claude, ni HTTP, ni validation de données externes dans les cas d'usage");
 
     @ArchTest
+    static final ArchRule securityStaysInInfrastructure = noClasses()
+            .that().resideInAnyPackage(DOMAIN, APPLICATION)
+            .should().dependOnClassesThat().resideInAPackage("org.springframework.security..")
+            .because("l'authentification est un détail d'infrastructure");
+
+    @ArchTest
     static final ArchRule claudeSdkStaysInClaudeAdapter = noClasses()
             .that().resideOutsideOfPackage("..ai.infrastructure.claude..")
             .should().dependOnClassesThat().resideInAPackage("com.anthropic..")
