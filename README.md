@@ -51,26 +51,48 @@ docker compose up -d --wait    # PostgreSQL et Kafka
 (cd services/ai-service && ANTHROPIC_API_KEY=... ./mvnw spring-boot:run) &   # clé d'API Claude, jamais dans le dépôt
 ```
 
-Exemple :
+Variables d'environnement liées à l'authentification :
+
+| Variable | Service | Rôle |
+|---|---|---|
+| `JWT_PRIVATE_KEY` | shipment-service | clé privée RSA (PEM) qui signe les jetons ; obligatoire. `scripts/env.sh` la charge depuis `.secrets/` |
+| `BOOTSTRAP_ADMIN_USERNAME`, `BOOTSTRAP_ADMIN_PASSWORD` | shipment-service | premier ADMIN, créé au démarrage s'il n'en existe aucun |
+| `SHIPMENT_SERVICE_URL` | ingestion-service, ai-service | où lire la clé publique (`/.well-known/jwks.json`) ; défaut `http://localhost:8080` |
+| `AI_SERVICE_URL` | shipment-service | où joindre ai-service ; défaut `http://localhost:8082` |
+
+Parcours complet (les rôles et les jetons sont décrits dans `.claude/rules/architecture.md`) :
 
 ```sh
-# 0. obtenir un jeton (valable 1 h) : les routes de shipment-service l'exigent
-TOKEN=$(curl -s -X POST localhost:8080/api/auth/token -H 'Content-Type: application/json' \
+# 1. jeton ADMIN (valable 1 h)
+ADMIN=$(curl -s -X POST localhost:8080/api/auth/token -H 'Content-Type: application/json' \
   -d '{"username":"admin","password":"..."}' | jq -r .accessToken)
 
-# 1. créer une expédition
-curl -X POST localhost:8080/api/shipments -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
+# 2. créer un compte SCANNER (rattaché à un site) et un compte OPERATOR
+curl -X POST localhost:8080/api/users -H "Authorization: Bearer $ADMIN" -H 'Content-Type: application/json' \
+  -d '{"username":"scanner-nantes","password":"un mot de passe long","role":"SCANNER","site":"Nantes"}'
+curl -X POST localhost:8080/api/users -H "Authorization: Bearer $ADMIN" -H 'Content-Type: application/json' \
+  -d '{"username":"operateur","password":"un mot de passe long","role":"OPERATOR"}'
+
+# 3. jeton SCANNER (valable 12 h) et jeton OPERATOR (1 h)
+SCANNER=$(curl -s -X POST localhost:8080/api/auth/token -H 'Content-Type: application/json' \
+  -d '{"username":"scanner-nantes","password":"un mot de passe long"}' | jq -r .accessToken)
+OPERATOR=$(curl -s -X POST localhost:8080/api/auth/token -H 'Content-Type: application/json' \
+  -d '{"username":"operateur","password":"un mot de passe long"}' | jq -r .accessToken)
+
+# 4. créer une expédition (OPERATOR)
+curl -X POST localhost:8080/api/shipments -H "Authorization: Bearer $OPERATOR" -H 'Content-Type: application/json' \
   -d '{"reference":"REF-1001","origin":"Nantes","destination":"Lyon"}'
 
-# 2. envoyer un scan (traité en asynchrone via Kafka)
-curl -X POST localhost:8081/api/scans -H 'Content-Type: application/json' \
+# 5. envoyer un scan (SCANNER ; le site doit être celui du compte ; traité en asynchrone via Kafka)
+curl -X POST localhost:8081/api/scans -H "Authorization: Bearer $SCANNER" -H 'Content-Type: application/json' \
   -d '{"shipmentReference":"REF-1001","type":"PICKED_UP","site":"Nantes"}'
 
-# 3. le statut est passé de CREATED à IN_TRANSIT
-curl -H "Authorization: Bearer $TOKEN" localhost:8080/api/shipments
+# 6. le statut est passé de CREATED à IN_TRANSIT
+curl -H "Authorization: Bearer $OPERATOR" localhost:8080/api/shipments
 
-# 4. lire un bon de livraison (PDF ou image) : données extraites, coût, expédition correspondante
-curl -H "Authorization: Bearer $TOKEN" -F file=@bon.pdf localhost:8080/api/delivery-notes/extract
+# 7. lire un bon de livraison (PDF ou image) : données extraites, coût, expédition correspondante.
+#    Chaque appel coûte un appel à l'API Claude : 20 par heure et par utilisateur (429 avec Retry-After au-delà).
+curl -H "Authorization: Bearer $OPERATOR" -F file=@bon.pdf localhost:8080/api/delivery-notes/extract
 ```
 
 ## Tests

@@ -3,6 +3,10 @@ package fr.michael.logistics.shipment.infrastructure.web;
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
+import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -11,6 +15,9 @@ import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import fr.michael.logistics.shipment.TestAccounts;
 import fr.michael.logistics.shipment.TestcontainersConfiguration;
 import fr.michael.logistics.shipment.application.AccountService;
+import com.nimbusds.jose.jwk.RSAKey;
+import fr.michael.logistics.shipment.domain.Role;
+import java.time.Duration;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -20,6 +27,8 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
@@ -51,6 +60,9 @@ class DeliveryNoteApiTest {
 
     @Autowired
     AccountService accounts;
+
+    @Autowired
+    RSAKey signingKey;
 
     String bearer;
 
@@ -102,6 +114,56 @@ class DeliveryNoteApiTest {
     void answers502WhenAiServiceFails() throws Exception {
         stub(503, "{}");
         mvc.perform(multipart("/api/delivery-notes/extract").file(pdf()).header("Authorization", bearer)).andExpect(status().isBadGateway());
+    }
+
+    @Test
+    void relaysAiServiceRateLimitAs429() throws Exception {
+        AI_SERVICE.stubFor(post("/api/delivery-notes/extract").willReturn(aResponse().withStatus(429).withHeader("Retry-After", "60")));
+        mvc.perform(multipart("/api/delivery-notes/extract").file(pdf()).header("Authorization", bearer))
+                .andExpect(status().isTooManyRequests())
+                .andExpect(header().string("Retry-After", "60"));
+    }
+
+    @Test
+    void answers502WhenAiServiceRejectsOurToken() throws Exception {
+        stub(401, "{}");
+        mvc.perform(multipart("/api/delivery-notes/extract").file(pdf()).header("Authorization", bearer)).andExpect(status().isBadGateway());
+        stub(403, "{}");
+        mvc.perform(multipart("/api/delivery-notes/extract").file(pdf()).header("Authorization", bearer)).andExpect(status().isBadGateway());
+    }
+
+    @Test
+    void sendsServiceTokenForAiServiceAudience() throws Exception {
+        stub(200, body("BL-TOKEN"));
+        mvc.perform(multipart("/api/delivery-notes/extract").file(pdf()).header("Authorization", bearer)).andExpect(status().isOk());
+
+        String auth = AI_SERVICE.findAll(postRequestedFor(urlEqualTo("/api/delivery-notes/extract"))).getFirst().getHeader("Authorization");
+        assertThat(auth).startsWith("Bearer ");
+        Jwt jwt = NimbusJwtDecoder.withPublicKey(signingKey.toRSAPublicKey()).build().decode(auth.substring("Bearer ".length()));
+        assertThat(jwt.getSubject()).isEqualTo("shipment-service");
+        assertThat(jwt.getAudience()).containsExactly("ai-service");
+        assertThat(jwt.getClaimAsString("iss")).isEqualTo("shipment-service");
+        assertThat(Duration.between(jwt.getIssuedAt(), jwt.getExpiresAt())).isEqualTo(Duration.ofMinutes(5));
+    }
+
+    @Test
+    void limitsExtractionsPerUserWithoutCallingAiService() throws Exception {
+        TestAccounts.ensure(accounts, "limited-operator", Role.OPERATOR, null);
+        String limited = TestAccounts.bearer(mvc, "limited-operator", TestAccounts.PASSWORD);
+        stub(200, body("BL-LIMIT"));
+        for (int i = 0; i < 20; i++) {
+            mvc.perform(multipart("/api/delivery-notes/extract").file(pdf()).header("Authorization", limited)).andExpect(status().isOk());
+        }
+        int calls = AI_SERVICE.countRequestsMatching(postRequestedFor(urlEqualTo("/api/delivery-notes/extract")).build()).getCount();
+
+        mvc.perform(multipart("/api/delivery-notes/extract").file(pdf()).header("Authorization", limited))
+                .andExpect(status().isTooManyRequests())
+                .andExpect(header().exists("Retry-After"));
+
+        assertThat(AI_SERVICE.countRequestsMatching(postRequestedFor(urlEqualTo("/api/delivery-notes/extract")).build()).getCount())
+                .isEqualTo(calls);
+        // un autre utilisateur n'est pas touché
+        mvc.perform(multipart("/api/delivery-notes/extract").file(pdf()).header("Authorization", bearer)).andExpect(status().isOk());
     }
 
     private static MockMultipartFile pdf() {

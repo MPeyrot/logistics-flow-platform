@@ -6,6 +6,7 @@ import fr.michael.logistics.shipment.application.LastActiveAdminException;
 import fr.michael.logistics.shipment.application.LoginBlockedException;
 import fr.michael.logistics.shipment.application.DuplicateUsernameException;
 import fr.michael.logistics.shipment.application.ExtractionServiceUnavailableException;
+import fr.michael.logistics.shipment.application.ExtractionRateLimitedException;
 import fr.michael.logistics.shipment.application.InvalidCredentialsException;
 import fr.michael.logistics.shipment.application.UnreadableDeliveryNoteException;
 import fr.michael.logistics.shipment.application.UnsupportedDocumentException;
@@ -54,6 +55,15 @@ class ApiExceptionHandler {
         return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
                 .header(HttpHeaders.RETRY_AFTER, Long.toString(e.retryAfterSeconds()))
                 .body(ProblemDetail.forStatusAndDetail(HttpStatus.TOO_MANY_REQUESTS, e.getMessage()));
+    }
+
+    @ExceptionHandler(ExtractionRateLimitedException.class)
+    ResponseEntity<ProblemDetail> extractionRateLimited(ExtractionRateLimitedException e) {
+        ResponseEntity.BodyBuilder response = ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS);
+        if (e.retryAfterSeconds() != null) {
+            response.header(HttpHeaders.RETRY_AFTER, e.retryAfterSeconds().toString());
+        }
+        return response.body(ProblemDetail.forStatusAndDetail(HttpStatus.TOO_MANY_REQUESTS, e.getMessage()));
     }
 
     @ExceptionHandler(IllegalArgumentException.class)

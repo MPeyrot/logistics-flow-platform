@@ -12,9 +12,12 @@ import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import fr.michael.logistics.shipment.application.DeliveryNoteReading;
 import fr.michael.logistics.shipment.application.ExtractionServiceUnavailableException;
+import fr.michael.logistics.shipment.application.ExtractionRateLimitedException;
+import fr.michael.logistics.shipment.application.ServiceTokenProvider;
 import fr.michael.logistics.shipment.application.UnreadableDeliveryNoteException;
 import fr.michael.logistics.shipment.application.UnsupportedDocumentException;
 import jakarta.validation.Validation;
+import java.time.Clock;
 import java.time.Duration;
 import java.time.LocalDate;
 import org.junit.jupiter.api.AfterAll;
@@ -57,6 +60,7 @@ class AiServiceDeliveryNoteReaderTest {
         assertThat(reading.note().packageCount()).isEqualTo(3);
         assertThat(reading.costUsd()).isEqualByComparingTo("0.0089");
         wireMock.verify(postRequestedFor(urlEqualTo("/api/delivery-notes/extract"))
+                .withHeader("Authorization", com.github.tomakehurst.wiremock.client.WireMock.equalTo("Bearer signed-token"))
                 .withHeader("Content-Type", containing("multipart/form-data"))
                 .withRequestBody(containing("name=\"file\"; filename=\"bl.pdf\"")));
     }
@@ -76,6 +80,22 @@ class AiServiceDeliveryNoteReaderTest {
 
         stubJson(502, "{}");
         assertThatThrownBy(() -> reader.read(new byte[] {1}, "x")).isInstanceOf(ExtractionServiceUnavailableException.class);
+
+        stubJson(401, "{}");
+        assertThatThrownBy(() -> reader.read(new byte[] {1}, "x")).isInstanceOf(ExtractionServiceUnavailableException.class);
+
+        stubJson(403, "{}");
+        assertThatThrownBy(() -> reader.read(new byte[] {1}, "x")).isInstanceOf(ExtractionServiceUnavailableException.class);
+    }
+
+    @Test
+    void relaysRateLimitWithRetryAfter() {
+        wireMock.stubFor(post("/api/delivery-notes/extract").willReturn(aResponse().withStatus(429)
+                .withHeader("Retry-After", "120").withBody("{}")));
+
+        assertThatThrownBy(() -> reader(wireMock.baseUrl()).read(new byte[] {1}, "x"))
+                .isInstanceOfSatisfying(ExtractionRateLimitedException.class,
+                        e -> assertThat(e.retryAfterSeconds()).isEqualTo(120L));
     }
 
     @Test
@@ -95,7 +115,8 @@ class AiServiceDeliveryNoteReaderTest {
 
     private static AiServiceDeliveryNoteReader reader(String baseUrl) {
         var props = new AiServiceProperties(baseUrl, Duration.ofSeconds(1), Duration.ofSeconds(5));
-        return new AiServiceDeliveryNoteReader(props, Validation.buildDefaultValidatorFactory().getValidator());
+        return new AiServiceDeliveryNoteReader(props, Validation.buildDefaultValidatorFactory().getValidator(),
+                new ServiceTokenProvider("ai-service", claims -> "signed-token", Clock.systemUTC()));
     }
 
     private static void stubJson(int status, String body) {

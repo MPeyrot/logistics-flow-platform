@@ -3,7 +3,9 @@ package fr.michael.logistics.shipment.infrastructure.ai;
 import fr.michael.logistics.shipment.application.DeliveryNoteData;
 import fr.michael.logistics.shipment.application.DeliveryNoteReader;
 import fr.michael.logistics.shipment.application.DeliveryNoteReading;
+import fr.michael.logistics.shipment.application.ExtractionRateLimitedException;
 import fr.michael.logistics.shipment.application.ExtractionServiceUnavailableException;
+import fr.michael.logistics.shipment.application.ServiceTokenProvider;
 import fr.michael.logistics.shipment.application.UnreadableDeliveryNoteException;
 import fr.michael.logistics.shipment.application.UnsupportedDocumentException;
 import jakarta.validation.ConstraintViolation;
@@ -11,6 +13,7 @@ import jakarta.validation.Validator;
 import java.net.http.HttpClient;
 import java.util.Set;
 import org.springframework.core.io.ByteArrayResource;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
@@ -26,13 +29,15 @@ class AiServiceDeliveryNoteReader implements DeliveryNoteReader {
 
     private final RestClient client;
     private final Validator validator;
+    private final ServiceTokenProvider tokens;
 
-    AiServiceDeliveryNoteReader(AiServiceProperties props, Validator validator) {
+    AiServiceDeliveryNoteReader(AiServiceProperties props, Validator validator, ServiceTokenProvider tokens) {
         var factory = new JdkClientHttpRequestFactory(
                 HttpClient.newBuilder().version(HttpClient.Version.HTTP_1_1).connectTimeout(props.connectTimeout()).build());
         factory.setReadTimeout(props.readTimeout());
         this.client = RestClient.builder().baseUrl(props.baseUrl()).requestFactory(factory).build();
         this.validator = validator;
+        this.tokens = tokens;
     }
 
     @Override
@@ -48,6 +53,7 @@ class AiServiceDeliveryNoteReader implements DeliveryNoteReader {
         try {
             response = client.post()
                     .uri("/api/delivery-notes/extract")
+                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + tokens.token())
                     .contentType(MediaType.MULTIPART_FORM_DATA)
                     .body(body)
                     .retrieve()
@@ -65,9 +71,19 @@ class AiServiceDeliveryNoteReader implements DeliveryNoteReader {
         return switch (status.value()) {
             case 415 -> new UnsupportedDocumentException("Expected a PDF, PNG, JPEG, GIF or WebP file");
             case 422 -> new UnreadableDeliveryNoteException("No usable delivery note found in the document");
+            case 429 -> new ExtractionRateLimitedException("The extraction service is rate limited, retry later", retryAfter(e));
             case 400 -> new IllegalArgumentException("The document was rejected by the extraction service");
             default -> new ExtractionServiceUnavailableException("ai-service answered " + status.value(), e);
         };
+    }
+
+    private static Long retryAfter(RestClientResponseException e) {
+        String value = e.getResponseHeaders() == null ? null : e.getResponseHeaders().getFirst(HttpHeaders.RETRY_AFTER);
+        try {
+            return value == null ? null : Long.valueOf(value.trim());
+        } catch (NumberFormatException notSeconds) {
+            return null;
+        }
     }
 
     private DeliveryNoteReading toReading(AiExtractionResponse response) {

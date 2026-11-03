@@ -3,6 +3,7 @@ package fr.michael.logistics.shipment.infrastructure.web;
 import fr.michael.logistics.shipment.application.ReadDeliveryNoteService;
 import java.io.IOException;
 import org.springframework.http.MediaType;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -21,7 +22,7 @@ class DeliveryNoteController {
 
     /** Lit un bon de livraison (PDF ou image) et retrouve l'expédition qui porte la même référence. */
     @PostMapping(path = "/extract", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    DeliveryNoteMatchResponse extract(@RequestParam("file") MultipartFile file) throws IOException {
-        return DeliveryNoteMatchResponse.from(service.read(file.getBytes(), file.getOriginalFilename()));
+    DeliveryNoteMatchResponse extract(@RequestParam("file") MultipartFile file, Authentication authentication) throws IOException {
+        return DeliveryNoteMatchResponse.from(service.read(authentication.getName(), file.getBytes(), file.getOriginalFilename()));
     }
 }
