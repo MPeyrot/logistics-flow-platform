@@ -59,6 +59,27 @@ class AccountServiceTest {
                 .isInstanceOf(DuplicateUsernameException.class);
     }
 
+    @Test
+    void reactivateRestoresADeactivatedAccount() {
+        UserAccount account = service.create("carol", "a long password", Role.OPERATOR, null);
+        service.deactivate(account.id());
+
+        assertThat(service.reactivate(account.id()).active()).isTrue();
+        assertThat(accounts.findById(account.id()).orElseThrow().active()).isTrue();
+    }
+
+    @Test
+    void reactivatingAnActiveAccountChangesNothing() {
+        UserAccount account = service.create("dave", "a long password", Role.OPERATOR, null);
+
+        assertThat(service.reactivate(account.id())).isEqualTo(account);
+    }
+
+    @Test
+    void reactivatingAnUnknownAccountFails() {
+        assertThatThrownBy(() -> service.reactivate(UUID.randomUUID())).isInstanceOf(AccountNotFoundException.class);
+    }
+
     private static final class PrefixHasher implements PasswordHasher {
         @Override
         public String hash(String rawPassword) {

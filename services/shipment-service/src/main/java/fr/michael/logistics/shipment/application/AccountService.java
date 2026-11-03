@@ -57,6 +57,16 @@ public class AccountService {
         return repository.save(account.deactivate());
     }
 
+    /** Réactive un compte désactivé : il obtient de nouveau des jetons. Sans effet sur un compte actif. */
+    @Transactional
+    public UserAccount reactivate(UUID id) {
+        UserAccount account = repository.findById(id).orElseThrow(() -> new AccountNotFoundException(id));
+        if (account.active()) {
+            return account;
+        }
+        return repository.save(account.activate());
+    }
+
     /** Crée le premier ADMIN si aucun n'existe et que l'identifiant et le mot de passe sont fournis. */
     @Transactional
     public BootstrapOutcome bootstrapAdmin(String username, String rawPassword) {

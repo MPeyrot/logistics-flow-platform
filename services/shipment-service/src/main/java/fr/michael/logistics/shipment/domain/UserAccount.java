@@ -56,4 +56,8 @@ public record UserAccount(
     public UserAccount deactivate() {
         return new UserAccount(id, username, passwordHash, role, site, false, createdAt);
     }
+
+    public UserAccount activate() {
+        return new UserAccount(id, username, passwordHash, role, site, true, createdAt);
+    }
 }

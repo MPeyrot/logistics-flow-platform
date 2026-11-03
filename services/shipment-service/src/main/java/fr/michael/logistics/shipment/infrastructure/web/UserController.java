@@ -3,7 +3,6 @@ package fr.michael.logistics.shipment.infrastructure.web;
 import fr.michael.logistics.shipment.application.AccountService;
 import fr.michael.logistics.shipment.domain.UserAccount;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.AssertFalse;
 import jakarta.validation.constraints.NotNull;
 import java.net.URI;
 import java.util.UUID;
@@ -16,7 +15,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
-/** Comptes : création et désactivation, réservées à l'ADMIN (SecurityConfig). Pas de liste. */
+/** Comptes : création, désactivation et réactivation, réservées à l'ADMIN (SecurityConfig). Pas de liste. */
 @RestController
 @RequestMapping("/api/users")
 class UserController {
@@ -34,12 +33,13 @@ class UserController {
         return ResponseEntity.created(location).body(UserResponse.from(account));
     }
 
-    /** Corps {"active": false} : seule la désactivation existe (spec #13). */
+    /** Corps {"active": false} désactive le compte, {"active": true} le réactive (#24). */
     @PatchMapping("/{id}")
     UserResponse update(@PathVariable UUID id, @Valid @RequestBody UpdateUserRequest request) {
-        return UserResponse.from(accounts.deactivate(id));
+        UserAccount account = request.active() ? accounts.reactivate(id) : accounts.deactivate(id);
+        return UserResponse.from(account);
     }
 
-    record UpdateUserRequest(@NotNull @AssertFalse(message = "only deactivation is supported") Boolean active) {
+    record UpdateUserRequest(@NotNull Boolean active) {
     }
 }

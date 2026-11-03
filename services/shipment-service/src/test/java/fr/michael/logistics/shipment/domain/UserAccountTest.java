@@ -68,4 +68,14 @@ class UserAccountTest {
         assertThat(deactivated.id()).isEqualTo(account.id());
         assertThat(deactivated.username()).isEqualTo("alice");
     }
+
+    @Test
+    void reactivatedAccountKeepsItsIdentity() {
+        UserAccount deactivated = UserAccount.create("bob", HASH, Role.SCANNER, "LYON", NOW).deactivate();
+
+        UserAccount reactivated = deactivated.activate();
+
+        assertThat(reactivated.active()).isTrue();
+        assertThat(reactivated).isEqualTo(new UserAccount(deactivated.id(), "bob", HASH, Role.SCANNER, "LYON", true, NOW));
+    }
 }

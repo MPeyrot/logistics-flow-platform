@@ -38,6 +38,7 @@ class UserApiTest {
 
     private static final String PASSWORD = "a long enough password";
     private static final String DEACTIVATE = "{\"active\":false}";
+    private static final String REACTIVATE = "{\"active\":true}";
 
     @Autowired
     MockMvc mvc;
@@ -156,11 +157,38 @@ class UserApiTest {
     }
 
     @Test
-    void patchOnlyDeactivates() throws Exception {
+    void deactivatedAccountCanBeReactivatedAndLogInAgain() throws Exception {
+        String id = idOf(createUser("users-to-reactivate", PASSWORD, "SCANNER", "LYON"));
+        deactivate(id).andExpect(status().isOk());
+        rejectedLogin("users-to-reactivate", PASSWORD);
+
+        reactivate(id)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(id))
+                .andExpect(jsonPath("$.username").value("users-to-reactivate"))
+                .andExpect(jsonPath("$.role").value("SCANNER"))
+                .andExpect(jsonPath("$.site").value("LYON"))
+                .andExpect(jsonPath("$.active").value(true));
+
+        assertThat(TestAccounts.token(mvc, "users-to-reactivate", PASSWORD)).isNotBlank();
+    }
+
+    @Test
+    void reactivatingAnActiveAccountIsHarmless() throws Exception {
+        String id = idOf(createUser("users-reactivate-twice", PASSWORD, "OPERATOR", null));
+
+        reactivate(id).andExpect(status().isOk()).andExpect(jsonPath("$.active").value(true));
+        reactivate(id).andExpect(status().isOk()).andExpect(jsonPath("$.active").value(true));
+        assertThat(TestAccounts.token(mvc, "users-reactivate-twice", PASSWORD)).isNotBlank();
+    }
+
+    @Test
+    void patchNeedsTheActiveFlag() throws Exception {
         String id = idOf(createUser("users-patch-body", PASSWORD, "OPERATOR", null));
 
-        badRequest(patch(id, "{\"active\":true}"));
         badRequest(patch(id, "{}"));
+        badRequest(patch(id, "{\"active\":null}"));
+        badRequest(patch(id, "{\"active\":\"maybe\"}"));
         assertThat(TestAccounts.token(mvc, "users-patch-body", PASSWORD)).isNotBlank();
     }
 
@@ -169,7 +197,11 @@ class UserApiTest {
         deactivate(UUID.randomUUID().toString())
                 .andExpect(status().isNotFound())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON));
+        reactivate(UUID.randomUUID().toString())
+                .andExpect(status().isNotFound())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON));
         badRequest(deactivate("not-a-uuid"));
+        badRequest(reactivate("not-a-uuid"));
     }
 
     @Test
@@ -191,6 +223,8 @@ class UserApiTest {
     @Test
     void operatorAndScannerGet403OnUsers() throws Exception {
         String id = idOf(createUser("users-target", PASSWORD, "OPERATOR", null));
+        String disabled = idOf(createUser("users-target-disabled", PASSWORD, "OPERATOR", null));
+        deactivate(disabled).andExpect(status().isOk());
         for (String bearer : new String[] {
                 TestAccounts.operatorBearer(mvc, accounts), TestAccounts.scannerBearer(mvc, accounts)}) {
             mvc.perform(post("/api/users").header("Authorization", bearer)
@@ -199,25 +233,38 @@ class UserApiTest {
             mvc.perform(MockMvcRequestBuilders.patch("/api/users/" + id).header("Authorization", bearer)
                             .contentType(MediaType.APPLICATION_JSON).content(DEACTIVATE))
                     .andExpect(status().isForbidden());
+            mvc.perform(MockMvcRequestBuilders.patch("/api/users/" + disabled).header("Authorization", bearer)
+                            .contentType(MediaType.APPLICATION_JSON).content(REACTIVATE))
+                    .andExpect(status().isForbidden());
         }
         assertThat(TestAccounts.token(mvc, "users-target", PASSWORD)).isNotBlank();
+        assertThat(repository.findById(UUID.fromString(disabled)).orElseThrow().active()).isFalse();
         assertThat(repository.findByUsername("users-by-other")).isEmpty();
     }
 
     @Test
     void requestWithoutTokenGets401OnUsers() throws Exception {
         String id = idOf(createUser("users-target-anon", PASSWORD, "OPERATOR", null));
+        String disabled = idOf(createUser("users-target-anon-disabled", PASSWORD, "OPERATOR", null));
+        deactivate(disabled).andExpect(status().isOk());
 
         mvc.perform(post("/api/users").contentType(MediaType.APPLICATION_JSON)
                         .content(json("users-by-anon", PASSWORD, "ADMIN", null)))
                 .andExpect(status().isUnauthorized());
         mvc.perform(MockMvcRequestBuilders.patch("/api/users/" + id).contentType(MediaType.APPLICATION_JSON).content(DEACTIVATE))
                 .andExpect(status().isUnauthorized());
+        mvc.perform(MockMvcRequestBuilders.patch("/api/users/" + disabled).contentType(MediaType.APPLICATION_JSON).content(REACTIVATE))
+                .andExpect(status().isUnauthorized());
         assertThat(repository.findByUsername("users-by-anon")).isEmpty();
+        assertThat(repository.findById(UUID.fromString(disabled)).orElseThrow().active()).isFalse();
     }
 
     private ResultActions deactivate(String id) throws Exception {
         return patch(id, DEACTIVATE);
+    }
+
+    private ResultActions reactivate(String id) throws Exception {
+        return patch(id, REACTIVATE);
     }
 
     private ResultActions patch(String id, String body) throws Exception {
