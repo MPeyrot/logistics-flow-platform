@@ -20,7 +20,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
+import fr.michael.logistics.ingestion.infrastructure.security.TestJwt;
 import org.springframework.test.web.servlet.MockMvc;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
@@ -29,6 +33,11 @@ import tools.jackson.databind.json.JsonMapper;
 @AutoConfigureMockMvc
 @Import(TestcontainersConfiguration.class)
 class ScanApiTest {
+
+    @DynamicPropertySource
+    static void jwks(DynamicPropertyRegistry registry) {
+        TestJwt.register(registry);
+    }
 
     @Autowired
     MockMvc mvc;
@@ -43,6 +52,7 @@ class ScanApiTest {
     void publishesScanOnKafkaKeyedByShipmentReference() throws Exception {
         String reference = "KAFKA-" + UUID.randomUUID();
         mvc.perform(post("/api/scans")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + TestJwt.scanner("Nantes").build())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"shipmentReference":"%s","type":"PICKED_UP","site":"Nantes"}""".formatted(reference)))
@@ -63,11 +73,13 @@ class ScanApiTest {
     @Test
     void rejectsInvalidScanWithoutPublishing() throws Exception {
         mvc.perform(post("/api/scans")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + TestJwt.scanner("Nantes").build())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"shipmentReference":"","type":"PICKED_UP","site":"Nantes"}"""))
                 .andExpect(status().isBadRequest());
         mvc.perform(post("/api/scans")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + TestJwt.scanner("Nantes").build())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"shipmentReference":"REF","type":"UNKNOWN","site":"Nantes"}"""))

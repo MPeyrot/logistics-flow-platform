@@ -14,13 +14,17 @@ public class ExtractDeliveryNoteService {
 
     private final DeliveryNoteExtractor extractor;
     private final ModelPricing pricing;
+    private final ExtractionQuota quota;
 
-    public ExtractDeliveryNoteService(DeliveryNoteExtractor extractor, ModelPricing pricing) {
+    public ExtractDeliveryNoteService(DeliveryNoteExtractor extractor, ModelPricing pricing,
+            ExtractionQuota quota) {
         this.extractor = extractor;
+        this.quota = quota;
         this.pricing = pricing;
     }
 
     public ExtractionResult extract(SourceDocument document) {
+        quota.acquire();
         ModelExtraction extraction;
         try {
             extraction = extractor.extract(document);
