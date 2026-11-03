@@ -50,4 +50,12 @@ public class ExtractionRateLimiter {
         }
         times.addLast(now);
     }
+
+    /** Rend la dernière extraction prise par cet utilisateur : elle n'a rien coûté. */
+    public synchronized void release(String user) {
+        Deque<Instant> times = byUser.get(user);
+        if (times != null && !times.isEmpty()) {
+            times.removeLast();
+        }
+    }
 }

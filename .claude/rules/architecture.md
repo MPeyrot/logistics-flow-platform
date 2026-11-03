@@ -44,7 +44,7 @@ Chaque service : `src/main/java/<package>/{domain,application,infrastructure}`.
 - `shipment-service` valide ses propres jetons avec sa clé publique : `iss`, `exp`, et `aud` égal à `shipment-service` ou `ingestion-service` (un SCANNER reçoit ainsi 403, pas 401 ; le jeton de service `aud=ai-service` est refusé). Confirmé par Michael le 2026-11-03 (#22).
 - Clé privée `JWT_PRIVATE_KEY` (PEM PKCS#8) obligatoire, générée en local par `scripts/generate-jwt-key.sh` dans `.secrets/` (ignoré par git), chargée par `scripts/env.sh`. Les tests génèrent leur clé.
 - `domain` et `application` n'importent pas `org.springframework.security` (règle ArchUnit).
-- Limites de débit en mémoire, par instance, 429 + `Retry-After` : 20 extractions/h par utilisateur (shipment), 100/h au total (ai), blocage de 15 min après 5 échecs de connexion.
+- Limites de débit en mémoire, par instance, 429 + `Retry-After` : 20 extractions/h par utilisateur (shipment ; rendue sur un 415 ou 429 d'ai-service), 100/h au total (ai), blocage de 15 min après 5 échecs de connexion.
 - Connexion (décidé le 2026-11-03, #23, #24) : identifiant bloqué → 429 + `Retry-After`, aussi pour un identifiant inconnu ; une connexion réussie remet le compteur à zéro ; une tentative compte comme échec dès son début (annulée si une erreur inattendue l'interrompt, base indisponible par exemple) ; au-delà de 10 000 identifiants suivis, les moins récemment vus sont oubliés (même bloqués). Un ADMIN peut réactiver un compte désactivé (`PATCH /api/users/{id}`, `active`).
 
 ## Messagerie Kafka
