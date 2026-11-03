@@ -8,7 +8,6 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 /** Émet un jeton d'accès contre un identifiant et un mot de passe. */
 @Service
@@ -39,8 +38,12 @@ public class AuthenticationService {
         this.unknownUserHash = passwordHasher.hash("unknown-user-placeholder");
     }
 
-    /** Identifiant bloqué après trop d'échecs : {@link LoginBlockedException}, avant même de lire le mot de passe. */
-    @Transactional(readOnly = true)
+    /**
+     * Identifiant bloqué après trop d'échecs : {@link LoginBlockedException}, avant même de lire le mot de passe.
+     *
+     * <p>Sans transaction : le compte est lu (la connexion est rendue au pool aussitôt), puis le mot de passe est
+     * comparé. Une transaction ici tiendrait la connexion pendant BCrypt (~100 ms), même pour un identifiant inconnu.
+     */
     public AccessToken issueToken(String username, String rawPassword) {
         loginThrottle.begin(username);
         UserAccount account;
