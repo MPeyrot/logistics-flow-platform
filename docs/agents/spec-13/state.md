@@ -15,7 +15,7 @@ Ce fichier est relu par chaque orchestrateur neuf : il décrit l'état présent,
 | #15 | ingestion : validation jetons SCANNER, contrôle du site | — | sonnet / medium | fusionné | | 331804a |
 | #16 | ai : jeton de service, plafond global | — | sonnet / medium | fusionné | | b69df23 |
 | #17 | shipment : API des comptes, force brute | #14 | opus / high | fusionné | | 516f8a8 |
-| #18 | shipment → ai : jeton de service, limite par utilisateur, README | #17, #16 | sonnet / medium | en cours | slot 1 / .claude/worktrees/agent-a496df02f838189dc / ticket/18-shipment-ai-jeton | |
+| #18 | shipment → ai : jeton de service, limite par utilisateur, README | #17, #16 | sonnet / medium | fusionné | | a21ae11 |
 
 Statuts : `à faire`, `en cours`, `partiel`, `décision attendue`, `fusionné`.
 
