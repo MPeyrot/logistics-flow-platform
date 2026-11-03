@@ -14,7 +14,7 @@ Ce fichier est relu par chaque orchestrateur neuf : il décrit l'état présent,
 | #14 | shipment : comptes, émission JWT, routes par rôle (migration `V3__`) | — | opus / high | fusionné | | 520ef16 |
 | #15 | ingestion : validation jetons SCANNER, contrôle du site | — | sonnet / medium | fusionné | | 331804a |
 | #16 | ai : jeton de service, plafond global | — | sonnet / medium | fusionné | | b69df23 |
-| #17 | shipment : API des comptes, force brute | #14 | opus / high | à faire | | |
+| #17 | shipment : API des comptes, force brute | #14 | opus / high | en cours | slot 1 / .claude/worktrees/agent-a1f7d4b66a035d988 / ticket/17-api-comptes | |
 | #18 | shipment → ai : jeton de service, limite par utilisateur, README | #17, #16 | sonnet / medium | à faire | | |
 
 Statuts : `à faire`, `en cours`, `partiel`, `décision attendue`, `fusionné`.
