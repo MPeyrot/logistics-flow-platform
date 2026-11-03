@@ -17,6 +17,7 @@ Ce fichier est relu par chaque orchestrateur neuf : il décrit l'état présent,
 | #17 | shipment : API des comptes, force brute | #14 | opus / high | fusionné | | 516f8a8 |
 | #18 | shipment → ai : jeton de service, limite par utilisateur, README | #17, #16 | sonnet / medium | fusionné | | a21ae11 |
 | #25 | shipment : réactivation d'un compte (décision #24) | #18 | opus / high | fusionné | | 119c226 |
+| #26 | corrections de la revue de fin de spec | #25 | opus / high | en cours | slot 1 / .claude/worktrees/agent-a9209e3bc2416e6f1 / ticket/26-corrections-revue | |
 
 Statuts : `à faire`, `en cours`, `partiel`, `décision attendue`, `fusionné`.
 
