@@ -16,7 +16,7 @@ Ce fichier est relu par chaque orchestrateur neuf : il décrit l'état présent,
 | #16 | ai : jeton de service, plafond global | — | sonnet / medium | fusionné | | b69df23 |
 | #17 | shipment : API des comptes, force brute | #14 | opus / high | fusionné | | 516f8a8 |
 | #18 | shipment → ai : jeton de service, limite par utilisateur, README | #17, #16 | sonnet / medium | fusionné | | a21ae11 |
-| #25 | shipment : réactivation d'un compte (décision #24) | #18 | opus / high | à faire | | |
+| #25 | shipment : réactivation d'un compte (décision #24) | #18 | opus / high | en cours | slot 1 / .claude/worktrees/agent-a238dc7e49f43e4aa / ticket/25-reactivation-compte | |
 
 Statuts : `à faire`, `en cours`, `partiel`, `décision attendue`, `fusionné`.
 
