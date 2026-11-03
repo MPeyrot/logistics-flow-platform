@@ -12,7 +12,7 @@
   - **Kafka** en local (Docker Compose) et en ligne : Kafka managé auquel les services Cloud Run se connectent (offre à choisir, issue #2).
   - **Modèle métier** : Site, Expédition, ÉvénementDeScan, Anomalie ; Compte (2026-11-03, rôles ADMIN, OPERATOR, SCANNER ; un SCANNER est rattaché à un site).
   - **`JAVA_HOME`** propre au projet : `source scripts/env.sh` avant `./mvnw`, sans modifier `~/.zshrc`.
-- Validé par Michael le 2026-11-03 (#15) : dans `ingestion-service`, `spring-boot-starter-security`, `spring-boot-starter-security-oauth2-resource-server` et leurs starters de test, `wiremock-standalone` 3.13.2 en test.
+- Validé par Michael le 2026-11-03 (#14, #15, #16) : dans les trois services, `spring-boot-starter-security`, `spring-boot-starter-security-oauth2-resource-server` et leurs starters de test ; `wiremock-standalone` 3.13.2 en test dans `ingestion-service`.
 
 ## Structure
 ```
@@ -41,7 +41,7 @@ Chaque service : `src/main/java/<package>/{domain,application,infrastructure}`.
 - JWT RS256 émis par `shipment-service` (`POST /api/auth/token`), clé publique sur `/.well-known/jwks.json` ; `ingestion-service` et `ai-service` valident avec le resource server Spring Security (`SHIPMENT_SERVICE_URL`), sans secret.
 - Claims : `iss=shipment-service`, `aud` = service visé, `roles`, `site` (SCANNER). Durées : 1 h (ADMIN, OPERATOR), 12 h (SCANNER), 5 min (jeton de service `shipment-service` → `ai-service`). Pas de refresh token ; révocation = désactivation du compte.
 - `ai-service` n'accepte que `sub=shipment-service`, `aud=ai-service`. `ingestion-service` : rôle SCANNER et site du scan = claim `site`.
-- `shipment-service` valide ses propres jetons avec sa clé publique : `iss`, `exp`, et `aud` égal à `shipment-service` ou `ingestion-service` (un SCANNER reçoit ainsi 403, pas 401 ; le jeton de service `aud=ai-service` est refusé).
+- `shipment-service` valide ses propres jetons avec sa clé publique : `iss`, `exp`, et `aud` égal à `shipment-service` ou `ingestion-service` (un SCANNER reçoit ainsi 403, pas 401 ; le jeton de service `aud=ai-service` est refusé). Confirmé par Michael le 2026-11-03 (#22).
 - Clé privée `JWT_PRIVATE_KEY` (PEM PKCS#8) obligatoire, générée en local par `scripts/generate-jwt-key.sh` dans `.secrets/` (ignoré par git), chargée par `scripts/env.sh`. Les tests génèrent leur clé.
 - `domain` et `application` n'importent pas `org.springframework.security` (règle ArchUnit).
 - Limites de débit en mémoire, par instance, 429 + `Retry-After` : 20 extractions/h par utilisateur (shipment), 100/h au total (ai), blocage de 15 min après 5 échecs de connexion.
