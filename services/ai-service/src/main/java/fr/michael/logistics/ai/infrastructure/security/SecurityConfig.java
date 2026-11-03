@@ -1,5 +1,6 @@
 package fr.michael.logistics.ai.infrastructure.security;
 
+import jakarta.servlet.DispatcherType;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -37,6 +38,8 @@ class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(a -> a
+                        // forward vers /error (400, 413, 500…) : sans cela, il tombe sur denyAll et devient 403
+                        .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
                         .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/delivery-notes/extract").authenticated()
                         .anyRequest().denyAll())
