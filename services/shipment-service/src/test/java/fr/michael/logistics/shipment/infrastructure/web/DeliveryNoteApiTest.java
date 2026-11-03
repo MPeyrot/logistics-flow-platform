@@ -8,7 +8,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
+import fr.michael.logistics.shipment.TestAccounts;
 import fr.michael.logistics.shipment.TestcontainersConfiguration;
+import fr.michael.logistics.shipment.application.AccountService;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -47,19 +49,25 @@ class DeliveryNoteApiTest {
     @Autowired
     MockMvc mvc;
 
+    @Autowired
+    AccountService accounts;
+
+    String bearer;
+
     @BeforeEach
-    void reset() {
+    void reset() throws Exception {
         AI_SERVICE.resetAll();
+        bearer = TestAccounts.operatorBearer(mvc, accounts);
     }
 
     @Test
     void returnsDeliveryNoteWithMatchingShipment() throws Exception {
-        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/api/shipments").contentType(MediaType.APPLICATION_JSON)
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/api/shipments").header("Authorization", bearer).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"reference\":\"BL-MATCH\",\"origin\":\"Nantes\",\"destination\":\"Lyon\"}"))
                 .andExpect(status().isCreated());
         stub(200, body("BL-MATCH"));
 
-        mvc.perform(multipart("/api/delivery-notes/extract").file(pdf()))
+        mvc.perform(multipart("/api/delivery-notes/extract").file(pdf()).header("Authorization", bearer))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.deliveryNote.reference").value("BL-MATCH"))
                 .andExpect(jsonPath("$.deliveryNote.packageCount").value(2))
@@ -72,7 +80,7 @@ class DeliveryNoteApiTest {
     void returnsNullShipmentWhenReferenceIsUnknown() throws Exception {
         stub(200, body("BL-UNKNOWN"));
 
-        mvc.perform(multipart("/api/delivery-notes/extract").file(pdf()))
+        mvc.perform(multipart("/api/delivery-notes/extract").file(pdf()).header("Authorization", bearer))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.deliveryNote.reference").value("BL-UNKNOWN"))
                 .andExpect(jsonPath("$.shipment").doesNotExist());
@@ -81,19 +89,19 @@ class DeliveryNoteApiTest {
     @Test
     void relaysUnreadableDocumentAs422() throws Exception {
         stub(422, "{}");
-        mvc.perform(multipart("/api/delivery-notes/extract").file(pdf())).andExpect(status().isUnprocessableContent());
+        mvc.perform(multipart("/api/delivery-notes/extract").file(pdf()).header("Authorization", bearer)).andExpect(status().isUnprocessableContent());
     }
 
     @Test
     void relaysUnsupportedFormatAs415() throws Exception {
         stub(415, "{}");
-        mvc.perform(multipart("/api/delivery-notes/extract").file(pdf())).andExpect(status().isUnsupportedMediaType());
+        mvc.perform(multipart("/api/delivery-notes/extract").file(pdf()).header("Authorization", bearer)).andExpect(status().isUnsupportedMediaType());
     }
 
     @Test
     void answers502WhenAiServiceFails() throws Exception {
         stub(503, "{}");
-        mvc.perform(multipart("/api/delivery-notes/extract").file(pdf())).andExpect(status().isBadGateway());
+        mvc.perform(multipart("/api/delivery-notes/extract").file(pdf()).header("Authorization", bearer)).andExpect(status().isBadGateway());
     }
 
     private static MockMultipartFile pdf() {

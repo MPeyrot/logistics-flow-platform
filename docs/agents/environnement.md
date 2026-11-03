@@ -13,6 +13,11 @@ Lu par l'orchestrateur, les implémenteurs et `/preparer-spec` (skills globaux `
 - Docker doit tourner (OrbStack). Les tests ne fixent aucun port (Testcontainers choisit les siens) : deux implémenteurs en parallèle ne se gênent pas, mais chacun démarre ses conteneurs. Pas de `docker compose up` dans un worktree (ports 5432 et 9092 fixes, partagés).
 - Lancer un service à la main (rare) : `PORT=<8090 + 10×slot + n>`, jamais 8081 ou 8082.
 
+## Authentification (tests de shipment-service)
+- Starters Spring Boot 4.1 : `spring-boot-starter-security`, `spring-boot-starter-security-oauth2-resource-server` et leurs `-test`.
+- `TestcontainersConfiguration` importe `TestSecurityConfiguration` : clé RSA générée en mémoire (`jwt.private-key`) et ADMIN amorcé `test-admin` / `test-admin-password`. `TestAccounts` crée les comptes de test (`ensure`) et obtient un jeton par `POST /api/auth/token` (`adminBearer`, `operatorBearer`, `scannerBearer`).
+- `POST /api/auth/token` : corps `{"username","password"}`, réponse `{"accessToken","tokenType":"Bearer","expiresAt"}`. `sub` = identifiant du compte.
+
 ## Projet
 - Branche de base des specs : `main`. Ne rien pousser sans Michael.
 - Journal des décisions : `.claude/rules/architecture.md` > Décisions (dépendances Maven : à faire valider par Michael avant de les ajouter).

@@ -2,6 +2,7 @@ package fr.michael.logistics.shipment.infrastructure.web;
 
 import fr.michael.logistics.shipment.application.DuplicateReferenceException;
 import fr.michael.logistics.shipment.application.ExtractionServiceUnavailableException;
+import fr.michael.logistics.shipment.application.InvalidCredentialsException;
 import fr.michael.logistics.shipment.application.UnreadableDeliveryNoteException;
 import fr.michael.logistics.shipment.application.UnsupportedDocumentException;
 import org.slf4j.Logger;
@@ -19,6 +20,12 @@ class ApiExceptionHandler {
     @ExceptionHandler(DuplicateReferenceException.class)
     ProblemDetail duplicate(DuplicateReferenceException e) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, e.getMessage());
+    }
+
+    /** Même réponse pour un identifiant inconnu, un mauvais mot de passe ou un compte désactivé. */
+    @ExceptionHandler(InvalidCredentialsException.class)
+    ProblemDetail invalidCredentials(InvalidCredentialsException e) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, e.getMessage());
     }
 
     @ExceptionHandler(IllegalArgumentException.class)

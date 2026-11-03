@@ -35,4 +35,9 @@ class ArchitectureTest {
     static final ArchRule applicationIgnoresPersistenceAndWeb = noClasses().that().resideInAPackage(APPLICATION)
             .should().dependOnClassesThat().resideInAnyPackage("jakarta.persistence..", "org.springframework.web..", "org.springframework.kafka..", "org.apache.kafka..")
             .because("ni JPA, ni HTTP, ni Kafka dans les cas d'usage");
+
+    @ArchTest
+    static final ArchRule coreIgnoresSpringSecurity = noClasses().that().resideInAnyPackage(DOMAIN, APPLICATION)
+            .should().dependOnClassesThat().resideInAnyPackage("org.springframework.security..")
+            .because("hachage et signature passent par les ports PasswordHasher et TokenIssuer");
 }

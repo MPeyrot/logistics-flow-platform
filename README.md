@@ -41,10 +41,12 @@ Java 21, Spring Boot 4.1, Spring Data JPA / Hibernate, Flyway, PostgreSQL 17, Ap
 Prérequis : JDK 21, Docker.
 
 ```sh
-source scripts/env.sh          # JAVA_HOME sur openjdk@21 (macOS/Homebrew ; adapter ailleurs)
+scripts/generate-jwt-key.sh    # une fois : clé de signature des JWT dans .secrets/ (ignoré par git)
+source scripts/env.sh          # JAVA_HOME sur openjdk@21 (macOS/Homebrew ; adapter ailleurs) et JWT_PRIVATE_KEY
 docker compose up -d --wait    # PostgreSQL et Kafka
 
-(cd services/shipment-service && ./mvnw spring-boot:run) &
+# premier ADMIN, créé au démarrage s'il n'en existe aucun (mot de passe : 12 caractères au moins)
+(cd services/shipment-service && BOOTSTRAP_ADMIN_USERNAME=admin BOOTSTRAP_ADMIN_PASSWORD=... ./mvnw spring-boot:run) &
 (cd services/ingestion-service && ./mvnw spring-boot:run) &
 (cd services/ai-service && ANTHROPIC_API_KEY=... ./mvnw spring-boot:run) &   # clé d'API Claude, jamais dans le dépôt
 ```
@@ -52,8 +54,12 @@ docker compose up -d --wait    # PostgreSQL et Kafka
 Exemple :
 
 ```sh
+# 0. obtenir un jeton (valable 1 h) : les routes de shipment-service l'exigent
+TOKEN=$(curl -s -X POST localhost:8080/api/auth/token -H 'Content-Type: application/json' \
+  -d '{"username":"admin","password":"..."}' | jq -r .accessToken)
+
 # 1. créer une expédition
-curl -X POST localhost:8080/api/shipments -H 'Content-Type: application/json' \
+curl -X POST localhost:8080/api/shipments -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
   -d '{"reference":"REF-1001","origin":"Nantes","destination":"Lyon"}'
 
 # 2. envoyer un scan (traité en asynchrone via Kafka)
@@ -61,10 +67,10 @@ curl -X POST localhost:8081/api/scans -H 'Content-Type: application/json' \
   -d '{"shipmentReference":"REF-1001","type":"PICKED_UP","site":"Nantes"}'
 
 # 3. le statut est passé de CREATED à IN_TRANSIT
-curl localhost:8080/api/shipments
+curl -H "Authorization: Bearer $TOKEN" localhost:8080/api/shipments
 
 # 4. lire un bon de livraison (PDF ou image) : données extraites, coût, expédition correspondante
-curl -F file=@bon.pdf localhost:8080/api/delivery-notes/extract
+curl -H "Authorization: Bearer $TOKEN" -F file=@bon.pdf localhost:8080/api/delivery-notes/extract
 ```
 
 ## Tests
