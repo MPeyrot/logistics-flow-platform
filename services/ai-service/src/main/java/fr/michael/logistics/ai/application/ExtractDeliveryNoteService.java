@@ -34,6 +34,10 @@ public class ExtractDeliveryNoteService {
                         pricing.costOf(e.usage()).toPlainString());
             }
             throw e;
+        } catch (ExtractionUnavailableException | ExtractionFailedException e) {
+            // Clé absente, ou API en erreur sans réponse du modèle : rien n'a été facturé.
+            quota.release();
+            throw e;
         }
         BigDecimal cost = pricing.costOf(extraction.usage());
         log.info("delivery note extracted: format={} inputTokens={} outputTokens={} cacheWriteTokens={} cacheReadTokens={} costUsd={}",

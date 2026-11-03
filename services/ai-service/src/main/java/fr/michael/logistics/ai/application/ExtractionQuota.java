@@ -35,4 +35,11 @@ public class ExtractionQuota {
         }
         accepted.addLast(now);
     }
+
+    /** Rend la dernière extraction réservée : aucun appel au modèle n'a été facturé. */
+    public synchronized void release() {
+        if (!accepted.isEmpty()) {
+            accepted.removeLast();
+        }
+    }
 }

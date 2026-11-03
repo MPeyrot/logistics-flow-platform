@@ -39,4 +39,32 @@ class ExtractDeliveryNoteServiceTest {
 
         assertThatThrownBy(() -> service.extract(document)).isInstanceOf(UnreadableDocumentException.class);
     }
+
+    /** Clé absente (503) puis erreur de l'API sans réponse du modèle (502) : rien n'est facturé, le quota est rendu. */
+    @Test
+    void failuresWithoutBilledCallGiveTheQuotaBack() {
+        var single = new ExtractionQuota(1, java.time.Clock.systemUTC());
+        var note = new DeliveryNote("BL-1", null, null, null, null, null, null);
+        var outcomes = new java.util.ArrayDeque<java.util.function.Supplier<ModelExtraction>>(java.util.List.of(
+                () -> { throw new ExtractionUnavailableException("ANTHROPIC_API_KEY is not set"); },
+                () -> { throw new ExtractionFailedException("Claude API call failed"); },
+                () -> new ModelExtraction(note, new TokenUsage(10, 5, 0, 0))));
+        var service = new ExtractDeliveryNoteService(doc -> outcomes.removeFirst().get(), pricing, single);
+
+        assertThatThrownBy(() -> service.extract(document)).isInstanceOf(ExtractionUnavailableException.class);
+        assertThatThrownBy(() -> service.extract(document)).isInstanceOf(ExtractionFailedException.class);
+        assertThat(service.extract(document).note()).isEqualTo(note);
+    }
+
+    /** Réponse du modèle invalide (422) : l'appel a été facturé, le quota reste pris. */
+    @Test
+    void unreadableDocumentKeepsTheQuota() {
+        var single = new ExtractionQuota(1, java.time.Clock.systemUTC());
+        var service = new ExtractDeliveryNoteService(doc -> {
+            throw new UnreadableDocumentException("no reference", new TokenUsage(10, 5, 0, 0));
+        }, pricing, single);
+
+        assertThatThrownBy(() -> service.extract(document)).isInstanceOf(UnreadableDocumentException.class);
+        assertThatThrownBy(() -> service.extract(document)).isInstanceOf(ExtractionQuotaExceededException.class);
+    }
 }
