@@ -35,6 +35,8 @@ class BootstrapAdmin implements ApplicationRunner {
             case ADMIN_CREATED -> log.info("bootstrap: first ADMIN account created (username={})", username);
             case NO_ADMIN -> log.warn("bootstrap: no ADMIN account exists and BOOTSTRAP_ADMIN_USERNAME / "
                     + "BOOTSTRAP_ADMIN_PASSWORD are not set: nobody can administer accounts");
+            case ADMIN_CREATED_ELSEWHERE -> log.info("bootstrap: first ADMIN account created concurrently by another "
+                    + "instance (username={}), nothing to do", username);
             case ADMIN_EXISTS -> { }
         }
     }

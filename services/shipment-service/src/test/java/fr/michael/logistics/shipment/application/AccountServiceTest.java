@@ -38,6 +38,30 @@ class AccountServiceTest {
         assertThat(accounts.findByUsername("root")).isEmpty();
     }
 
+    /** Deux instances démarrent sur une base vide : la seconde voit l'ADMIN créé par la première, et démarre. */
+    @Test
+    void bootstrapToleratesAnotherInstanceCreatingTheAdminConcurrently() {
+        InMemoryAccounts racing = new InMemoryAccounts() {
+            private boolean otherInstanceStarted;
+
+            @Override
+            public boolean existsByRole(Role role) {
+                boolean exists = super.existsByRole(role);
+                if (!otherInstanceStarted) {
+                    otherInstanceStarted = true;
+                    save(UserAccount.create("root", "hashed:a long password", Role.ADMIN, null,
+                            Instant.parse("2026-11-03T10:00:00Z")));
+                }
+                return exists;
+            }
+        };
+        AccountService secondInstance = new AccountService(racing, new PrefixHasher(),
+                Clock.fixed(Instant.parse("2026-11-03T10:00:00Z"), ZoneOffset.UTC));
+
+        assertThat(secondInstance.bootstrapAdmin("root", "a long password"))
+                .isEqualTo(BootstrapOutcome.ADMIN_CREATED_ELSEWHERE);
+    }
+
     @Test
     void bootstrapWithoutCredentialsReportsMissingAdmin() {
         assertThat(service.bootstrapAdmin(null, null)).isEqualTo(BootstrapOutcome.NO_ADMIN);
@@ -92,7 +116,7 @@ class AccountServiceTest {
         }
     }
 
-    private static final class InMemoryAccounts implements UserAccountRepository {
+    private static class InMemoryAccounts implements UserAccountRepository {
         private final List<UserAccount> accounts = new ArrayList<>();
 
         @Override

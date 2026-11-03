@@ -15,6 +15,8 @@ public class AccountService {
         ADMIN_EXISTS,
         /** Le premier ADMIN vient d'être créé. */
         ADMIN_CREATED,
+        /** Une autre instance, démarrée en même temps, a créé le premier ADMIN : rien n'est fait. */
+        ADMIN_CREATED_ELSEWHERE,
         /** Aucun ADMIN et aucun identifiant d'amorçage : personne ne peut administrer le service. */
         NO_ADMIN
     }
@@ -67,8 +69,14 @@ public class AccountService {
         return repository.save(account.activate());
     }
 
-    /** Crée le premier ADMIN si aucun n'existe et que l'identifiant et le mot de passe sont fournis. */
-    @Transactional
+    /**
+     * Crée le premier ADMIN si aucun n'existe et que l'identifiant et le mot de passe sont fournis. Un mot de passe
+     * d'amorçage invalide lève {@link IllegalArgumentException} (le service ne démarre pas).
+     *
+     * <p>Sans transaction : deux instances qui démarrent ensemble sur une base vide créent le même identifiant ; la
+     * seconde se heurte à l'index unique, et une transaction englobante, marquée pour annulation, empêcherait de
+     * continuer.
+     */
     public BootstrapOutcome bootstrapAdmin(String username, String rawPassword) {
         if (repository.existsByRole(Role.ADMIN)) {
             return BootstrapOutcome.ADMIN_EXISTS;
@@ -76,7 +84,14 @@ public class AccountService {
         if (username == null || username.isBlank() || rawPassword == null || rawPassword.isBlank()) {
             return BootstrapOutcome.NO_ADMIN;
         }
-        create(username, rawPassword, Role.ADMIN, null);
+        try {
+            create(username, rawPassword, Role.ADMIN, null);
+        } catch (DuplicateUsernameException e) {
+            if (repository.existsByRole(Role.ADMIN)) {
+                return BootstrapOutcome.ADMIN_CREATED_ELSEWHERE;
+            }
+            throw e;
+        }
         return BootstrapOutcome.ADMIN_CREATED;
     }
 }
