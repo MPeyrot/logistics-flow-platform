@@ -12,6 +12,7 @@ import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
 class AccountServiceTest {
@@ -93,6 +94,16 @@ class AccountServiceTest {
         @Override
         public boolean existsByRole(Role role) {
             return accounts.stream().anyMatch(a -> a.role() == role);
+        }
+
+        @Override
+        public Optional<UserAccount> findById(UUID id) {
+            return accounts.stream().filter(a -> a.id().equals(id)).findFirst();
+        }
+
+        @Override
+        public int countActiveAdminsLocking() {
+            return (int) accounts.stream().filter(a -> a.role() == Role.ADMIN && a.active()).count();
         }
     }
 }

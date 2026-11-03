@@ -24,27 +24,33 @@ public class AuthenticationService {
     private final UserAccountRepository repository;
     private final PasswordHasher passwordHasher;
     private final TokenIssuer tokenIssuer;
+    private final LoginThrottle loginThrottle;
     private final Clock clock;
     /** Comparé quand l'identifiant est inconnu, pour que la réponse prenne le même temps. */
     private final String unknownUserHash;
 
     public AuthenticationService(UserAccountRepository repository, PasswordHasher passwordHasher,
-            TokenIssuer tokenIssuer, Clock clock) {
+            TokenIssuer tokenIssuer, LoginThrottle loginThrottle, Clock clock) {
         this.repository = repository;
         this.passwordHasher = passwordHasher;
         this.tokenIssuer = tokenIssuer;
+        this.loginThrottle = loginThrottle;
         this.clock = clock;
         this.unknownUserHash = passwordHasher.hash("unknown-user-placeholder");
     }
 
+    /** Identifiant bloqué après trop d'échecs : {@link LoginBlockedException}, avant même de lire le mot de passe. */
     @Transactional(readOnly = true)
     public AccessToken issueToken(String username, String rawPassword) {
+        loginThrottle.begin(username);
         Optional<UserAccount> account = repository.findByUsername(username);
         boolean passwordMatches = passwordHasher.matches(rawPassword,
                 account.map(UserAccount::passwordHash).orElse(unknownUserHash));
         if (account.isEmpty() || !passwordMatches || !account.get().active()) {
+            loginThrottle.failed(username);
             throw new InvalidCredentialsException();
         }
+        loginThrottle.succeeded(username);
         TokenClaims claims = claimsFor(account.get(), clock.instant());
         return new AccessToken(tokenIssuer.sign(claims), claims.expiresAt());
     }

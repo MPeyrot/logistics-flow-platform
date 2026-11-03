@@ -19,6 +19,8 @@ Lu par l'orchestrateur, les implémenteurs et `/preparer-spec` (skills globaux `
 - Starters Spring Boot 4.1 : `spring-boot-starter-security`, `spring-boot-starter-security-oauth2-resource-server` et leurs `-test`.
 - `TestcontainersConfiguration` importe `TestSecurityConfiguration` : clé RSA générée en mémoire (`jwt.private-key`) et ADMIN amorcé `test-admin` / `test-admin-password`. `TestAccounts` crée les comptes de test (`ensure`) et obtient un jeton par `POST /api/auth/token` (`adminBearer`, `operatorBearer`, `scannerBearer`).
 - `POST /api/auth/token` : corps `{"username","password"}`, réponse `{"accessToken","tokenType":"Bearer","expiresAt"}`. `sub` = identifiant du compte.
+- `POST /api/users` (ADMIN) : corps `{"username","password","role","site"}`, 201 + `Location`, réponse `{"id","username","role","site","active","createdAt"}`. `PATCH /api/users/{id}` : corps `{"active":false}` seulement (`true` : 400).
+- Blocage après échecs (`LoginThrottle`, `auth.login.*`) : en mémoire, donc partagé par toutes les classes de test qui partagent le contexte Spring. Échouer la connexion avec un identifiant propre au test, jamais 5 fois avec `test-admin` ; une connexion réussie remet le compteur à zéro.
 
 ## Projet
 - Branche de base des specs : `main`. Ne rien pousser sans Michael.

@@ -51,6 +51,8 @@ class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/shipments").hasAnyRole("ADMIN", "OPERATOR")
                         .requestMatchers(HttpMethod.POST, "/api/shipments").hasAnyRole("ADMIN", "OPERATOR")
                         .requestMatchers(HttpMethod.POST, "/api/delivery-notes/extract").hasAnyRole("ADMIN", "OPERATOR")
+                        .requestMatchers(HttpMethod.POST, "/api/users").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PATCH, "/api/users/*").hasRole("ADMIN")
                         .anyRequest().denyAll())
                 .oauth2ResourceServer(resource -> resource
                         .jwt(jwt -> jwt.decoder(jwtDecoder).jwtAuthenticationConverter(rolesAsAuthorities()))
