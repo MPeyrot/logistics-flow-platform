@@ -13,7 +13,7 @@ Ce fichier est relu par chaque orchestrateur neuf : il décrit l'état présent,
 |---|---|---|---|---|---|---|
 | #14 | shipment : comptes, émission JWT, routes par rôle (migration `V3__`) | — | opus / high | en cours | slot 1 / .claude/worktrees/agent-a01b72dfd0469ce48 / ticket/14-comptes-jwt | |
 | #15 | ingestion : validation jetons SCANNER, contrôle du site | — | sonnet / medium | fusionné | | 331804a |
-| #16 | ai : jeton de service, plafond global | — | sonnet / medium | à faire | | |
+| #16 | ai : jeton de service, plafond global | — | sonnet / medium | en cours | slot 2 / .claude/worktrees/agent-aeb5f5bfacc045ed4 / ticket/16-ai-jeton-service | |
 | #17 | shipment : API des comptes, force brute | #14 | opus / high | à faire | | |
 | #18 | shipment → ai : jeton de service, limite par utilisateur, README | #17, #16 | sonnet / medium | à faire | | |
 
