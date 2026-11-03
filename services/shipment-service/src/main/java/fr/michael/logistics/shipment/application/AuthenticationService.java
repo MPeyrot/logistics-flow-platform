@@ -43,16 +43,30 @@ public class AuthenticationService {
     @Transactional(readOnly = true)
     public AccessToken issueToken(String username, String rawPassword) {
         loginThrottle.begin(username);
+        UserAccount account;
+        try {
+            account = verifiedAccount(username, rawPassword);
+        } catch (InvalidCredentialsException e) {
+            loginThrottle.failed(username);
+            throw e;
+        } catch (RuntimeException e) {
+            // Rien n'a été vérifié : 5 essais pendant une panne ne doivent pas bloquer l'utilisateur.
+            loginThrottle.cancel(username);
+            throw e;
+        }
+        loginThrottle.succeeded(username);
+        TokenClaims claims = claimsFor(account, clock.instant());
+        return new AccessToken(tokenIssuer.sign(claims), claims.expiresAt());
+    }
+
+    private UserAccount verifiedAccount(String username, String rawPassword) {
         Optional<UserAccount> account = repository.findByUsername(username);
         boolean passwordMatches = passwordHasher.matches(rawPassword,
                 account.map(UserAccount::passwordHash).orElse(unknownUserHash));
         if (account.isEmpty() || !passwordMatches || !account.get().active()) {
-            loginThrottle.failed(username);
             throw new InvalidCredentialsException();
         }
-        loginThrottle.succeeded(username);
-        TokenClaims claims = claimsFor(account.get(), clock.instant());
-        return new AccessToken(tokenIssuer.sign(claims), claims.expiresAt());
+        return account.get();
     }
 
     /** Un SCANNER ne parle qu'à ingestion-service ; ADMIN et OPERATOR à shipment-service. */

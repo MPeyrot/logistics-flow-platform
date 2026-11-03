@@ -45,7 +45,7 @@ Chaque service : `src/main/java/<package>/{domain,application,infrastructure}`.
 - Clé privée `JWT_PRIVATE_KEY` (PEM PKCS#8) obligatoire, générée en local par `scripts/generate-jwt-key.sh` dans `.secrets/` (ignoré par git), chargée par `scripts/env.sh`. Les tests génèrent leur clé.
 - `domain` et `application` n'importent pas `org.springframework.security` (règle ArchUnit).
 - Limites de débit en mémoire, par instance, 429 + `Retry-After` : 20 extractions/h par utilisateur (shipment), 100/h au total (ai), blocage de 15 min après 5 échecs de connexion.
-- Connexion (décidé le 2026-11-03, #23, #24) : identifiant bloqué → 429 + `Retry-After`, aussi pour un identifiant inconnu ; une connexion réussie remet le compteur à zéro ; une tentative compte comme échec dès son début ; au-delà de 10 000 identifiants suivis, les moins récemment vus sont oubliés (même bloqués). Un ADMIN peut réactiver un compte désactivé (`PATCH /api/users/{id}`, `active`).
+- Connexion (décidé le 2026-11-03, #23, #24) : identifiant bloqué → 429 + `Retry-After`, aussi pour un identifiant inconnu ; une connexion réussie remet le compteur à zéro ; une tentative compte comme échec dès son début (annulée si une erreur inattendue l'interrompt, base indisponible par exemple) ; au-delà de 10 000 identifiants suivis, les moins récemment vus sont oubliés (même bloqués). Un ADMIN peut réactiver un compte désactivé (`PATCH /api/users/{id}`, `active`).
 
 ## Messagerie Kafka
 - Topic `scan-events` (3 partitions), clé = référence d'expédition (ordre garanti par expédition), valeur = JSON `contracts/scan-event.v1.schema.json`. Le producteur (`ingestion-service`) possède le topic.

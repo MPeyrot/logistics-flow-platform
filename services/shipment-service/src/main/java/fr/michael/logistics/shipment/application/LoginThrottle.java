@@ -71,6 +71,14 @@ public class LoginThrottle {
         }
     }
 
+    /** La tentative n'a rien vérifié (erreur inattendue, base indisponible) : elle ne compte pas comme un échec. */
+    public synchronized void cancel(String username) {
+        Attempts attempts = byUsername.get(key(username));
+        if (attempts != null && !attempts.recent.isEmpty()) {
+            attempts.recent.removeLast();
+        }
+    }
+
     public synchronized void succeeded(String username) {
         byUsername.remove(key(username));
     }
