@@ -86,6 +86,34 @@ class LoginThrottleTest {
                         e -> assertThat(e.retryAfterSeconds()).isEqualTo(30));
     }
 
+    /** Identifiants tous différents (inconnus compris), tous dans la fenêtre : la table reste bornée. */
+    @Test
+    void tracksAtMostTenThousandUsernames() {
+        for (int i = 0; i < 25_000; i++) {
+            throttle.begin("user-" + i);
+            throttle.failed("user-" + i);
+        }
+
+        assertThat(throttle.trackedUsernames()).isEqualTo(LoginThrottle.MAX_TRACKED_USERNAMES);
+    }
+
+    @Test
+    void theLeastRecentlySeenUsernamesAreForgottenFirst() {
+        fail("old", 4);
+        fail("paul", 5);
+        for (int i = 0; i < LoginThrottle.MAX_TRACKED_USERNAMES - 2; i++) {
+            throttle.begin("user-" + i);
+        }
+        assertThatThrownBy(() -> throttle.begin("paul")).isInstanceOf(LoginBlockedException.class);
+
+        throttle.begin("one-more");
+
+        assertThat(throttle.trackedUsernames()).isEqualTo(LoginThrottle.MAX_TRACKED_USERNAMES);
+        fail("old", 4);
+        assertThatCode(() -> throttle.begin("old")).doesNotThrowAnyException();
+        assertThatThrownBy(() -> throttle.begin("paul")).isInstanceOf(LoginBlockedException.class);
+    }
+
     private void fail(String username, int times) {
         for (int i = 0; i < times; i++) {
             throttle.begin(username);

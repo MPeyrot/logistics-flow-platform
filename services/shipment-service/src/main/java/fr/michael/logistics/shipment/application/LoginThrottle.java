@@ -5,7 +5,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayDeque;
 import java.util.Deque;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
 
@@ -19,14 +19,20 @@ import java.util.Map;
  */
 public class LoginThrottle {
 
-    /** Au-delà, les identifiants sans échec récent sont oubliés, pour borner la mémoire. */
-    private static final int SWEEP_THRESHOLD = 10_000;
+    /** Au-delà, l'identifiant vu le moins récemment est oublié, pour borner la mémoire (même s'il est bloqué). */
+    static final int MAX_TRACKED_USERNAMES = 10_000;
 
     private final int maxFailures;
     private final Duration failureWindow;
     private final Duration blockDuration;
     private final Clock clock;
-    private final Map<String, Attempts> byUsername = new HashMap<>();
+    /** Ordre d'accès : l'aîné est l'identifiant vu le moins récemment, retiré en O(1) quand la table déborde. */
+    private final Map<String, Attempts> byUsername = new LinkedHashMap<>(16, 0.75f, true) {
+        @Override
+        protected boolean removeEldestEntry(Map.Entry<String, Attempts> eldest) {
+            return size() > MAX_TRACKED_USERNAMES;
+        }
+    };
 
     public LoginThrottle(int maxFailures, Duration failureWindow, Duration blockDuration, Clock clock) {
         if (maxFailures < 1 || failureWindow.isNegative() || failureWindow.isZero()
@@ -42,9 +48,6 @@ public class LoginThrottle {
     /** À appeler avant de vérifier le mot de passe. Lève {@link LoginBlockedException} si l'identifiant est bloqué. */
     public synchronized void begin(String username) {
         Instant now = clock.instant();
-        if (byUsername.size() > SWEEP_THRESHOLD) {
-            byUsername.values().removeIf(attempts -> attempts.forgettable(now));
-        }
         Attempts attempts = byUsername.computeIfAbsent(key(username), k -> new Attempts());
         if (attempts.blockedUntil != null) {
             if (now.isBefore(attempts.blockedUntil)) {
@@ -72,6 +75,10 @@ public class LoginThrottle {
         byUsername.remove(key(username));
     }
 
+    synchronized int trackedUsernames() {
+        return byUsername.size();
+    }
+
     private static String key(String username) {
         return username == null ? "" : username.toLowerCase(Locale.ROOT);
     }
@@ -81,7 +88,7 @@ public class LoginThrottle {
         return Math.max(1, (millis + 999) / 1000);
     }
 
-    private final class Attempts {
+    private static final class Attempts {
         private final Deque<Instant> recent = new ArrayDeque<>();
         private Instant blockedUntil;
 
@@ -89,11 +96,6 @@ public class LoginThrottle {
             while (!recent.isEmpty() && !recent.peekFirst().isAfter(limit)) {
                 recent.removeFirst();
             }
-        }
-
-        boolean forgettable(Instant now) {
-            boolean blocked = blockedUntil != null && now.isBefore(blockedUntil);
-            return !blocked && (recent.isEmpty() || !recent.peekLast().isAfter(now.minus(failureWindow)));
         }
     }
 }
