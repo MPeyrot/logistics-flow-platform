@@ -11,8 +11,8 @@ Ce fichier est relu par chaque orchestrateur neuf : il décrit l'état présent,
 
 | Issue | Titre court | Bloqué par | Modèle / effort | Statut | Slot / worktree / branche | Commit |
 |---|---|---|---|---|---|---|
-| #14 | shipment : comptes, émission JWT, routes par rôle (migration `V3__`) | — | opus / high | en cours | slot 1 / worktree agent / ticket/14-comptes-jwt | |
-| #15 | ingestion : validation jetons SCANNER, contrôle du site | — | sonnet / medium | en cours | slot 2 / worktree agent / ticket/15-ingestion-jwt | |
+| #14 | shipment : comptes, émission JWT, routes par rôle (migration `V3__`) | — | opus / high | en cours | slot 1 / .claude/worktrees/agent-a01b72dfd0469ce48 / ticket/14-comptes-jwt | |
+| #15 | ingestion : validation jetons SCANNER, contrôle du site | — | sonnet / medium | en cours | slot 2 / .claude/worktrees/agent-afb83920a910bb0bb / ticket/15-ingestion-jwt | |
 | #16 | ai : jeton de service, plafond global | — | sonnet / medium | à faire | | |
 | #17 | shipment : API des comptes, force brute | #14 | opus / high | à faire | | |
 | #18 | shipment → ai : jeton de service, limite par utilisateur, README | #17, #16 | sonnet / medium | à faire | | |
