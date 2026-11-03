@@ -10,7 +10,7 @@
   - Le **front** appelle seulement `shipment-service`, qui appelle `ai-service`.
   - **Messages Kafka** : JSON, schémas versionnés dans `contracts/`.
   - **Kafka** en local (Docker Compose) et en ligne : Kafka managé auquel les services Cloud Run se connectent (offre à choisir, issue #2).
-  - **Modèle métier** : Site, Expédition, ÉvénementDeScan, Anomalie.
+  - **Modèle métier** : Site, Expédition, ÉvénementDeScan, Anomalie ; Compte (2026-11-03, rôles ADMIN, OPERATOR, SCANNER ; un SCANNER est rattaché à un site).
   - **`JAVA_HOME`** propre au projet : `source scripts/env.sh` avant `./mvnw`, sans modifier `~/.zshrc`.
 
 ## Structure
@@ -36,6 +36,14 @@ Chaque service : `src/main/java/<package>/{domain,application,infrastructure}`.
 - Clés d'API et secrets en variables d'environnement, jamais dans le dépôt (vérifié avec leakproof avant publication).
 - Ce projet est personnel : il ne s'écrit jamais sur un CV comme de l'expérience en production.
 
+## Authentification (spec #13, décidé le 2026-11-03)
+- JWT RS256 émis par `shipment-service` (`POST /api/auth/token`), clé publique sur `/.well-known/jwks.json` ; `ingestion-service` et `ai-service` valident avec le resource server Spring Security (`SHIPMENT_SERVICE_URL`), sans secret.
+- Claims : `iss=shipment-service`, `aud` = service visé, `roles`, `site` (SCANNER). Durées : 1 h (ADMIN, OPERATOR), 12 h (SCANNER), 5 min (jeton de service `shipment-service` → `ai-service`). Pas de refresh token ; révocation = désactivation du compte.
+- `ai-service` n'accepte que `sub=shipment-service`, `aud=ai-service`. `ingestion-service` : rôle SCANNER et site du scan = claim `site`.
+- Clé privée `JWT_PRIVATE_KEY` (PEM) obligatoire. Les tests génèrent leur clé.
+- `domain` et `application` n'importent pas `org.springframework.security` (règle ArchUnit).
+- Limites de débit en mémoire, par instance, 429 + `Retry-After` : 20 extractions/h par utilisateur (shipment), 100/h au total (ai), blocage de 15 min après 5 échecs de connexion.
+
 ## Messagerie Kafka
 - Topic `scan-events` (3 partitions), clé = référence d'expédition (ordre garanti par expédition), valeur = JSON `contracts/scan-event.v1.schema.json`. Le producteur (`ingestion-service`) possède le topic.
 - Aucune bibliothèque partagée entre services : chacun a sa propre classe de message, le contrat JSON fait foi. Pas d'en-têtes de type Java dans les messages.
@@ -51,4 +59,4 @@ Chaque service : `src/main/java/<package>/{domain,application,infrastructure}`.
 - Coût par requête : `ModelPricing` (domaine) × `TokenUsage`, tarifs dans `ai.claude.pricing.*` (dollars par million de jetons), journalisé et renvoyé dans la réponse.
 - Clé : `ANTHROPIC_API_KEY` (absente : 503 sur l'extraction, le service démarre quand même). Modèle : `AI_CLAUDE_MODEL`, défaut `claude-opus-5-5`.
 - Tests : WireMock simule l'API Claude (`ANTHROPIC_BASE_URL` / `ai.claude.base-url`).
-- `shipment-service` appelle `ai-service` (port `DeliveryNoteReader`, adaptateur `infrastructure/ai` en `RestClient`, HTTP/1.1, lecture jusqu'à 120 s, URL dans `AI_SERVICE_URL`). `POST /api/delivery-notes/extract` rend le bon lu, son coût et l'expédition de même référence (`shipment` null si inconnue). Erreurs relayées : 415 et 422 tels quels, tout le reste 502. La réponse de l'ai-service est validée avant d'entrer dans `application`. Aucune expédition n'est créée ni modifiée.
+- `shipment-service` appelle `ai-service` (port `DeliveryNoteReader`, adaptateur `infrastructure/ai` en `RestClient`, HTTP/1.1, lecture jusqu'à 120 s, URL dans `AI_SERVICE_URL`). `POST /api/delivery-notes/extract` rend le bon lu, son coût et l'expédition de même référence (`shipment` null si inconnue). Erreurs relayées : 415, 422 et 429 tels quels, tout le reste 502 (401 et 403 compris : erreur de configuration de notre côté). La réponse de l'ai-service est validée avant d'entrer dans `application`. Aucune expédition n'est créée ni modifiée.

@@ -22,7 +22,7 @@ Lu par l'orchestrateur, les implémenteurs et `/preparer-spec` (skills globaux `
 - Fichier de durées : aucun.
 
 ## Tickets
-- `opus / high` pour : authentification JWT et sécurité entre services, consommateur Kafka (idempotence, DLT, ordre), modèle du domaine et transitions de statut.
+- `opus / high` pour : émission des jetons, comptes et mots de passe ; la validation de jetons dans un service consommateur reste en `sonnet / medium` si la spec fixe les cas négatifs à tester (décidé le 2026-11-03) ; consommateur Kafka (idempotence, DLT, ordre), modèle du domaine et transitions de statut.
 - Seuls (jamais en parallèle d'un autre ticket) : changement d'un contrat de `contracts/` (producteur et consommateur à changer ensemble), migration Flyway.
 - Fichiers partagés (arête de blocage) : `contracts/*.json`, `docker-compose.yml`, `.github/workflows/ci.yml`, les `pom.xml`, `db/migration/` de `shipment-service` (réserver les numéros `V<n>__` d'avance).
 - Interdits propres au projet : jamais d'appel à la vraie API Claude (chaque appel coûte) ; `domain/` n'importe ni Spring, ni JPA, ni Kafka ; aucune bibliothèque partagée entre services.
