@@ -12,6 +12,7 @@
   - **Kafka** en local (Docker Compose) et en ligne : Kafka managé auquel les services Cloud Run se connectent (offre à choisir, issue #2).
   - **Modèle métier** : Site, Expédition, ÉvénementDeScan, Anomalie ; Compte (2026-11-03, rôles ADMIN, OPERATOR, SCANNER ; un SCANNER est rattaché à un site).
   - **`JAVA_HOME`** propre au projet : `source scripts/env.sh` avant `./mvnw`, sans modifier `~/.zshrc`.
+- Validé par Michael le 2026-11-03 (#15) : dans `ingestion-service`, `spring-boot-starter-security`, `spring-boot-starter-security-oauth2-resource-server` et leurs starters de test, `wiremock-standalone` 3.13.2 en test.
 
 ## Structure
 ```
