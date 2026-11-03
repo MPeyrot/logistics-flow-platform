@@ -5,6 +5,13 @@
 - **Hexagonale** dans chaque service : `domain/` (aucune dépendance Spring), `application/` (cas d'usage, ports), `infrastructure/` (REST, JPA/Hibernate, Kafka, client Claude).
 - **Front** : Vue 3 + TypeScript + Pinia + Vite.
 - **Déploiement** : Docker Compose en local, GCP Cloud Run ensuite. CI : GitHub Actions.
+- Décidé par Michael le 2026-10-31 :
+  - **Authentification** : `shipment-service` émet les JWT, les autres services les valident.
+  - Le **front** appelle seulement `shipment-service`, qui appelle `ai-service`.
+  - **Messages Kafka** : JSON, schémas versionnés dans `contracts/`.
+  - **Kafka** en local (Docker Compose) et en ligne : Kafka managé auquel les services Cloud Run se connectent (offre à choisir, issue #2).
+  - **Modèle métier** : Site, Expédition, ÉvénementDeScan, Anomalie.
+  - **`JAVA_HOME`** propre au projet : `source scripts/env.sh` avant `./mvnw`, sans modifier `~/.zshrc`.
 
 ## Structure
 ```
