@@ -11,7 +11,7 @@ Ce fichier est relu par chaque orchestrateur neuf : il décrit l'état présent,
 
 | Issue | Titre court | Bloqué par | Modèle / effort | Statut | Slot / worktree / branche | Commit |
 |---|---|---|---|---|---|---|
-| #14 | shipment : comptes, émission JWT, routes par rôle (migration `V3__`) | — | opus / high | en cours | slot 1 / .claude/worktrees/agent-a01b72dfd0469ce48 / ticket/14-comptes-jwt | |
+| #14 | shipment : comptes, émission JWT, routes par rôle (migration `V3__`) | — | opus / high | fusionné | | 520ef16 |
 | #15 | ingestion : validation jetons SCANNER, contrôle du site | — | sonnet / medium | fusionné | | 331804a |
 | #16 | ai : jeton de service, plafond global | — | sonnet / medium | fusionné | | b69df23 |
 | #17 | shipment : API des comptes, force brute | #14 | opus / high | à faire | | |
