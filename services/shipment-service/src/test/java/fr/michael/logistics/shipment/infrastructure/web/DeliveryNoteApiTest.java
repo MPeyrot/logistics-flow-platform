@@ -39,7 +39,8 @@ import org.springframework.test.web.servlet.MockMvc;
 @Import(TestcontainersConfiguration.class)
 class DeliveryNoteApiTest {
 
-    private static final WireMockServer AI_SERVICE = new WireMockServer(WireMockConfiguration.options().dynamicPort());
+    /** Port fixe : le test « ai-service arrêté » l'éteint puis le redémarre à la même adresse. */
+    private static final WireMockServer AI_SERVICE = new WireMockServer(WireMockConfiguration.options().port(freePort()));
 
     static {
         AI_SERVICE.start();
@@ -48,6 +49,7 @@ class DeliveryNoteApiTest {
     @DynamicPropertySource
     static void aiService(DynamicPropertyRegistry registry) {
         registry.add("ai-service.base-url", AI_SERVICE::baseUrl);
+        registry.add("ai-service.read-timeout", () -> "2s");
     }
 
     @AfterAll
@@ -164,6 +166,58 @@ class DeliveryNoteApiTest {
                 .isEqualTo(calls);
         // un autre utilisateur n'est pas touché
         mvc.perform(multipart("/api/delivery-notes/extract").file(pdf()).header("Authorization", bearer)).andExpect(status().isOk());
+    }
+
+    /** Connexion refusée : aucune requête n'est partie vers ai-service, le quota de l'utilisateur est rendu (#29). */
+    @Test
+    void unreachableAiServiceGivesTheQuotaBack() throws Exception {
+        TestAccounts.ensure(accounts, "unreachable-operator", Role.OPERATOR, null);
+        String user = TestAccounts.bearer(mvc, "unreachable-operator", TestAccounts.PASSWORD);
+        AI_SERVICE.stop();
+        try {
+            for (int i = 0; i < 21; i++) {
+                mvc.perform(multipart("/api/delivery-notes/extract").file(pdf()).header("Authorization", user))
+                        .andExpect(status().isBadGateway());
+            }
+        } finally {
+            AI_SERVICE.start();
+        }
+        stub(200, body("BL-BACK"));
+
+        for (int i = 0; i < 20; i++) {
+            mvc.perform(multipart("/api/delivery-notes/extract").file(pdf()).header("Authorization", user))
+                    .andExpect(status().isOk());
+        }
+        mvc.perform(multipart("/api/delivery-notes/extract").file(pdf()).header("Authorization", user))
+                .andExpect(status().isTooManyRequests());
+    }
+
+    /** Expiration de lecture : la requête était partie, ai-service a pu appeler Claude, le quota reste pris. */
+    @Test
+    void readTimeoutKeepsTheQuota() throws Exception {
+        TestAccounts.ensure(accounts, "timeout-operator", Role.OPERATOR, null);
+        String user = TestAccounts.bearer(mvc, "timeout-operator", TestAccounts.PASSWORD);
+        AI_SERVICE.stubFor(post("/api/delivery-notes/extract").willReturn(aResponse().withStatus(200)
+                .withFixedDelay(4_000).withHeader("content-type", "application/json").withBody(body("BL-SLOW"))));
+        mvc.perform(multipart("/api/delivery-notes/extract").file(pdf()).header("Authorization", user))
+                .andExpect(status().isBadGateway());
+        AI_SERVICE.resetAll();
+        stub(200, body("BL-FAST"));
+
+        for (int i = 0; i < 19; i++) {
+            mvc.perform(multipart("/api/delivery-notes/extract").file(pdf()).header("Authorization", user))
+                    .andExpect(status().isOk());
+        }
+        mvc.perform(multipart("/api/delivery-notes/extract").file(pdf()).header("Authorization", user))
+                .andExpect(status().isTooManyRequests());
+    }
+
+    private static int freePort() {
+        try (var socket = new java.net.ServerSocket(0)) {
+            return socket.getLocalPort();
+        } catch (java.io.IOException e) {
+            throw new IllegalStateException(e);
+        }
     }
 
     private static MockMultipartFile pdf() {

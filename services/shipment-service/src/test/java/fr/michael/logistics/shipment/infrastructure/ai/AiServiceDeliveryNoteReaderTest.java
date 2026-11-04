@@ -12,6 +12,7 @@ import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import fr.michael.logistics.shipment.application.DeliveryNoteReading;
 import fr.michael.logistics.shipment.application.ExtractionServiceUnavailableException;
+import fr.michael.logistics.shipment.application.ExtractionServiceUnreachableException;
 import fr.michael.logistics.shipment.application.ExtractionRateLimitedException;
 import fr.michael.logistics.shipment.application.ServiceTokenProvider;
 import fr.michael.logistics.shipment.application.UnreadableDeliveryNoteException;
@@ -110,11 +111,33 @@ class AiServiceDeliveryNoteReaderTest {
     void reportsUnreachableService() {
         // port fermé : rien n'écoute sur le port 1
         assertThatThrownBy(() -> reader("http://localhost:1").read(new byte[] {1}, "x"))
-                .isInstanceOf(ExtractionServiceUnavailableException.class);
+                .isInstanceOf(ExtractionServiceUnreachableException.class);
+    }
+
+    @Test
+    void reportsUnknownHostAsUnreachable() {
+        // .invalid : domaine réservé, jamais résolu
+        assertThatThrownBy(() -> reader("http://ai-service.invalid").read(new byte[] {1}, "x"))
+                .isInstanceOf(ExtractionServiceUnreachableException.class);
+    }
+
+    /** La requête est partie : ai-service a pu appeler Claude, ce n'est pas « injoignable ». */
+    @Test
+    void readTimeoutIsNotReportedAsUnreachable() {
+        wireMock.stubFor(post("/api/delivery-notes/extract").willReturn(aResponse().withStatus(200)
+                .withFixedDelay(2_000).withHeader("content-type", "application/json").withBody("{}")));
+
+        assertThatThrownBy(() -> reader(wireMock.baseUrl(), Duration.ofMillis(300)).read(new byte[] {1}, "x"))
+                .isInstanceOf(ExtractionServiceUnavailableException.class)
+                .isNotInstanceOf(ExtractionServiceUnreachableException.class);
     }
 
     private static AiServiceDeliveryNoteReader reader(String baseUrl) {
-        var props = new AiServiceProperties(baseUrl, Duration.ofSeconds(1), Duration.ofSeconds(5));
+        return reader(baseUrl, Duration.ofSeconds(5));
+    }
+
+    private static AiServiceDeliveryNoteReader reader(String baseUrl, Duration readTimeout) {
+        var props = new AiServiceProperties(baseUrl, Duration.ofSeconds(1), readTimeout);
         return new AiServiceDeliveryNoteReader(props, Validation.buildDefaultValidatorFactory().getValidator(),
                 new ServiceTokenProvider("ai-service", claims -> "signed-token", Clock.systemUTC()));
     }

@@ -66,6 +66,17 @@ class ReadDeliveryNoteServiceTest {
         assertThat(readerCalls).isEqualTo(1);
     }
 
+    /** Connexion refusée ou hôte injoignable : aucune requête n'est partie, donc aucun appel Claude (#29). */
+    @Test
+    void unreachableServiceGivesTheQuotaBack() {
+        readerFailures.add(new ExtractionServiceUnreachableException("connection refused", new java.net.ConnectException()));
+        readerFailures.add(new UnreadableDeliveryNoteException("no delivery note"));
+
+        assertThatThrownBy(this::read).isInstanceOf(ExtractionServiceUnreachableException.class);
+        assertThatThrownBy(this::read).isInstanceOf(UnreadableDeliveryNoteException.class);
+        assertThat(readerCalls).isEqualTo(2);
+    }
+
     private void read() {
         service.read("alice", new byte[] {1}, "note.pdf");
     }

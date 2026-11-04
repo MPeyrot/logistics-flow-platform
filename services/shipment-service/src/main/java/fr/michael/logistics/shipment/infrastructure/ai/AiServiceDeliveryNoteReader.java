@@ -5,12 +5,17 @@ import fr.michael.logistics.shipment.application.DeliveryNoteReader;
 import fr.michael.logistics.shipment.application.DeliveryNoteReading;
 import fr.michael.logistics.shipment.application.ExtractionRateLimitedException;
 import fr.michael.logistics.shipment.application.ExtractionServiceUnavailableException;
+import fr.michael.logistics.shipment.application.ExtractionServiceUnreachableException;
 import fr.michael.logistics.shipment.application.ServiceTokenProvider;
 import fr.michael.logistics.shipment.application.UnreadableDeliveryNoteException;
 import fr.michael.logistics.shipment.application.UnsupportedDocumentException;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
+import java.net.ConnectException;
+import java.net.UnknownHostException;
 import java.net.http.HttpClient;
+import java.net.http.HttpConnectTimeoutException;
+import java.nio.channels.UnresolvedAddressException;
 import java.util.Set;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.HttpHeaders;
@@ -61,9 +66,26 @@ class AiServiceDeliveryNoteReader implements DeliveryNoteReader {
         } catch (RestClientResponseException e) {
             throw translate(e);
         } catch (RestClientException e) {
-            throw new ExtractionServiceUnavailableException("ai-service unreachable: " + e.getMessage(), e);
+            if (connectionFailed(e)) {
+                throw new ExtractionServiceUnreachableException("ai-service unreachable: " + e.getMessage(), e);
+            }
+            throw new ExtractionServiceUnavailableException("ai-service call failed: " + e.getMessage(), e);
         }
         return toReading(response);
+    }
+
+    /**
+     * Connexion refusée, délai de connexion dépassé ou hôte inconnu : la requête n'est pas partie. Une expiration de
+     * lecture ({@link java.net.http.HttpTimeoutException} seule) n'en est pas une.
+     */
+    private static boolean connectionFailed(Throwable e) {
+        for (Throwable cause = e; cause != null; cause = cause.getCause()) {
+            if (cause instanceof ConnectException || cause instanceof HttpConnectTimeoutException
+                    || cause instanceof UnknownHostException || cause instanceof UnresolvedAddressException) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static RuntimeException translate(RestClientResponseException e) {

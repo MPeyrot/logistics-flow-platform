@@ -21,8 +21,9 @@ public class ReadDeliveryNoteService {
         DeliveryNoteReading reading;
         try {
             reading = reader.read(content, filename);
-        } catch (UnsupportedDocumentException | ExtractionRateLimitedException e) {
-            // 415 et 429 d'ai-service : aucun appel Claude facturé. 422 et 502 restent comptés (un appel a pu avoir lieu).
+        } catch (UnsupportedDocumentException | ExtractionRateLimitedException | ExtractionServiceUnreachableException e) {
+            // 415 et 429 d'ai-service, ou connexion impossible : aucun appel Claude facturé. 422, autres 5xx et
+            // expiration de lecture restent comptés (un appel a pu avoir lieu).
             rateLimiter.release(user);
             throw e;
         }
