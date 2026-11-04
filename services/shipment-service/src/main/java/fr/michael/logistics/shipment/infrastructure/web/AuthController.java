@@ -2,8 +2,10 @@ package fr.michael.logistics.shipment.infrastructure.web;
 
 import fr.michael.logistics.shipment.application.AccessToken;
 import fr.michael.logistics.shipment.application.AuthenticationService;
+import fr.michael.logistics.shipment.domain.UserAccount;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import java.time.Instant;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -26,7 +28,9 @@ class AuthController {
         return new TokenResponse(token.value(), "Bearer", token.expiresAt());
     }
 
-    record TokenRequest(@NotBlank String username, @NotBlank String password) {
+    /** Même longueur maximale qu'à la création de compte : rien de plus long n'atteint {@code LoginThrottle}. */
+    record TokenRequest(@NotBlank @Size(max = UserAccount.USERNAME_MAX_LENGTH) String username,
+            @NotBlank String password) {
 
         /** Jamais le mot de passe dans les journaux. */
         @Override
