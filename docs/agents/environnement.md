@@ -14,7 +14,7 @@ Lu par l'orchestrateur, les implémenteurs et `/preparer-spec` (skills globaux `
 - Rien à copier : aucun secret n'est nécessaire aux tests (WireMock pour l'API Claude, Testcontainers pour PostgreSQL et Kafka).
 - Docker doit tourner (OrbStack). Les tests ne fixent aucun port (Testcontainers choisit les siens) : deux implémenteurs en parallèle ne se gênent pas, mais chacun démarre ses conteneurs. Pas de `docker compose up` dans un worktree (ports 5432 et 9092 fixes, partagés).
 - Le worktree isolé part de `main` : créer sa branche depuis la branche d'intégration (`git checkout -B <branche> <intégration>`) avant tout.
-- Dans un worktree d'agent, le hook rtk refuse `git` et `source scripts/env.sh` (issue #21) : utiliser `/usr/bin/git`, et `JAVA_HOME=/opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home ./mvnw …` sur une seule ligne (chemin de `scripts/env.sh`).
+- Hook rtk : les commandes git locales (pas `git push`), `cd`, `source scripts/env.sh` et `./mvnw` sont autorisées par `~/.claude/settings.json` (réglé le 2026-11-04, #21). Si une commande reste refusée : `/usr/bin/git`, et `JAVA_HOME=/opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home ./mvnw …` sur une seule ligne.
 - Lancer un service à la main (rare) : `PORT=<8090 + 10×slot + n>`, jamais 8081 ou 8082.
 
 ## Authentification (tests de shipment-service)
