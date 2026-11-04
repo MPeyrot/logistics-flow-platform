@@ -1,6 +1,6 @@
 # État — spec #13 : authentification JWT et sécurité entre services
 
-STATUT: terminé
+STATUT: en cours
 <!-- en cours | décision attendue | terminé. Lu par orchestrate.sh : garder « STATUT: » en début de ligne. -->
 
 Spec : issue #13. Branche d'intégration : `spec/13-auth-jwt` (repo principal). Parallèle : 2.
@@ -18,6 +18,7 @@ Ce fichier est relu par chaque orchestrateur neuf : il décrit l'état présent,
 | #18 | shipment → ai : jeton de service, limite par utilisateur, README | #17, #16 | sonnet / medium | fusionné | | a21ae11 |
 | #25 | shipment : réactivation d'un compte (décision #24) | #18 | opus / high | fusionné | | 119c226 |
 | #26 | corrections de la revue de fin de spec | #25 | opus / high | fusionné | | 3ad8bae |
+| #31 | suites de la revue : bloqués en dernier, quota si ai injoignable, test d'amorçage (#28, #29, #30) | #26 | opus / high | en cours | slot 1 / .claude/worktrees/agent-a987274d8e26afc94 / ticket/31-suites-revue | |
 
 Statuts : `à faire`, `en cours`, `partiel`, `décision attendue`, `fusionné`.
 
