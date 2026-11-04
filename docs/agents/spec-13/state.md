@@ -20,7 +20,7 @@ Ce fichier est relu par chaque orchestrateur neuf : il décrit l'état présent,
 | #26 | corrections de la revue de fin de spec | #25 | opus / high | fusionné | | 3ad8bae |
 | #31 | suites de la revue : bloqués en dernier, quota si ai injoignable, test d'amorçage (#28, #29, #30) | #26 | opus / high | fusionné | | c200af4 |
 | #32 | connexion : taille de l'identifiant bornée | #31 | opus / high | en cours | slot 1 / worktree agent-a8444ba8b2bc5751c / ticket/32-taille-identifiant | |
-| #6, #7 | hors spec : version Kafka alignée, actions CI à jour | — | sonnet / medium | en cours | slot 2 / worktree agent-ab46ea42dd7510e6d / ticket/6-7-kafka-ci | |
+| #6, #7 | hors spec : version Kafka alignée, actions CI à jour | — | sonnet / medium | fusionné | | bb6a4c8 |
 
 Statuts : `à faire`, `en cours`, `partiel`, `décision attendue`, `fusionné`.
 
