@@ -16,7 +16,10 @@ class LoginThrottleConfig {
             @Value("${auth.login.max-failures}") int maxFailures,
             @Value("${auth.login.failure-window}") Duration failureWindow,
             @Value("${auth.login.block-duration}") Duration blockDuration,
+            @Value("${auth.login.max-tracked-usernames}") int maxTrackedUsernames,
+            @Value("${auth.login.max-blocked-usernames}") int maxBlockedUsernames,
             Clock clock) {
-        return new LoginThrottle(maxFailures, failureWindow, blockDuration, clock);
+        return new LoginThrottle(maxFailures, failureWindow, blockDuration, maxTrackedUsernames, maxBlockedUsernames,
+                clock);
     }
 }

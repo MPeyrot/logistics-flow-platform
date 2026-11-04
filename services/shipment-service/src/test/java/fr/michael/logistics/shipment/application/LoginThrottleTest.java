@@ -94,24 +94,81 @@ class LoginThrottleTest {
             throttle.failed("user-" + i);
         }
 
-        assertThat(throttle.trackedUsernames()).isEqualTo(LoginThrottle.MAX_TRACKED_USERNAMES);
+        assertThat(throttle.trackedUsernames()).isEqualTo(LoginThrottle.DEFAULT_MAX_TRACKED_USERNAMES);
     }
 
     @Test
     void theLeastRecentlySeenUsernamesAreForgottenFirst() {
         fail("old", 4);
-        fail("paul", 5);
-        for (int i = 0; i < LoginThrottle.MAX_TRACKED_USERNAMES - 2; i++) {
+        fail("paul", 4);
+        for (int i = 0; i < LoginThrottle.DEFAULT_MAX_TRACKED_USERNAMES - 2; i++) {
             throttle.begin("user-" + i);
         }
-        assertThatThrownBy(() -> throttle.begin("paul")).isInstanceOf(LoginBlockedException.class);
 
         throttle.begin("one-more");
 
-        assertThat(throttle.trackedUsernames()).isEqualTo(LoginThrottle.MAX_TRACKED_USERNAMES);
+        assertThat(throttle.trackedUsernames()).isEqualTo(LoginThrottle.DEFAULT_MAX_TRACKED_USERNAMES);
+        fail("paul", 1);
+        assertThatThrownBy(() -> throttle.begin("paul")).isInstanceOf(LoginBlockedException.class);
         fail("old", 4);
         assertThatCode(() -> throttle.begin("old")).doesNotThrowAnyException();
-        assertThatThrownBy(() -> throttle.begin("paul")).isInstanceOf(LoginBlockedException.class);
+    }
+
+    /** 10 000 tentatives sous d'autres identifiants ne font pas oublier un blocage (#28). */
+    @Test
+    void saturatingWithUnblockedUsernamesKeepsTheBlock() {
+        fail("paul", 5);
+
+        for (int i = 0; i < 25_000; i++) {
+            throttle.begin("user-" + i);
+            throttle.failed("user-" + i);
+        }
+
+        assertThatThrownBy(() -> throttle.begin("paul"))
+                .isInstanceOfSatisfying(LoginBlockedException.class,
+                        e -> assertThat(e.retryAfterSeconds()).isEqualTo(900));
+        assertThat(throttle.trackedUsernames()).isEqualTo(LoginThrottle.DEFAULT_MAX_TRACKED_USERNAMES + 1);
+    }
+
+    @Test
+    void aBlockedUsernameIsForgottenAtTheEndOfItsBlock() {
+        LoginThrottle small = new LoginThrottle(1, Duration.ofMinutes(15), Duration.ofMinutes(15), 2, 2, clock);
+        small.begin("paul");
+        small.failed("paul");
+        assertThat(small.trackedUsernames()).isEqualTo(1);
+
+        clock.advance(Duration.ofMinutes(15));
+        small.begin("pierre");
+
+        assertThat(small.trackedUsernames()).isEqualTo(1);
+        assertThatCode(() -> small.begin("paul")).doesNotThrowAnyException();
+    }
+
+    /** Second plafond : au-delà, le blocage le plus proche de sa fin est oublié ; la mémoire reste bornée. */
+    @Test
+    void beyondTheBlockedCapTheBlockClosestToItsEndIsForgotten() {
+        LoginThrottle small = new LoginThrottle(1, Duration.ofMinutes(15), Duration.ofMinutes(15), 2, 2, clock);
+        for (String username : new String[] {"anne", "bruno", "chloe"}) {
+            small.begin(username);
+            small.failed(username);
+            clock.advance(Duration.ofMinutes(1));
+        }
+        for (int i = 0; i < 10; i++) {
+            small.begin("user-" + i);
+        }
+
+        assertThat(small.trackedUsernames()).isEqualTo(4);
+        assertThatCode(() -> small.begin("anne")).doesNotThrowAnyException();
+        assertThatThrownBy(() -> small.begin("bruno")).isInstanceOf(LoginBlockedException.class);
+        assertThatThrownBy(() -> small.begin("chloe")).isInstanceOf(LoginBlockedException.class);
+    }
+
+    @Test
+    void capsMustBePositive() {
+        assertThatThrownBy(() -> new LoginThrottle(5, Duration.ofMinutes(15), Duration.ofMinutes(15), 0, 10, clock))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> new LoginThrottle(5, Duration.ofMinutes(15), Duration.ofMinutes(15), 10, 0, clock))
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
     private void fail(String username, int times) {
