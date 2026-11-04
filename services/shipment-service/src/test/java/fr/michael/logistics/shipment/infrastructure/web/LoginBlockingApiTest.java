@@ -9,6 +9,7 @@ import fr.michael.logistics.shipment.TestAccounts;
 import fr.michael.logistics.shipment.TestcontainersConfiguration;
 import fr.michael.logistics.shipment.application.AccountService;
 import fr.michael.logistics.shipment.domain.Role;
+import fr.michael.logistics.shipment.domain.UserAccount;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -81,6 +82,20 @@ class LoginBlockingApiTest {
         }
 
         login("blocked-neighbour", TestAccounts.PASSWORD).andExpect(status().isOk());
+    }
+
+    /**
+     * Un identifiant plus long qu'à la création de compte est refusé avant {@code LoginThrottle} : 400, jamais
+     * compté comme un échec, donc jamais bloqué (429) ni gardé en mémoire.
+     */
+    @Test
+    void tooLongUsernameIsRejectedWithoutCountingAFailure() throws Exception {
+        String tooLong = "x".repeat(UserAccount.USERNAME_MAX_LENGTH + 1);
+        for (int i = 0; i < 6; i++) {
+            login(tooLong, WRONG_PASSWORD).andExpect(status().isBadRequest());
+        }
+
+        login("y".repeat(UserAccount.USERNAME_MAX_LENGTH), WRONG_PASSWORD).andExpect(status().isUnauthorized());
     }
 
     private ResultActions login(String username, String password) throws Exception {
