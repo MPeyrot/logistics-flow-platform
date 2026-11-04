@@ -1,6 +1,6 @@
 # État — spec #13 : authentification JWT et sécurité entre services
 
-STATUT: terminé
+STATUT: en cours
 <!-- en cours | décision attendue | terminé. Lu par orchestrate.sh : garder « STATUT: » en début de ligne. -->
 
 Spec : issue #13. Branche d'intégration : `spec/13-auth-jwt` (repo principal). Parallèle : 2.
@@ -19,6 +19,8 @@ Ce fichier est relu par chaque orchestrateur neuf : il décrit l'état présent,
 | #25 | shipment : réactivation d'un compte (décision #24) | #18 | opus / high | fusionné | | 119c226 |
 | #26 | corrections de la revue de fin de spec | #25 | opus / high | fusionné | | 3ad8bae |
 | #31 | suites de la revue : bloqués en dernier, quota si ai injoignable, test d'amorçage (#28, #29, #30) | #26 | opus / high | fusionné | | c200af4 |
+| #32 | connexion : taille de l'identifiant bornée | #31 | opus / high | en cours | slot 1 / worktree agent-a8444ba8b2bc5751c / ticket/32-taille-identifiant | |
+| #6, #7 | hors spec : version Kafka alignée, actions CI à jour | — | sonnet / medium | en cours | slot 2 / worktree agent-ab46ea42dd7510e6d / ticket/6-7-kafka-ci | |
 
 Statuts : `à faire`, `en cours`, `partiel`, `décision attendue`, `fusionné`.
 
