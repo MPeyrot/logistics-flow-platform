@@ -1,6 +1,8 @@
 package fr.michael.logistics.shipment.infrastructure.web;
 
 import fr.michael.logistics.shipment.application.AccountNotFoundException;
+import fr.michael.logistics.shipment.application.DeadLetterAlreadyReplayedException;
+import fr.michael.logistics.shipment.application.DeadLetterNotFoundException;
 import fr.michael.logistics.shipment.application.DuplicateReferenceException;
 import fr.michael.logistics.shipment.application.LastActiveAdminException;
 import fr.michael.logistics.shipment.application.LoginBlockedException;
@@ -47,6 +49,16 @@ class ApiExceptionHandler {
     @ExceptionHandler(AccountNotFoundException.class)
     ProblemDetail accountNotFound(AccountNotFoundException e) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, e.getMessage());
+    }
+
+    @ExceptionHandler(DeadLetterNotFoundException.class)
+    ProblemDetail deadLetterNotFound(DeadLetterNotFoundException e) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, e.getMessage());
+    }
+
+    @ExceptionHandler(DeadLetterAlreadyReplayedException.class)
+    ProblemDetail deadLetterAlreadyReplayed(DeadLetterAlreadyReplayedException e) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, e.getMessage());
     }
 
     /** Même réponse pour un identifiant inconnu, un mauvais mot de passe ou un compte désactivé. */
