@@ -34,7 +34,7 @@ Points de fiabilité côté consommateur : traitement idempotent (clé primaire 
 
 ## Stack
 
-Java 21, Spring Boot 4.1, Spring Data JPA / Hibernate, Flyway, PostgreSQL 17, Apache Kafka, Maven, JUnit 5, Testcontainers, ArchUnit, Docker Compose, GitHub Actions.
+Java 21, Spring Boot 4.1, Spring Security (JWT), Spring Data JPA / Hibernate, Flyway, PostgreSQL 17, Apache Kafka, Maven, JUnit 5, Testcontainers, ArchUnit, Docker Compose, GitHub Actions.
 
 ## Lancer en local
 
@@ -107,8 +107,8 @@ Les tests d'intégration démarrent PostgreSQL et Kafka avec Testcontainers : Do
 
 ## État du projet
 
-Fait : création et liste des expéditions, ingestion des scans, consommation Kafka idempotente avec topic d'erreurs, extraction de bons de livraison avec l'API Claude (`ai-service`), CI.
+Fait : création et liste des expéditions, authentification JWT (comptes, rôles, jetons RS256), ingestion des scans, consommation Kafka idempotente avec topic d'erreurs, extraction de bons de livraison avec l'API Claude (`ai-service`), CI.
 
-À venir : import par lot (Spring Batch), front Vue 3 + TypeScript, authentification JWT, déploiement sur GCP Cloud Run.
+À venir : import par lot (Spring Batch), front Vue 3 + TypeScript, déploiement sur GCP Cloud Run.
 
 Les statuts d'expédition et les types de scan sont provisoires.
