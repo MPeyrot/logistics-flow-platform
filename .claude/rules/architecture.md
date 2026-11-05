@@ -64,7 +64,7 @@ Chaque service : `src/main/java/<package>/{domain,application,infrastructure}`.
 - SDK Java officiel `com.anthropic:anthropic-java`, utilisé uniquement dans `infrastructure/claude` (règle ArchUnit). Port `DeliveryNoteExtractor` côté `application`.
 - Réponse du modèle = donnée externe : JSON lu dans `DeliveryNoteDraft`, contrôlé par Bean Validation, puis converti en `DeliveryNote` (domaine). JSON invalide, référence absente ou valeur hors bornes : 422.
 - Pas de `tool_choice` forcé (refusé par claude-opus-5-5) ni de réflexion configurée : consignes de format dans le prompt système, contrôle après coup.
-- Prompt système constant et marqué `cache_control` (cache de prompt). Il ne reste en cache que s'il dépasse le seuil minimal du modèle.
+- Prompt système constant et marqué `cache_control` (cache de prompt). Il ne reste en cache que s'il dépasse le seuil minimal du modèle. Mesuré le 2026-11-05 (#8) : ~1 400 caractères, sous le minimum de 512 jetons d'Opus, Sonnet et Haiku 5.5, donc `cache_creation` et `cache_read` restent à 0 ; on ne le gonfle pas (gain au mieux ~10 % du coût d'une extraction).
 - Coût par requête : `ModelPricing` (domaine) × `TokenUsage`, tarifs dans `ai.claude.pricing.*` (dollars par million de jetons), journalisé et renvoyé dans la réponse.
 - Clé : `ANTHROPIC_API_KEY` (absente : 503 sur l'extraction, le service démarre quand même). Modèle : `AI_CLAUDE_MODEL`, défaut `claude-opus-5-5`.
 - Tests : WireMock simule l'API Claude (`ANTHROPIC_BASE_URL` / `ai.claude.base-url`).
