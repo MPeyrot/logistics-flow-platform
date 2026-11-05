@@ -27,7 +27,7 @@ class RecordScanServiceTest {
 
     @Test
     void appliesScanAndStoresIt() {
-        shipments.save(Shipment.create("REF-1", "Nantes", "Lyon", NOW));
+        shipments.save(Shipment.create("REF-1", "Nantes", "Lyon", NOW.plusSeconds(86_400), NOW));
 
         service.record(scan(UUID.randomUUID(), "REF-1", ScanType.PICKED_UP));
 
@@ -38,7 +38,7 @@ class RecordScanServiceTest {
 
     @Test
     void ignoresAnEventAlreadyProcessed() {
-        shipments.save(Shipment.create("REF-1", "Nantes", "Lyon", NOW));
+        shipments.save(Shipment.create("REF-1", "Nantes", "Lyon", NOW.plusSeconds(86_400), NOW));
         UUID eventId = UUID.randomUUID();
 
         service.record(scan(eventId, "REF-1", ScanType.PICKED_UP));
@@ -58,7 +58,7 @@ class RecordScanServiceTest {
 
     @Test
     void failsOnForbiddenTransitionWithoutStoringTheScan() {
-        shipments.save(Shipment.create("REF-1", "Nantes", "Lyon", NOW));
+        shipments.save(Shipment.create("REF-1", "Nantes", "Lyon", NOW.plusSeconds(86_400), NOW));
 
         assertThatThrownBy(() -> service.record(scan(UUID.randomUUID(), "REF-1", ScanType.DELIVERED)))
                 .isInstanceOf(InvalidScanException.class);

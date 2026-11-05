@@ -16,6 +16,7 @@ import fr.michael.logistics.shipment.application.ShipmentRepository;
 import fr.michael.logistics.shipment.application.ShipmentService;
 import fr.michael.logistics.shipment.domain.ShipmentStatus;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -91,7 +92,7 @@ class DeadLetterApiTest {
         kafka.send("scan-events", ref, payload);
 
         Map<String, Object> letter = awaitDeadLetter(payload);
-        shipments.create(ref, "Nantes", "Lyon");
+        shipments.create(ref, "Nantes", "Lyon", Instant.now().plus(Duration.ofDays(2)));
         assertThat(letter).containsEntry("key", ref)
                 .containsEntry("replayed", false)
                 .containsEntry("replayedAt", null)
@@ -118,7 +119,7 @@ class DeadLetterApiTest {
         String payload = scan(ref, "PICKED_UP");
         kafka.send("scan-events", ref, payload);
         awaitDeadLetter(payload);
-        shipments.create(ref, "Nantes", "Lyon");
+        shipments.create(ref, "Nantes", "Lyon", Instant.now().plus(Duration.ofDays(2)));
 
         assertThat(replayAll()).isPositive();
 
@@ -135,7 +136,7 @@ class DeadLetterApiTest {
         String payload = scan(ref, "PICKED_UP");
         kafka.send("scan-events", ref, payload);
         Map<String, Object> letter = awaitDeadLetter(payload);
-        shipments.create(ref, "Nantes", "Lyon");
+        shipments.create(ref, "Nantes", "Lyon", Instant.now().plus(Duration.ofDays(2)));
         String replay = "/api/admin/dlt/scan-events/%s/%s/replay".formatted(letter.get("partition"), letter.get("offset"));
 
         mvc.perform(post(replay).header("Authorization", TestAccounts.adminBearer(mvc)))
@@ -174,7 +175,7 @@ class DeadLetterApiTest {
             String payload = scan(ref, "PICKED_UP");
             kafka.send("scan-events", ref, payload);
             awaitDeadLetter(payload);
-            shipments.create(ref, "Nantes", "Lyon");
+            shipments.create(ref, "Nantes", "Lyon", Instant.now().plus(Duration.ofDays(2)));
         }
 
         mvc.perform(get("/api/admin/dlt/scan-events?limit=1").header("Authorization", admin))

@@ -30,6 +30,6 @@ class ShipmentController {
     @ResponseStatus(HttpStatus.CREATED)
     ShipmentResponse create(@Valid @RequestBody CreateShipmentRequest request) {
         return ShipmentResponse.from(
-                service.create(request.reference(), request.origin(), request.destination()));
+                service.create(request.reference(), request.origin(), request.destination(), request.expectedDeliveryAt()));
     }
 }

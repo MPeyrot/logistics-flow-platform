@@ -34,6 +34,9 @@ class ShipmentJpaEntity {
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
+    @Column(name = "expected_delivery_at")
+    private Instant expectedDeliveryAt;
+
     protected ShipmentJpaEntity() {
     }
 
@@ -45,10 +48,11 @@ class ShipmentJpaEntity {
         entity.destination = shipment.destination();
         entity.status = shipment.status();
         entity.createdAt = shipment.createdAt();
+        entity.expectedDeliveryAt = shipment.expectedDeliveryAt();
         return entity;
     }
 
     Shipment toDomain() {
-        return new Shipment(id, reference, origin, destination, status, createdAt);
+        return new Shipment(id, reference, origin, destination, status, createdAt, expectedDeliveryAt);
     }
 }

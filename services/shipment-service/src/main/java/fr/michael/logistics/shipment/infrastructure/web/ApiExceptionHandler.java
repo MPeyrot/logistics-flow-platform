@@ -12,14 +12,19 @@ import fr.michael.logistics.shipment.application.ExtractionRateLimitedException;
 import fr.michael.logistics.shipment.application.InvalidCredentialsException;
 import fr.michael.logistics.shipment.application.UnreadableDeliveryNoteException;
 import fr.michael.logistics.shipment.application.UnsupportedDocumentException;
+import java.util.Objects;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import tools.jackson.core.JacksonException;
 
 @RestControllerAdvice
 class ApiExceptionHandler {
@@ -76,6 +81,29 @@ class ApiExceptionHandler {
             response.header(HttpHeaders.RETRY_AFTER, e.retryAfterSeconds().toString());
         }
         return response.body(ProblemDetail.forStatusAndDetail(HttpStatus.TOO_MANY_REQUESTS, e.getMessage()));
+    }
+
+    /** Corps refusé par Bean Validation : un champ par erreur, par exemple {@code expectedDeliveryAt: must not be null}. */
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    ProblemDetail invalidBody(MethodArgumentNotValidException e) {
+        String detail = e.getBindingResult().getFieldErrors().stream()
+                .map(error -> error.getField() + ": " + error.getDefaultMessage())
+                .sorted()
+                .collect(Collectors.joining(", "));
+        return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, detail.isEmpty() ? "Invalid request body" : detail);
+    }
+
+    /** JSON illisible ou valeur impossible à convertir (date mal formée…) : on nomme le champ, sans le message de Jackson. */
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    ProblemDetail unreadableBody(HttpMessageNotReadableException e) {
+        String field = e.getCause() instanceof JacksonException json
+                ? json.getPath().stream()
+                        .map(JacksonException.Reference::getPropertyName)
+                        .filter(Objects::nonNull)
+                        .collect(Collectors.joining("."))
+                : "";
+        return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST,
+                field.isEmpty() ? "Malformed request body" : "Invalid value for " + field);
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
