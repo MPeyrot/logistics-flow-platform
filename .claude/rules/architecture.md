@@ -18,6 +18,13 @@
   - **Kafka en ligne** (#2) : Confluent Cloud (essai 30 jours), avec un profil de repli sans Kafka (REST direct derrière `ScanEventPublisher`) prêt pour la fin de l'essai.
   - **Dépôt** (#3) : public, après un leakproof propre et la fusion de la spec en cours ; README marqué « projet personnel ».
   - **Scan avant l'expédition** (#4) : « expédition inconnue » retentée avec un backoff exponentiel jusqu'à ~5 min, puis DLT. Endpoint ADMIN pour lister `scan-events.DLT` et rejouer un message ou tous vers `scan-events`.
+- Décidé par Michael le 2026-11-05, pour la spec « cycle de vie des expéditions » (#1, #4) :
+  - **Nouvelles tentatives** « expédition inconnue » : bloquantes (backoff exponentiel dans le `DefaultErrorHandler`), pour garder l'ordre par expédition ; la partition attend jusqu'à ~5 min. Pas de topics de retentative.
+  - **Bascule `scan-event.v2`** : coupure nette, sans champ de version ; les types v1 sont un sous-ensemble de v2. Motif facultatif `reason` (≤ 200 caractères), accepté seulement avec DELIVERY_FAILED (400 sinon).
+  - **`expectedDeliveryAt`** obligatoire à la création ; NULL pour les expéditions déjà en base (jamais LATE).
+  - **Anomalies** : tâche planifiée dans `shipment-service`, enregistrées en table (une seule ouverte par expédition et type, même avec plusieurs instances). Clôture automatique : STALLED au scan suivant, LATE à la livraison. STALLED compte depuis le dernier scan, ou depuis `createdAt` sans scan. Lecture : `GET /api/anomalies` et anomalies ouvertes dans la réponse d'une expédition.
+  - **Rejeu du DLT** : rejeux enregistrés en table, « tout rejouer » saute les messages déjà rejoués.
+  - Une seule migration `V4__` pour toute la spec ; spec/13 fusionnée dans `main` avant le lancement.
 - Validé par Michael le 2026-11-03 (#14, #15, #16) : dans les trois services, `spring-boot-starter-security`, `spring-boot-starter-security-oauth2-resource-server` et leurs starters de test ; `wiremock-standalone` 3.13.2 en test dans `ingestion-service`.
 
 ## Structure
