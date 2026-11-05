@@ -38,7 +38,7 @@ Java 21, Spring Boot 4.1, Spring Data JPA / Hibernate, Flyway, PostgreSQL 17, Ap
 
 ## Lancer en local
 
-Prérequis : JDK 21, Docker.
+Prérequis : JDK 21, Docker ; `curl` et `jq` pour le parcours ci-dessous.
 
 ```sh
 scripts/generate-jwt-key.sh    # une fois : clé de signature des JWT dans .secrets/ (ignoré par git)
