@@ -102,7 +102,7 @@ class AccessMatrixTest {
 
     private static org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder createShipment(String reference) {
         return post("/api/shipments").contentType(MediaType.APPLICATION_JSON)
-                .content("{\"reference\":\"%s\",\"origin\":\"Nantes\",\"destination\":\"Lyon\"}".formatted(reference));
+                .content("{\"reference\":\"%s\",\"origin\":\"Nantes\",\"destination\":\"Lyon\",\"expectedDeliveryAt\":\"%s\"}".formatted(reference, ShipmentApiTest.DUE));
     }
 
     private static MockMultipartFile pdf() {

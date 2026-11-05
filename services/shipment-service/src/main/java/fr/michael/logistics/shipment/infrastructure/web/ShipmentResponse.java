@@ -10,7 +10,8 @@ record ShipmentResponse(
         String origin,
         String destination,
         String status,
-        Instant createdAt) {
+        Instant createdAt,
+        Instant expectedDeliveryAt) {
 
     static ShipmentResponse from(Shipment shipment) {
         return new ShipmentResponse(
@@ -19,6 +20,7 @@ record ShipmentResponse(
                 shipment.origin(),
                 shipment.destination(),
                 shipment.status().name(),
-                shipment.createdAt());
+                shipment.createdAt(),
+                shipment.expectedDeliveryAt());
     }
 }

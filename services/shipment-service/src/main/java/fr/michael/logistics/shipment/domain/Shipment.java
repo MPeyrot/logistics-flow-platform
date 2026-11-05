@@ -4,13 +4,15 @@ import java.time.Instant;
 import java.util.Objects;
 import java.util.UUID;
 
+/** {@code expectedDeliveryAt} est null pour les expéditions créées avant qu'il soit obligatoire (jamais LATE). */
 public record Shipment(
         UUID id,
         String reference,
         String origin,
         String destination,
         ShipmentStatus status,
-        Instant createdAt) {
+        Instant createdAt,
+        Instant expectedDeliveryAt) {
 
     public Shipment {
         Objects.requireNonNull(id, "id");
@@ -24,8 +26,16 @@ public record Shipment(
         }
     }
 
-    public static Shipment create(String reference, String origin, String destination, Instant now) {
-        return new Shipment(UUID.randomUUID(), reference, origin, destination, ShipmentStatus.CREATED, now);
+    public static Shipment create(
+            String reference, String origin, String destination, Instant expectedDeliveryAt, Instant now) {
+        if (expectedDeliveryAt == null) {
+            throw new IllegalArgumentException("expectedDeliveryAt is required");
+        }
+        if (!expectedDeliveryAt.isAfter(now)) {
+            throw new IllegalArgumentException("expectedDeliveryAt must be in the future");
+        }
+        return new Shipment(
+                UUID.randomUUID(), reference, origin, destination, ShipmentStatus.CREATED, now, expectedDeliveryAt);
     }
 
     /**
@@ -53,7 +63,7 @@ public record Shipment(
         if (next == null) {
             throw new InvalidScanException(this, scan.type());
         }
-        return new Shipment(id, reference, origin, destination, next, createdAt);
+        return new Shipment(id, reference, origin, destination, next, createdAt, expectedDeliveryAt);
     }
 
     private static void requireText(String value, String field) {

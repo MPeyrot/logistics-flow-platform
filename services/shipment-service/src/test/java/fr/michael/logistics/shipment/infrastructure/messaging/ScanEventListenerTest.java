@@ -8,6 +8,7 @@ import fr.michael.logistics.shipment.application.ShipmentRepository;
 import fr.michael.logistics.shipment.application.ShipmentService;
 import fr.michael.logistics.shipment.domain.ShipmentStatus;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -120,7 +121,7 @@ class ScanEventListenerTest {
         // Plusieurs tentatives échouent. Chacune coûte aussi ~0,5 s de relecture après le seek (fetch.max.wait.ms) :
         // 2 s dépasse le réglage des autres erreurs (100 ms × 2), qui aurait déjà envoyé le scan en DLT.
         Thread.sleep(2_000);
-        shipments.create(ref, "Nantes", "Lyon");
+        shipments.create(ref, "Nantes", "Lyon", Instant.now().plus(Duration.ofDays(2)));
 
         awaitStatus(ref, ShipmentStatus.IN_TRANSIT);
     }
@@ -142,7 +143,7 @@ class ScanEventListenerTest {
 
     private String newShipment() {
         String ref = "KAFKA-" + UUID.randomUUID();
-        shipments.create(ref, "Nantes", "Lyon");
+        shipments.create(ref, "Nantes", "Lyon", Instant.now().plus(Duration.ofDays(2)));
         return ref;
     }
 
