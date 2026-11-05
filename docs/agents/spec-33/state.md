@@ -11,7 +11,7 @@ Ce fichier est relu par chaque orchestrateur neuf : il décrit l'état présent,
 
 | Issue | Titre court | Bloqué par | Modèle / effort | Statut | Slot / worktree / branche | Commit |
 |---|---|---|---|---|---|---|
-| #34 | migration `V4__` du cycle de vie (**seul**) | — | sonnet / medium | à faire | | |
+| #34 | migration `V4__` du cycle de vie (**seul**) | — | sonnet / medium | fusionné | ticket/34-migration-v4 | 5aa40ba |
 | #35 | statuts et transitions définitifs (domaine) | #34 | opus / high | à faire | | |
 | #36 | backoff exponentiel « expédition inconnue » | #34 | opus / high | à faire | | |
 | #37 | contrat `scan-event.v2` + motif (**seul**) | #34, #35 | opus / high | à faire | | |
