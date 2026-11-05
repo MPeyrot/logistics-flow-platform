@@ -7,6 +7,8 @@ Lu par l'orchestrateur, les implémenteurs et `/preparer-spec` (skills globaux `
 - Rapides (après chaque fusion) : `./mvnw -B -ntp -q verify` dans chaque service touché par le ticket (`services/<service>`). Un test : `./mvnw -B -ntp test -Dtest=<Classe>`.
 - Tester un statut d'erreur rendu par `/error` (400 de Spring MVC, 413, 500) : MockMvc ne fait pas le dispatch ERROR, il faut un vrai serveur (`webEnvironment = RANDOM_PORT`, `@LocalServerPort` de `org.springframework.boot.test.web.server`, `java.net.http.HttpClient` ; pas de `TestRestTemplate` sans dépendance en plus). Exemple : `ErrorDispatchTest` (ingestion-service, ai-service).
 - Simuler ai-service arrêté (connexion refusée) dans un test Spring : WireMock sur un port fixe choisi au démarrage, `stop()` puis `start()` à la même adresse (exemple : `DeliveryNoteApiTest`). Le contexte Spring garde l'URL, un port dynamique changerait au redémarrage.
+- Nouvelles tentatives Kafka en test : chaque tentative coûte ~0,5 s de plus que son backoff (relecture après le seek, `fetch.max.wait.ms`) ; les attentes d'un test doivent en tenir compte (exemple : `ScanEventListenerTest`, backoff raccourci par propriétés). Le topic `scan-events` des tests est créé automatiquement avec une seule partition.
+- `ApplicationContextRunner` avec un `@Value Duration` (`"1s"`) : ajouter `ApplicationConversionService.getSharedInstance()` comme service de conversion (exemple : `KafkaConsumerConfigTest`).
 - Finales (implémenteur) : `./mvnw -B -ntp verify` dans les trois services (compilation, tests, règles ArchUnit). Pas de suite e2e.
 - Suite complète (orchestrateur, au passage de main) : `verify` des trois services.
 
