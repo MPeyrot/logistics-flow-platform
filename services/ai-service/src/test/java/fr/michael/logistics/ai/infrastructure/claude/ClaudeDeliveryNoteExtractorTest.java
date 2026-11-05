@@ -22,6 +22,7 @@ import jakarta.validation.Validation;
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.LocalDate;
+import java.util.Map;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -161,7 +162,8 @@ class ClaudeDeliveryNoteExtractorTest {
     private ClaudeDeliveryNoteExtractor extractor(boolean withKey) {
         var props = new ClaudeProperties(withKey ? "test-key" : "", wireMock.baseUrl(), "claude-opus-5-5", "low",
                 2048, 0, Duration.ofSeconds(10),
-                new ClaudeProperties.Pricing(BigDecimal.ONE, BigDecimal.ONE, BigDecimal.ONE, BigDecimal.ONE));
+                Map.of("claude-opus-5-5",
+                        new ClaudeProperties.Pricing(BigDecimal.ONE, BigDecimal.ONE, BigDecimal.ONE, BigDecimal.ONE)));
         var client = AnthropicOkHttpClient.builder()
                 .apiKey(withKey ? "test-key" : "unused")
                 .baseUrl(wireMock.baseUrl())

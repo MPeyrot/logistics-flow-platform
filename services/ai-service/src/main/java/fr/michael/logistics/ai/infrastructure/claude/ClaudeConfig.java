@@ -26,9 +26,18 @@ class ClaudeConfig {
         return builder.build();
     }
 
+    /**
+     * Tarif du modèle configuré. Démarrage refusé si le modèle n'a pas de tarif complet dans
+     * {@code ai.claude.pricing.<modèle>.*} : costUsd serait sinon calculé avec le tarif d'un autre modèle.
+     */
     @Bean
     ModelPricing modelPricing(ClaudeProperties props) {
-        var p = props.pricing();
+        var p = props.pricing() == null ? null : props.pricing().get(props.model());
+        if (p == null || p.input() == null || p.output() == null || p.cacheWrite() == null || p.cacheRead() == null) {
+            throw new IllegalStateException("No complete pricing for model " + props.model()
+                    + ": set ai.claude.pricing." + props.model()
+                    + ".{input,output,cache-write,cache-read} in application.properties");
+        }
         return new ModelPricing(p.input(), p.output(), p.cacheWrite(), p.cacheRead());
     }
 }

@@ -2,6 +2,7 @@ package fr.michael.logistics.ai.infrastructure.claude;
 
 import java.math.BigDecimal;
 import java.time.Duration;
+import java.util.Map;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
@@ -17,9 +18,9 @@ public record ClaudeProperties(
         long maxTokens,
         int maxRetries,
         Duration timeout,
-        Pricing pricing) {
+        Map<String, Pricing> pricing) {
 
-    /** Dollars par million de jetons. */
+    /** Tarif d'un modèle, en dollars par million de jetons ; la table {@code pricing} est indexée par modèle. */
     public record Pricing(BigDecimal input, BigDecimal output, BigDecimal cacheWrite, BigDecimal cacheRead) {
     }
 
