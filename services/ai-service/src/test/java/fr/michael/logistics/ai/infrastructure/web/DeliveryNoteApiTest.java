@@ -65,8 +65,8 @@ class DeliveryNoteApiTest {
                 .andExpect(jsonPath("$.deliveryNote.deliveryDate").value("2026-10-30"))
                 .andExpect(jsonPath("$.deliveryNote.packageCount").value(2))
                 .andExpect(jsonPath("$.usage.cacheReadTokens").value(2000))
-                // 1000*4 + 100*20 + 500*5 + 2000*0,20 = 8900 micro-dollars
-                .andExpect(jsonPath("$.costUsd").value(0.0089));
+                // tarifs par défaut (Haiku 5.5) : 1000*0,10 + 100*0,50 + 500*0,125 + 2000*0,01 = 232,5 micro-dollars
+                .andExpect(jsonPath("$.costUsd").value(0.000233));
     }
 
     @Test
