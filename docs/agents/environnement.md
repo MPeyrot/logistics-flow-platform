@@ -9,6 +9,7 @@ Lu par l'orchestrateur, les implémenteurs et `/preparer-spec` (skills globaux `
 - Simuler ai-service arrêté (connexion refusée) dans un test Spring : WireMock sur un port fixe choisi au démarrage, `stop()` puis `start()` à la même adresse (exemple : `DeliveryNoteApiTest`). Le contexte Spring garde l'URL, un port dynamique changerait au redémarrage.
 - Nouvelles tentatives Kafka en test : chaque tentative coûte ~0,5 s de plus que son backoff (relecture après le seek, `fetch.max.wait.ms`) ; les attentes d'un test doivent en tenir compte (exemple : `ScanEventListenerTest`, backoff raccourci par propriétés). Le topic `scan-events` des tests est créé automatiquement avec une seule partition.
 - `ApplicationContextRunner` avec un `@Value Duration` (`"1s"`) : ajouter `ApplicationConversionService.getSharedInstance()` comme service de conversion (exemple : `KafkaConsumerConfigTest`).
+- `DeadLetterApiTest` a son propre contexte, donc son propre DLT, et ses tests appellent « tout rejouer » : un test qui y envoie un message en DLT doit le rendre rejouable sans échec (scan d'expédition inconnue, puis création de l'expédition), sinon un second « tout rejouer » ne rend plus 0.
 - Finales (implémenteur) : `./mvnw -B -ntp verify` dans les trois services (compilation, tests, règles ArchUnit). Pas de suite e2e.
 - Suite complète (orchestrateur, au passage de main) : `verify` des trois services.
 
