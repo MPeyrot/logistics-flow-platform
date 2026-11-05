@@ -174,6 +174,11 @@ class RecordScanServiceTest {
         private final List<Anomaly> resolved = new ArrayList<>();
 
         @Override
+        public List<AnomalyView> findViews(Boolean open) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
         public boolean openIfAbsent(Anomaly anomaly) {
             boolean alreadyOpen = all.stream().anyMatch(a -> a.isOpen()
                     && a.shipmentId().equals(anomaly.shipmentId()) && a.type() == anomaly.type());

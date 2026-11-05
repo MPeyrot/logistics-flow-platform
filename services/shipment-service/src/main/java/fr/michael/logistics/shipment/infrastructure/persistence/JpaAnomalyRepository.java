@@ -1,6 +1,7 @@
 package fr.michael.logistics.shipment.infrastructure.persistence;
 
 import fr.michael.logistics.shipment.application.AnomalyRepository;
+import fr.michael.logistics.shipment.application.AnomalyView;
 import fr.michael.logistics.shipment.domain.Anomaly;
 import fr.michael.logistics.shipment.domain.AnomalyType;
 import java.time.Instant;
@@ -26,6 +27,11 @@ class JpaAnomalyRepository implements AnomalyRepository {
     @Override
     public void resolveOpen(UUID shipmentId, AnomalyType type, Instant resolvedAt) {
         jpa.resolveOpen(shipmentId, type, resolvedAt);
+    }
+
+    @Override
+    public List<AnomalyView> findViews(Boolean open) {
+        return jpa.findViews(open);
     }
 
     @Override

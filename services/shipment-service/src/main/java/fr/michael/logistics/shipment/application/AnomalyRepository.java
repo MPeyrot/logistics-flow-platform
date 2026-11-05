@@ -21,4 +21,7 @@ public interface AnomalyRepository {
     void resolveOpen(UUID shipmentId, AnomalyType type, Instant resolvedAt);
 
     List<Anomaly> findOpen();
+
+    /** Anomalies avec la référence de leur expédition, détectées en dernier d'abord. open : null = toutes. */
+    List<AnomalyView> findViews(Boolean open);
 }

@@ -1,5 +1,6 @@
 package fr.michael.logistics.shipment.infrastructure.persistence;
 
+import fr.michael.logistics.shipment.application.AnomalyView;
 import fr.michael.logistics.shipment.domain.AnomalyType;
 import java.time.Instant;
 import java.util.List;
@@ -31,4 +32,12 @@ interface SpringDataAnomalyRepository extends JpaRepository<AnomalyJpaEntity, UU
     int resolveOpen(UUID shipmentId, AnomalyType type, Instant resolvedAt);
 
     List<AnomalyJpaEntity> findByResolvedAtIsNull();
+
+    @Query("""
+            select new fr.michael.logistics.shipment.application.AnomalyView(
+                a.id, s.reference, a.type, a.detectedAt, a.resolvedAt)
+            from AnomalyJpaEntity a join ShipmentJpaEntity s on s.id = a.shipmentId
+            where :open is null or (:open = true and a.resolvedAt is null) or (:open = false and a.resolvedAt is not null)
+            order by a.detectedAt desc""")
+    List<AnomalyView> findViews(Boolean open);
 }

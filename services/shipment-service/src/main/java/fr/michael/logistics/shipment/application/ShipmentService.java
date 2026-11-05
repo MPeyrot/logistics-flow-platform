@@ -1,9 +1,13 @@
 package fr.michael.logistics.shipment.application;
 
+import fr.michael.logistics.shipment.domain.Anomaly;
 import fr.michael.logistics.shipment.domain.Shipment;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -11,10 +15,12 @@ import org.springframework.transaction.annotation.Transactional;
 public class ShipmentService {
 
     private final ShipmentRepository repository;
+    private final AnomalyRepository anomalies;
     private final Clock clock;
 
-    public ShipmentService(ShipmentRepository repository, Clock clock) {
+    public ShipmentService(ShipmentRepository repository, AnomalyRepository anomalies, Clock clock) {
         this.repository = repository;
+        this.anomalies = anomalies;
         this.clock = clock;
     }
 
@@ -27,7 +33,12 @@ public class ShipmentService {
     }
 
     @Transactional(readOnly = true)
-    public List<Shipment> list() {
-        return repository.findAll();
+    public List<ShipmentWithAnomalies> list() {
+        Map<UUID, List<Anomaly>> openByShipment = anomalies.findOpen().stream()
+                .collect(Collectors.groupingBy(Anomaly::shipmentId));
+        return repository.findAll().stream()
+                .map(shipment -> new ShipmentWithAnomalies(
+                        shipment, openByShipment.getOrDefault(shipment.id(), List.of())))
+                .toList();
     }
 }

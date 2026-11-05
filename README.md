@@ -95,7 +95,21 @@ curl -H "Authorization: Bearer $OPERATOR" localhost:8080/api/shipments
 # 7. lire un bon de livraison (PDF ou image) : données extraites, coût, expédition correspondante.
 #    Chaque appel coûte un appel à l'API Claude : 20 par heure et par utilisateur (429 avec Retry-After au-delà).
 curl -H "Authorization: Bearer $OPERATOR" -F file=@bon.pdf localhost:8080/api/delivery-notes/extract
+
+# 8. anomalies (ADMIN, OPERATOR) : open=true (ouvertes), open=false (closes), sans paramètre (toutes),
+#    les plus récemment détectées d'abord ; open invalide : 400.
+curl -H "Authorization: Bearer $OPERATOR" 'localhost:8080/api/anomalies?open=true'
+#    les anomalies ouvertes d'une expédition sont aussi dans openAnomalies de GET /api/shipments
 ```
+
+Accès aux routes de `shipment-service` (sans jeton : 401 ; rôle non permis : 403) :
+
+| Route | ADMIN | OPERATOR | SCANNER |
+| --- | --- | --- | --- |
+| `GET /api/shipments`, `POST /api/shipments` | oui | oui | 403 |
+| `GET /api/anomalies` | oui | oui | 403 |
+| `POST /api/delivery-notes/extract` | oui | oui | 403 |
+| `POST /api/users`, `PATCH /api/users/{id}` | oui | 403 | 403 |
 
 ## Tests
 
