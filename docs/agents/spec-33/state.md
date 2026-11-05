@@ -13,9 +13,9 @@ Ce fichier est relu par chaque orchestrateur neuf : il décrit l'état présent,
 |---|---|---|---|---|---|---|
 | #34 | migration `V4__` du cycle de vie (**seul**) | — | sonnet / medium | fusionné | ticket/34-migration-v4 | 5aa40ba |
 | #35 | statuts et transitions définitifs (domaine) | #34 | opus / high | fusionné | ticket/35-statuts-transitions | ccab8f7 |
-| #36 | backoff exponentiel « expédition inconnue » | #34 | opus / high | en cours | 2 / (worktree isolé) / ticket/36-backoff-inconnue | |
+| #36 | backoff exponentiel « expédition inconnue » | #34 | opus / high | fusionné | ticket/36-backoff-inconnue | ac5fa8d |
 | #37 | contrat `scan-event.v2` + motif (**seul**) | #34, #35 | opus / high | à faire | | |
-| #38 | `expectedDeliveryAt` à la création | #34, #35 | opus / high | à faire | | |
+| #38 | `expectedDeliveryAt` à la création | #34, #35 | opus / high | en cours | 1 / (worktree isolé) / ticket/38-expected-delivery-at | |
 | #39 | détection et clôture des anomalies | #35, #38 | opus / high | à faire | | |
 | #40 | lecture des anomalies (API), ferme #1 | #39 | sonnet / medium | à faire | | |
 | #41 | lecture et rejeu du DLT (ADMIN), ferme #4 | #34, #36 | opus / high | à faire | | |
