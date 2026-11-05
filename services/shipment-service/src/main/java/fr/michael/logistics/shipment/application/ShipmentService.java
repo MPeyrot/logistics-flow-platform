@@ -2,6 +2,7 @@ package fr.michael.logistics.shipment.application;
 
 import fr.michael.logistics.shipment.domain.Shipment;
 import java.time.Clock;
+import java.time.Instant;
 import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,11 +19,11 @@ public class ShipmentService {
     }
 
     @Transactional
-    public Shipment create(String reference, String origin, String destination) {
+    public Shipment create(String reference, String origin, String destination, Instant expectedDeliveryAt) {
         if (repository.existsByReference(reference)) {
             throw new DuplicateReferenceException(reference);
         }
-        return repository.save(Shipment.create(reference, origin, destination, clock.instant()));
+        return repository.save(Shipment.create(reference, origin, destination, expectedDeliveryAt, clock.instant()));
     }
 
     @Transactional(readOnly = true)

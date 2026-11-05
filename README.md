@@ -79,9 +79,11 @@ SCANNER=$(curl -s -X POST localhost:8080/api/auth/token -H 'Content-Type: applic
 OPERATOR=$(curl -s -X POST localhost:8080/api/auth/token -H 'Content-Type: application/json' \
   -d '{"username":"operateur","password":"un mot de passe long"}' | jq -r .accessToken)
 
-# 4. créer une expédition (OPERATOR)
+# 4. créer une expédition (OPERATOR). expectedDeliveryAt (ISO-8601) est obligatoire et dans le futur, sinon 400.
+#    Ici dans trois jours (macOS ; sous Linux : date -u -d '+3 days' +%Y-%m-%dT%H:%M:%SZ).
+DUE=$(date -u -v+3d +%Y-%m-%dT%H:%M:%SZ)
 curl -X POST localhost:8080/api/shipments -H "Authorization: Bearer $OPERATOR" -H 'Content-Type: application/json' \
-  -d '{"reference":"REF-1001","origin":"Nantes","destination":"Lyon"}'
+  -d '{"reference":"REF-1001","origin":"Nantes","destination":"Lyon","expectedDeliveryAt":"'"$DUE"'"}'
 
 # 5. envoyer un scan (SCANNER ; le site doit être celui du compte ; traité en asynchrone via Kafka)
 curl -X POST localhost:8081/api/scans -H "Authorization: Bearer $SCANNER" -H 'Content-Type: application/json' \

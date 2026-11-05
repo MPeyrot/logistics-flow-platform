@@ -77,7 +77,7 @@ class DeliveryNoteApiTest {
     @Test
     void returnsDeliveryNoteWithMatchingShipment() throws Exception {
         mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/api/shipments").header("Authorization", bearer).contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"reference\":\"BL-MATCH\",\"origin\":\"Nantes\",\"destination\":\"Lyon\"}"))
+                        .content("{\"reference\":\"BL-MATCH\",\"origin\":\"Nantes\",\"destination\":\"Lyon\",\"expectedDeliveryAt\":\"" + ShipmentApiTest.DUE + "\"}"))
                 .andExpect(status().isCreated());
         stub(200, body("BL-MATCH"));
 
@@ -87,7 +87,8 @@ class DeliveryNoteApiTest {
                 .andExpect(jsonPath("$.deliveryNote.packageCount").value(2))
                 .andExpect(jsonPath("$.costUsd").value(0.0089))
                 .andExpect(jsonPath("$.shipment.status").value("CREATED"))
-                .andExpect(jsonPath("$.shipment.origin").value("Nantes"));
+                .andExpect(jsonPath("$.shipment.origin").value("Nantes"))
+                .andExpect(jsonPath("$.shipment.expectedDeliveryAt").value(ShipmentApiTest.DUE.toString()));
     }
 
     @Test

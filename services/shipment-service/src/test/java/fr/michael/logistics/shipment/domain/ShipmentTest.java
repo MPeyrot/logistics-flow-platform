@@ -18,30 +18,60 @@ import org.junit.jupiter.params.provider.MethodSource;
 class ShipmentTest {
 
     private static final Instant NOW = Instant.parse("2026-10-31T10:00:00Z");
+    private static final Instant DUE = Instant.parse("2026-11-03T18:00:00Z");
 
     @Test
     void newShipmentStartsAsCreated() {
-        Shipment shipment = Shipment.create("REF-1", "Nantes", "Lyon", NOW);
+        Shipment shipment = Shipment.create("REF-1", "Nantes", "Lyon", DUE, NOW);
 
         assertThat(shipment.status()).isEqualTo(ShipmentStatus.CREATED);
         assertThat(shipment.createdAt()).isEqualTo(NOW);
+        assertThat(shipment.expectedDeliveryAt()).isEqualTo(DUE);
+    }
+
+    @Test
+    void requiresAnExpectedDeliveryDate() {
+        assertThatThrownBy(() -> Shipment.create("REF-1", "Nantes", "Lyon", null, NOW))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("expectedDeliveryAt");
+    }
+
+    @Test
+    void rejectsAnExpectedDeliveryDateThatIsNotStrictlyInTheFuture() {
+        assertThatThrownBy(() -> Shipment.create("REF-1", "Nantes", "Lyon", NOW, NOW))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("expectedDeliveryAt");
+        assertThatThrownBy(() -> Shipment.create("REF-1", "Nantes", "Lyon", NOW.minusSeconds(1), NOW))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThat(Shipment.create("REF-1", "Nantes", "Lyon", NOW.plusMillis(1), NOW).expectedDeliveryAt())
+                .isEqualTo(NOW.plusMillis(1));
+    }
+
+    @Test
+    void shipmentWithoutExpectedDeliveryDateStillAcceptsScans() {
+        Shipment legacy = new Shipment(UUID.randomUUID(), "REF-1", "Nantes", "Lyon", ShipmentStatus.CREATED, NOW, null);
+
+        Shipment pickedUp = legacy.applyScan(scan(ScanType.PICKED_UP));
+
+        assertThat(pickedUp.status()).isEqualTo(ShipmentStatus.IN_TRANSIT);
+        assertThat(pickedUp.expectedDeliveryAt()).isNull();
     }
 
     @Test
     void rejectsSameOriginAndDestination() {
-        assertThatThrownBy(() -> Shipment.create("REF-1", "Nantes", "Nantes", NOW))
+        assertThatThrownBy(() -> Shipment.create("REF-1", "Nantes", "Nantes", DUE, NOW))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
     void rejectsBlankReference() {
-        assertThatThrownBy(() -> Shipment.create(" ", "Nantes", "Lyon", NOW))
+        assertThatThrownBy(() -> Shipment.create(" ", "Nantes", "Lyon", DUE, NOW))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
     void followsTheNominalScanSequence() {
-        Shipment shipment = Shipment.create("REF-1", "Nantes", "Lyon", NOW);
+        Shipment shipment = Shipment.create("REF-1", "Nantes", "Lyon", DUE, NOW);
 
         Shipment pickedUp = shipment.applyScan(scan(ScanType.PICKED_UP));
         Shipment atSite = pickedUp.applyScan(scan(ScanType.ARRIVED_AT_SITE));
@@ -52,6 +82,7 @@ class ShipmentTest {
         assertThat(atSite.status()).isEqualTo(ShipmentStatus.IN_TRANSIT);
         assertThat(outForDelivery.status()).isEqualTo(ShipmentStatus.OUT_FOR_DELIVERY);
         assertThat(delivered.status()).isEqualTo(ShipmentStatus.DELIVERED);
+        assertThat(delivered.expectedDeliveryAt()).isEqualTo(DUE);
     }
 
     @Test
@@ -114,7 +145,7 @@ class ShipmentTest {
     }
 
     private static Shipment inStatus(ShipmentStatus status) {
-        return new Shipment(UUID.randomUUID(), "REF-1", "Nantes", "Lyon", status, NOW);
+        return new Shipment(UUID.randomUUID(), "REF-1", "Nantes", "Lyon", status, NOW, DUE);
     }
 
     private static ScanEvent scan(ScanType type) {

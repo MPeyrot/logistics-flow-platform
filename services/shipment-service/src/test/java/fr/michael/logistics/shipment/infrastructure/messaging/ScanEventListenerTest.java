@@ -8,6 +8,7 @@ import fr.michael.logistics.shipment.application.ShipmentRepository;
 import fr.michael.logistics.shipment.application.ShipmentService;
 import fr.michael.logistics.shipment.domain.ShipmentStatus;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -92,7 +93,7 @@ class ScanEventListenerTest {
 
     private String newShipment() {
         String ref = "KAFKA-" + UUID.randomUUID();
-        shipments.create(ref, "Nantes", "Lyon");
+        shipments.create(ref, "Nantes", "Lyon", Instant.now().plus(Duration.ofDays(2)));
         return ref;
     }
 
