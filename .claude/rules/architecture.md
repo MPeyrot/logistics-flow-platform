@@ -12,6 +12,12 @@
   - **Kafka** en local (Docker Compose) et en ligne : Kafka managé auquel les services Cloud Run se connectent (offre à choisir, issue #2).
   - **Modèle métier** : Site, Expédition, ÉvénementDeScan, Anomalie ; Compte (2026-11-03, rôles ADMIN, OPERATOR, SCANNER ; un SCANNER est rattaché à un site).
   - **`JAVA_HOME`** propre au projet : `source scripts/env.sh` avant `./mvnw`, sans modifier `~/.zshrc`.
+- Décidé par Michael le 2026-11-05 (à implémenter, issues ouvertes) :
+  - **Statuts d'expédition** (#1) : CREATED, IN_TRANSIT, OUT_FOR_DELIVERY, DELIVERED, DELIVERY_FAILED. Transitions : CREATED → IN_TRANSIT (PICKED_UP), IN_TRANSIT → IN_TRANSIT (ARRIVED_AT_SITE), IN_TRANSIT → OUT_FOR_DELIVERY (OUT_FOR_DELIVERY), OUT_FOR_DELIVERY → DELIVERED (DELIVERED) ou DELIVERY_FAILED (DELIVERY_FAILED), DELIVERY_FAILED → IN_TRANSIT (ARRIVED_AT_SITE). Nouveaux types de scan dans un contrat `scan-event.v2` (changement cassant, producteur et consommateur ensemble).
+  - **Retard** (#1) : deux types d'Anomalie. LATE : non livrée après `expectedDeliveryAt` (nouveau champ saisi à la création). STALLED : aucun scan depuis 48 h (configurable) sur une expédition non livrée.
+  - **Kafka en ligne** (#2) : Confluent Cloud (essai 30 jours), avec un profil de repli sans Kafka (REST direct derrière `ScanEventPublisher`) prêt pour la fin de l'essai.
+  - **Dépôt** (#3) : public, après un leakproof propre et la fusion de la spec en cours ; README marqué « projet personnel ».
+  - **Scan avant l'expédition** (#4) : « expédition inconnue » retentée avec un backoff exponentiel jusqu'à ~5 min, puis DLT. Endpoint ADMIN pour lister `scan-events.DLT` et rejouer un message ou tous vers `scan-events`.
 - Validé par Michael le 2026-11-03 (#14, #15, #16) : dans les trois services, `spring-boot-starter-security`, `spring-boot-starter-security-oauth2-resource-server` et leurs starters de test ; `wiremock-standalone` 3.13.2 en test dans `ingestion-service`.
 
 ## Structure
