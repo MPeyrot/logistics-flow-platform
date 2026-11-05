@@ -24,9 +24,18 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.testcontainers.kafka.KafkaContainer;
 
-@SpringBootTest(properties = {"shipment.kafka.retry-interval-ms=100", "shipment.kafka.retry-attempts=2"})
+/** Backoff « expédition inconnue » raccourci : 200 ms, ×2, plafond 1 s, 4 s au total. */
+@SpringBootTest(properties = {
+        "shipment.kafka.retry-interval-ms=100", "shipment.kafka.retry-attempts=2",
+        "shipment.kafka.unknown-shipment.initial-interval=200ms",
+        "shipment.kafka.unknown-shipment.multiplier=2",
+        "shipment.kafka.unknown-shipment.max-interval=1s",
+        "shipment.kafka.unknown-shipment.max-elapsed-time=4s"})
 @Import(TestcontainersConfiguration.class)
 class ScanEventListenerTest {
+
+    /** Les attentes cumulées atteignent au moins max-elapsed-time (4 s) avant l'abandon ; marge pour l'horloge. */
+    private static final Duration MIN_UNKNOWN_SHIPMENT_WAIT = Duration.ofMillis(3_500);
 
     @Autowired
     KafkaTemplate<String, String> kafka;
@@ -89,6 +98,47 @@ class ScanEventListenerTest {
         assertThat(readDeadLetters(payload)).isEqualTo(payload);
         assertThat(repository.findByReference(ref)).get()
                 .extracting(s -> s.status()).isEqualTo(ShipmentStatus.CREATED);
+    }
+
+    @Test
+    void sendsScanOfUnknownShipmentToDeadLetterTopicAfterTheWholeBackOff() {
+        String ref = "UNKNOWN-" + UUID.randomUUID();
+        String payload = message(ref, UUID.randomUUID(), "PICKED_UP");
+        long start = System.nanoTime();
+
+        kafka.send("scan-events", ref, payload);
+
+        assertThat(readDeadLetters(payload)).isEqualTo(payload);
+        assertThat(Duration.ofNanos(System.nanoTime() - start)).isGreaterThanOrEqualTo(MIN_UNKNOWN_SHIPMENT_WAIT);
+    }
+
+    @Test
+    void appliesScanOfShipmentCreatedDuringTheBackOff() throws InterruptedException {
+        appliesScansReceivedOnKafka(); // l'écouteur a rejoint le groupe : le scan suivant est lu tout de suite
+        String ref = "KAFKA-" + UUID.randomUUID();
+
+        send(ref, UUID.randomUUID(), "PICKED_UP");
+        // Plusieurs tentatives échouent. Chacune coûte aussi ~0,5 s de relecture après le seek (fetch.max.wait.ms) :
+        // 2 s dépasse le réglage des autres erreurs (100 ms × 2), qui aurait déjà envoyé le scan en DLT.
+        Thread.sleep(2_000);
+        shipments.create(ref, "Nantes", "Lyon", Instant.now().plus(Duration.ofDays(2)));
+
+        awaitStatus(ref, ShipmentStatus.IN_TRANSIT);
+    }
+
+    @Test
+    void scanOfAnotherShipmentOnTheSamePartitionWaitsForTheEndOfTheBackOff() {
+        String known = newShipment();
+        String unknown = "UNKNOWN-" + UUID.randomUUID();
+        String unknownPayload = message(unknown, UUID.randomUUID(), "PICKED_UP");
+        long start = System.nanoTime();
+
+        kafka.send("scan-events", 0, unknown, unknownPayload);
+        kafka.send("scan-events", 0, known, message(known, UUID.randomUUID(), "PICKED_UP"));
+
+        awaitStatus(known, ShipmentStatus.IN_TRANSIT);
+        assertThat(Duration.ofNanos(System.nanoTime() - start)).isGreaterThanOrEqualTo(MIN_UNKNOWN_SHIPMENT_WAIT);
+        assertThat(readDeadLetters(unknownPayload)).isEqualTo(unknownPayload);
     }
 
     private String newShipment() {

@@ -69,6 +69,7 @@ Chaque service : `src/main/java/<package>/{domain,application,infrastructure}`.
 - Topic `scan-events` (3 partitions), clé = référence d'expédition (ordre garanti par expédition), valeur = JSON `contracts/scan-event.v1.schema.json`. Le producteur (`ingestion-service`) possède le topic.
 - Aucune bibliothèque partagée entre services : chacun a sa propre classe de message, le contrat JSON fait foi. Pas d'en-têtes de type Java dans les messages.
 - Consommateur (`shipment-service`) : idempotent (clé primaire `scan_event.event_id`), nouvelles tentatives pour les erreurs transitoires (expédition inconnue, base indisponible), envoi direct vers `scan-events.DLT` pour un message illisible ou une transition interdite.
+- Expédition inconnue (#36) : backoff exponentiel bloquant (1 s, ×2, plafond 60 s, arrêt une fois 5 min d'attente cumulée, soit ~5 min ; `shipment.kafka.unknown-shipment.*`), puis DLT ; base indisponible : 1 s × 5. Gel accepté pour garder l'ordre par expédition : le consommateur dort sans `poll()`, ses partitions attendent (une par consommateur avec `spring.kafka.listener.concurrency=3`). Chaque attente reste sous `max.poll.interval.ms`, fixé à 5 min : pas de rééquilibrage ; démarrage refusé si `max-interval` l'atteint. Chaque tentative ajoute ~0,5 s de relecture (`fetch.max.wait.ms`).
 - Tests : Testcontainers avec `apache/kafka:3.9.1`, la même version que `docker-compose.yml` (la 3.9.0 ne démarrait pas avec Testcontainers).
 
 ## ai-service
