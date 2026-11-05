@@ -2,6 +2,8 @@ package fr.michael.logistics.shipment.infrastructure.persistence;
 
 import fr.michael.logistics.shipment.application.ScanRepository;
 import fr.michael.logistics.shipment.domain.ScanEvent;
+import java.time.Instant;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.stereotype.Repository;
 
@@ -22,5 +24,10 @@ class JpaScanRepository implements ScanRepository {
     @Override
     public void save(UUID shipmentId, ScanEvent event) {
         jpa.save(ScanEventJpaEntity.from(shipmentId, event));
+    }
+
+    @Override
+    public Optional<Instant> lastOccurredAt(UUID shipmentId) {
+        return jpa.findLastOccurredAt(shipmentId);
     }
 }

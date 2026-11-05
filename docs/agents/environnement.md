@@ -27,6 +27,11 @@ Lu par l'orchestrateur, les implémenteurs et `/preparer-spec` (skills globaux `
 - `POST /api/users` (ADMIN) : corps `{"username","password","role","site"}`, 201 + `Location`, réponse `{"id","username","role","site","active","createdAt"}`. `PATCH /api/users/{id}` : corps `{"active":false}` (désactive) ou `{"active":true}` (réactive, #25), idempotent, 200 + le compte ; `active` absent ou null : 400.
 - Blocage après échecs (`LoginThrottle`, `auth.login.*`) : en mémoire, donc partagé par toutes les classes de test qui partagent le contexte Spring. Échouer la connexion avec un identifiant propre au test, jamais 5 fois avec `test-admin` ; une connexion réussie remet le compteur à zéro.
 
+## Anomalies (shipment-service, #39)
+- Port `AnomalyRepository` : `openIfAbsent` (INSERT … ON CONFLICT sur l'index partiel de V4, false si déjà ouverte), `resolveOpen`, `findOpen`. Cas d'usage `DetectAnomaliesService.detect()`, bean créé par `infrastructure/scheduling/AnomalyDetectionConfig` (`shipment.anomaly.stalled-after`).
+- Tâche planifiée : première passe un intervalle (15 min) après le démarrage, donc jamais pendant les tests ; les tests appellent `detect()` directement. La base est partagée entre classes de test : `detect()` ouvre aussi des anomalies sur les expéditions des autres classes, ne vérifier que les siennes.
+- Un scan (`RecordScanService`) et la détection verrouillent l'expédition (`lockByReference`, `lockById`, SELECT … FOR UPDATE) : sans ce verrou, une STALLED pouvait s'ouvrir juste après la clôture par un scan concurrent.
+
 ## Projet
 - Branche de base des specs : `main`. Ne rien pousser sans Michael.
 - Journal des décisions : `.claude/rules/architecture.md` > Décisions (dépendances Maven : à faire valider par Michael avant de les ajouter).

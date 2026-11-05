@@ -12,6 +12,7 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
 /** Quota d'une extraction par heure : seuls les appels qu'ai-service a pu facturer le consomment. */
@@ -95,6 +96,21 @@ class ReadDeliveryNoteServiceTest {
         @Override
         public Optional<Shipment> findByReference(String reference) {
             return Optional.empty();
+        }
+
+        @Override
+        public Optional<Shipment> lockByReference(String reference) {
+            return Optional.empty();
+        }
+
+        @Override
+        public Optional<Shipment> lockById(UUID id) {
+            return Optional.empty();
+        }
+
+        @Override
+        public List<ShipmentActivity> findUndeliveredActivity() {
+            return List.of();
         }
 
         @Override
