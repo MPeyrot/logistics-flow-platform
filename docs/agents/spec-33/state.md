@@ -17,7 +17,7 @@ Ce fichier est relu par chaque orchestrateur neuf : il décrit l'état présent,
 | #37 | contrat `scan-event.v2` + motif (**seul**) | #34, #35 | opus / high | à faire | | |
 | #38 | `expectedDeliveryAt` à la création | #34, #35 | opus / high | fusionné | ticket/38-expected-delivery-at | 203ae7f |
 | #39 | détection et clôture des anomalies | #35, #38 | opus / high | fusionné | ticket/39-anomalies | 7113cd3 |
-| #40 | lecture des anomalies (API), ferme #1 | #39 | sonnet / medium | en cours | 1 / (worktree isolé) / ticket/40-lecture-anomalies | |
+| #40 | lecture des anomalies (API), ferme #1 | #39 | sonnet / medium | fusionné | ticket/40-lecture-anomalies | 5554024 |
 | #41 | lecture et rejeu du DLT (ADMIN), ferme #4 | #34, #36 | opus / high | fusionné | ticket/41-rejeu-dlt | 873c2b5 |
 | #45 | `expectedDeliveryAt` : ISO-8601 seulement (décidé par Michael) | #38 | sonnet / medium | à faire | | |
 
@@ -32,3 +32,4 @@ Parallélisme : #34 et #37 tournent seuls (migration, contrat). #35 et #36 peuve
 ## Lots
 
 Une ligne par contexte d'orchestrateur : date, tickets fusionnés, contexte final.
+- 2026-11-05 : #34, #35, #36, #38, #39, #41, #40 fusionnés ; verify des trois services vert à 5554024. Arrêt demandé par Michael. Reste #45 puis #37 (seul, en dernier).
