@@ -15,7 +15,8 @@ class SigningKeyConfigTest {
 
     @Test
     void startupFailsWithoutPrivateKey() {
-        context.run(started -> {
+        // Vide explicitement : sinon la variable JWT_PRIVATE_KEY du shell (chargée par scripts/env.sh) fournit la clé.
+        context.withPropertyValues("jwt.private-key=").run(started -> {
             assertThat(started).hasFailed();
             assertThat(started.getStartupFailure()).rootCause()
                     .hasMessageContaining("JWT_PRIVATE_KEY is not set")
