@@ -111,4 +111,15 @@ Fait : création et liste des expéditions, authentification JWT (comptes, rôle
 
 À venir : import par lot (Spring Batch), front Vue 3 + TypeScript, déploiement sur GCP Cloud Run.
 
-Les statuts d'expédition et les types de scan sont provisoires.
+Statuts d'une expédition et transitions permises (tout autre scan est refusé et part dans `scan-events.DLT`) :
+
+| Statut | Scan | Nouveau statut |
+| --- | --- | --- |
+| CREATED | PICKED_UP | IN_TRANSIT |
+| IN_TRANSIT | ARRIVED_AT_SITE | IN_TRANSIT |
+| IN_TRANSIT | OUT_FOR_DELIVERY | OUT_FOR_DELIVERY |
+| OUT_FOR_DELIVERY | DELIVERED | DELIVERED |
+| OUT_FOR_DELIVERY | DELIVERY_FAILED | DELIVERY_FAILED |
+| DELIVERY_FAILED | ARRIVED_AT_SITE | IN_TRANSIT |
+
+DELIVERED est terminal. Le contrat Kafka `scan-event.v1` ne porte encore que PICKED_UP, ARRIVED_AT_SITE et DELIVERED : en attendant `scan-event.v2`, une expédition ne peut pas encore être livrée par un scan.

@@ -56,14 +56,17 @@ class ScanEventListenerTest {
         String ref = newShipment();
         UUID pickup = UUID.randomUUID();
 
-        send(ref, pickup, "PICKED_UP");
-        send(ref, pickup, "PICKED_UP");
-        send(ref, UUID.randomUUID(), "DELIVERED");
+        UUID arrival = UUID.randomUUID();
 
-        awaitStatus(ref, ShipmentStatus.DELIVERED);
-        Integer stored = jdbc.queryForObject(
-                "SELECT count(*) FROM scan_event WHERE event_id = ?", Integer.class, pickup);
-        assertThat(stored).isEqualTo(1);
+        send(ref, pickup, "PICKED_UP");
+        send(ref, pickup, "PICKED_UP");
+        send(ref, arrival, "ARRIVED_AT_SITE");
+
+        // Même clé, même partition : le scan suivant enregistré prouve que le doublon a été traité.
+        await().atMost(Duration.ofSeconds(30)).untilAsserted(() ->
+                assertThat(storedCount(arrival)).isEqualTo(1));
+        assertThat(storedCount(pickup)).isEqualTo(1);
+        awaitStatus(ref, ShipmentStatus.IN_TRANSIT);
     }
 
     @Test
@@ -101,6 +104,10 @@ class ScanEventListenerTest {
         return """
                 {"eventId":"%s","shipmentReference":"%s","type":"%s","site":"Nantes","occurredAt":"2026-10-31T10:00:00Z"}"""
                 .formatted(eventId, ref, type);
+    }
+
+    private Integer storedCount(UUID eventId) {
+        return jdbc.queryForObject("SELECT count(*) FROM scan_event WHERE event_id = ?", Integer.class, eventId);
     }
 
     private void awaitStatus(String ref, ShipmentStatus expected) {
