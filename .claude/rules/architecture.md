@@ -26,6 +26,7 @@
   - **Rejeu du DLT** : rejeux enregistrés en table, « tout rejouer » saute les messages déjà rejoués.
   - Une seule migration `V4__` pour toute la spec ; spec/13 fusionnée dans `main` avant le lancement.
 - Validé par Michael le 2026-11-03 (#14, #15, #16) : dans les trois services, `spring-boot-starter-security`, `spring-boot-starter-security-oauth2-resource-server` et leurs starters de test ; `wiremock-standalone` 3.13.2 en test dans `ingestion-service`.
+- Décidé par Michael le 2026-11-06 (#43, #46, #48) : `spring.kafka.listener.concurrency=3` gardé dans `shipment-service` (seule la partition de l'expédition attendue gèle) ; sur Cloud Run, `shipment-service` tourne avec `min-instances` ≥ 1 (détection des anomalies et consommateur Kafka), le délai initial de 15 min reste ; liste du DLT : plus récents d'abord.
 
 ## Structure
 ```
