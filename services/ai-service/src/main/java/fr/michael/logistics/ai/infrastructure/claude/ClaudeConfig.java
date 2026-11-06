@@ -36,20 +36,20 @@ class ClaudeConfig {
     ModelPricing modelPricing(ClaudeProperties props) {
         var p = props.pricing() == null ? null : props.pricing().get(props.model());
         String prefix = "ai.claude.pricing." + props.model();
-        if (p == null || !p.isComplete()) {
+        var rates = p == null ? null : p.rates();
+        if (rates == null) {
             throw new IllegalStateException("No complete pricing for model " + props.model()
                     + ": set " + prefix + ".{input,output,cache-write,cache-read} in application.properties");
         }
-        var rates = new RateCard(p.input(), p.output(), p.cacheWrite(), p.cacheRead());
         var lc = p.longContext();
         if (lc == null) {
             return new ModelPricing(rates);
         }
-        if (!lc.isComplete()) {
+        var longContext = lc.toDomain();
+        if (longContext == null) {
             throw new IllegalStateException("Incomplete long-context pricing for model " + props.model()
                     + ": set " + prefix + ".long-context.{threshold-tokens,input,output,cache-write,cache-read}");
         }
-        return new ModelPricing(rates, new ModelPricing.LongContext(lc.thresholdTokens(),
-                new RateCard(lc.input(), lc.output(), lc.cacheWrite(), lc.cacheRead())));
+        return new ModelPricing(rates, longContext);
     }
 }
