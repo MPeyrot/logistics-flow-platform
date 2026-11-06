@@ -5,6 +5,7 @@ import fr.michael.logistics.ai.domain.SourceDocument;
 import java.math.BigDecimal;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -17,9 +18,12 @@ public class ExtractDeliveryNoteService {
     private final ExtractionQuota quota;
     private final DailyBudget budget;
     private final ExtractionMetrics metrics;
+    private final String model;
 
     public ExtractDeliveryNoteService(DeliveryNoteExtractor extractor, ModelPricing pricing,
-            ExtractionQuota quota, DailyBudget budget, ExtractionMetrics metrics) {
+            ExtractionQuota quota, DailyBudget budget, ExtractionMetrics metrics,
+            @Value("${ai.claude.model}") String model) {
+        this.model = model;
         this.budget = budget;
         this.extractor = extractor;
         this.quota = quota;
@@ -38,7 +42,11 @@ public class ExtractDeliveryNoteService {
                 BigDecimal cost = pricing.costOf(e.usage());
                 budget.record(cost);
                 metrics.recordBilledCall(e.usage(), cost, false);
-                log.warn("delivery note unreadable: format={} costUsd={}", document.format(), cost.toPlainString());
+                log.atWarn()
+                        .addKeyValue("costUsd", cost)
+                        .addKeyValue("model", model)
+                        .addKeyValue("outcome", "unreadable")
+                        .log("delivery note unreadable: format={} costUsd={}", document.format(), cost.toPlainString());
             }
             throw e;
         } catch (ExtractionUnavailableException | ExtractionFailedException e) {
@@ -49,9 +57,13 @@ public class ExtractDeliveryNoteService {
         BigDecimal cost = pricing.costOf(extraction.usage());
         budget.record(cost);
         metrics.recordBilledCall(extraction.usage(), cost, true);
-        log.info("delivery note extracted: format={} inputTokens={} outputTokens={} cacheWriteTokens={} cacheReadTokens={} costUsd={}",
-                document.format(), extraction.usage().inputTokens(), extraction.usage().outputTokens(),
-                extraction.usage().cacheWriteTokens(), extraction.usage().cacheReadTokens(), cost.toPlainString());
+        log.atInfo()
+                .addKeyValue("costUsd", cost)
+                .addKeyValue("model", model)
+                .addKeyValue("outcome", "extracted")
+                .log("delivery note extracted: format={} inputTokens={} outputTokens={} cacheWriteTokens={} cacheReadTokens={} costUsd={}",
+                        document.format(), extraction.usage().inputTokens(), extraction.usage().outputTokens(),
+                        extraction.usage().cacheWriteTokens(), extraction.usage().cacheReadTokens(), cost.toPlainString());
         return new ExtractionResult(extraction.note(), extraction.usage(), cost);
     }
 }
