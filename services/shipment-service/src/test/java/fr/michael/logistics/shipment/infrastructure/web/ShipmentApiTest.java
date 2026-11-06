@@ -105,6 +105,15 @@ class ShipmentApiTest {
     }
 
     @Test
+    void numericExpectedDeliveryDateGets400Problem() throws Exception {
+        badRequestProblem(create("""
+                {"reference":"API-NUM-DUE","origin":"Nantes","destination":"Lyon","expectedDeliveryAt":4102444800}"""))
+                .andExpect(jsonPath("$.detail").value("Invalid value for expectedDeliveryAt"));
+        badRequestProblem(create("""
+                {"reference":"API-NUM-DUE","origin":"Nantes","destination":"Lyon","expectedDeliveryAt":4102444800.5}"""));
+    }
+
+    @Test
     void expectedDeliveryDateInThePastGets400Problem() throws Exception {
         String past = Instant.now().minus(Duration.ofMinutes(1)).toString();
         badRequestProblem(create("""
