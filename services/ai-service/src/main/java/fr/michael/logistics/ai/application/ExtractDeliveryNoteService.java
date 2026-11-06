@@ -15,10 +15,12 @@ public class ExtractDeliveryNoteService {
     private final DeliveryNoteExtractor extractor;
     private final ModelPricing pricing;
     private final ExtractionQuota quota;
+    private final DailyBudget budget;
     private final ExtractionMetrics metrics;
 
     public ExtractDeliveryNoteService(DeliveryNoteExtractor extractor, ModelPricing pricing,
-            ExtractionQuota quota, ExtractionMetrics metrics) {
+            ExtractionQuota quota, DailyBudget budget, ExtractionMetrics metrics) {
+        this.budget = budget;
         this.extractor = extractor;
         this.quota = quota;
         this.pricing = pricing;
@@ -26,6 +28,7 @@ public class ExtractDeliveryNoteService {
     }
 
     public ExtractionResult extract(SourceDocument document) {
+        budget.checkAvailable();
         quota.acquire();
         ModelExtraction extraction;
         try {
@@ -33,6 +36,7 @@ public class ExtractDeliveryNoteService {
         } catch (UnreadableDocumentException e) {
             if (e.usage() != null) {
                 BigDecimal cost = pricing.costOf(e.usage());
+                budget.record(cost);
                 metrics.recordBilledCall(e.usage(), cost, false);
                 log.warn("delivery note unreadable: format={} costUsd={}", document.format(), cost.toPlainString());
             }
@@ -43,6 +47,7 @@ public class ExtractDeliveryNoteService {
             throw e;
         }
         BigDecimal cost = pricing.costOf(extraction.usage());
+        budget.record(cost);
         metrics.recordBilledCall(extraction.usage(), cost, true);
         log.info("delivery note extracted: format={} inputTokens={} outputTokens={} cacheWriteTokens={} cacheReadTokens={} costUsd={}",
                 document.format(), extraction.usage().inputTokens(), extraction.usage().outputTokens(),

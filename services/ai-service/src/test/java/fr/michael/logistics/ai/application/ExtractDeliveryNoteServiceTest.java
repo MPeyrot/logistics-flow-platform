@@ -17,6 +17,7 @@ class ExtractDeliveryNoteServiceTest {
     private final ModelPricing pricing = new ModelPricing(new RateCard(
             new BigDecimal("4.00"), new BigDecimal("20.00"), new BigDecimal("5.00"), new BigDecimal("0.20")));
     private final ExtractionQuota quota = new ExtractionQuota(100, java.time.Clock.systemUTC());
+    private final DailyBudget budget = new DailyBudget(new BigDecimal("1"), java.time.Clock.systemUTC());
     private final java.util.List<String> billed = new java.util.ArrayList<>();
     private final ExtractionMetrics metrics = (usage, cost, extracted) ->
             billed.add((extracted ? "extracted " : "unreadable ") + cost.toPlainString());
@@ -26,7 +27,7 @@ class ExtractDeliveryNoteServiceTest {
     void returnsNoteWithUsageAndCost() {
         var usage = new TokenUsage(1000, 100, 0, 0);
         var note = new DeliveryNote("BL-1", null, null, null, null, null, null);
-        var service = new ExtractDeliveryNoteService(doc -> new ModelExtraction(note, usage), pricing, quota, metrics);
+        var service = new ExtractDeliveryNoteService(doc -> new ModelExtraction(note, usage), pricing, quota, budget, metrics);
 
         ExtractionResult result = service.extract(document);
 
@@ -40,7 +41,7 @@ class ExtractDeliveryNoteServiceTest {
     void propagatesUnreadableDocument() {
         var service = new ExtractDeliveryNoteService(doc -> {
             throw new UnreadableDocumentException("no reference", new TokenUsage(10, 5, 0, 0));
-        }, pricing, quota, metrics);
+        }, pricing, quota, budget, metrics);
 
         assertThatThrownBy(() -> service.extract(document)).isInstanceOf(UnreadableDocumentException.class);
         // Réponse du modèle facturée même inutilisable : 10*4 + 5*20 = 140 micro-dollars
@@ -56,7 +57,7 @@ class ExtractDeliveryNoteServiceTest {
                 () -> { throw new ExtractionUnavailableException("ANTHROPIC_API_KEY is not set"); },
                 () -> { throw new ExtractionFailedException("Claude API call failed"); },
                 () -> new ModelExtraction(note, new TokenUsage(10, 5, 0, 0))));
-        var service = new ExtractDeliveryNoteService(doc -> outcomes.removeFirst().get(), pricing, single, metrics);
+        var service = new ExtractDeliveryNoteService(doc -> outcomes.removeFirst().get(), pricing, single, budget, metrics);
 
         assertThatThrownBy(() -> service.extract(document)).isInstanceOf(ExtractionUnavailableException.class);
         assertThatThrownBy(() -> service.extract(document)).isInstanceOf(ExtractionFailedException.class);
@@ -70,7 +71,36 @@ class ExtractDeliveryNoteServiceTest {
         var single = new ExtractionQuota(1, java.time.Clock.systemUTC());
         var service = new ExtractDeliveryNoteService(doc -> {
             throw new UnreadableDocumentException("no reference", new TokenUsage(10, 5, 0, 0));
-        }, pricing, single, metrics);
+        }, pricing, single, budget, metrics);
+
+        assertThatThrownBy(() -> service.extract(document)).isInstanceOf(UnreadableDocumentException.class);
+        assertThatThrownBy(() -> service.extract(document)).isInstanceOf(ExtractionQuotaExceededException.class);
+    }
+
+    /** Budget du jour consommé : 429 sans appel au modèle ni réservation du quota horaire. */
+    @Test
+    void refusesOnceTheDailyBudgetIsSpent() {
+        var tiny = new DailyBudget(new BigDecimal("0.005"), java.time.Clock.systemUTC());
+        var calls = new int[1];
+        var note = new DeliveryNote("BL-1", null, null, null, null, null, null);
+        var service = new ExtractDeliveryNoteService(doc -> {
+            calls[0]++;
+            return new ModelExtraction(note, new TokenUsage(1000, 100, 0, 0)); // 0,006 $
+        }, pricing, quota, tiny, metrics);
+
+        service.extract(document);
+
+        assertThatThrownBy(() -> service.extract(document)).isInstanceOf(ExtractionQuotaExceededException.class);
+        assertThat(calls[0]).isEqualTo(1);
+    }
+
+    /** Réponse inutilisable (422) : facturée, elle compte dans le budget. */
+    @Test
+    void unreadableResponseCountsInTheBudget() {
+        var tiny = new DailyBudget(new BigDecimal("0.0001"), java.time.Clock.systemUTC());
+        var service = new ExtractDeliveryNoteService(doc -> {
+            throw new UnreadableDocumentException("no reference", new TokenUsage(10, 5, 0, 0)); // 0,00014 $
+        }, pricing, quota, tiny, metrics);
 
         assertThatThrownBy(() -> service.extract(document)).isInstanceOf(UnreadableDocumentException.class);
         assertThatThrownBy(() -> service.extract(document)).isInstanceOf(ExtractionQuotaExceededException.class);
