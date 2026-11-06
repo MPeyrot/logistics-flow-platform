@@ -3,6 +3,7 @@ package fr.michael.logistics.shipment.infrastructure.web;
 import fr.michael.logistics.shipment.application.AccountNotFoundException;
 import fr.michael.logistics.shipment.application.DeadLetterAlreadyReplayedException;
 import fr.michael.logistics.shipment.application.DeadLetterNotFoundException;
+import fr.michael.logistics.shipment.application.ReplayAllJobNotFoundException;
 import fr.michael.logistics.shipment.application.DuplicateReferenceException;
 import fr.michael.logistics.shipment.application.LastActiveAdminException;
 import fr.michael.logistics.shipment.application.LoginBlockedException;
@@ -53,6 +54,11 @@ class ApiExceptionHandler {
 
     @ExceptionHandler(DeadLetterNotFoundException.class)
     ProblemDetail deadLetterNotFound(DeadLetterNotFoundException e) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, e.getMessage());
+    }
+
+    @ExceptionHandler(ReplayAllJobNotFoundException.class)
+    ProblemDetail replayAllJobNotFound(ReplayAllJobNotFoundException e) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, e.getMessage());
     }
 

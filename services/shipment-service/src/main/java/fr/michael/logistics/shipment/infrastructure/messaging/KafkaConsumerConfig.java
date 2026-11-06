@@ -37,14 +37,17 @@ class KafkaConsumerConfig {
             @Value("${shipment.kafka.unknown-shipment.multiplier}") double multiplier,
             @Value("${shipment.kafka.unknown-shipment.max-interval}") Duration maxInterval,
             @Value("${shipment.kafka.unknown-shipment.max-elapsed-time}") Duration maxElapsedTime,
+            @Value("${shipment.kafka.batch-processing-margin:60s}") Duration batchProcessingMargin,
             @Value("${spring.kafka.consumer.properties.max.poll.interval.ms:" + DEFAULT_MAX_POLL_INTERVAL_MS + "}")
             long maxPollIntervalMs) {
-        // Chaque attente dort dans le thread du consommateur, sans poll() : au-delà de max.poll.interval.ms,
-        // le consommateur quitterait le groupe (rééquilibrage, partition relue par un autre).
-        if (maxInterval.toMillis() >= maxPollIntervalMs) {
-            throw new IllegalStateException(("shipment.kafka.unknown-shipment.max-interval (%d ms) must stay under "
-                    + "max.poll.interval.ms (%d ms)").formatted(maxInterval.toMillis(), maxPollIntervalMs));
-        }
+        // Chaque attente dort dans le thread du consommateur, sans poll(). Entre deux poll(), il y a le traitement
+        // des messages du lot qui précèdent l'échec (max.poll.records), la tentative en échec, puis l'attente :
+        // au-delà de max.poll.interval.ms, le consommateur quitterait le groupe (rééquilibrage, partition relue
+        // par un autre). La marge couvre le traitement ; l'attente la plus longue doit tenir dans le reste.
+        requireWaitUnderMaxPollInterval("shipment.kafka.unknown-shipment.max-interval", maxInterval.toMillis(),
+                batchProcessingMargin, maxPollIntervalMs);
+        requireWaitUnderMaxPollInterval("shipment.kafka.retry-interval-ms", intervalMs,
+                batchProcessingMargin, maxPollIntervalMs);
         // partition -1 : le producteur choisit (le DLT n'a pas forcément autant de partitions que le topic source)
         DeadLetterPublishingRecoverer recoverer = new DeadLetterPublishingRecoverer(
                 kafka, (record, e) -> new TopicPartition(record.topic() + ".DLT", -1));
@@ -61,6 +64,15 @@ class KafkaConsumerConfig {
         // null : le backoff par défaut (FixedBackOff) s'applique
         handler.setBackOffFunction((record, e) -> causedByUnknownShipment(e) ? unknownShipment : null);
         return handler;
+    }
+
+    private static void requireWaitUnderMaxPollInterval(String property, long waitMs, Duration margin,
+            long maxPollIntervalMs) {
+        if (waitMs + margin.toMillis() >= maxPollIntervalMs) {
+            throw new IllegalStateException(("%s (%d ms) plus shipment.kafka.batch-processing-margin (%d ms) "
+                    + "must stay under max.poll.interval.ms (%d ms)")
+                    .formatted(property, waitMs, margin.toMillis(), maxPollIntervalMs));
+        }
     }
 
     private static Exception unwrapListenerFailure(Exception e) {

@@ -56,6 +56,7 @@ class SecurityConfig {
                         .requestMatchers(HttpMethod.PATCH, "/api/users/*").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/admin/dlt/scan-events").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/admin/dlt/scan-events/replay").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/admin/dlt/scan-events/replay/*").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/admin/dlt/scan-events/*/*/replay").hasRole("ADMIN")
                         .anyRequest().denyAll())
                 .oauth2ResourceServer(resource -> resource

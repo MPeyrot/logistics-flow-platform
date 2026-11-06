@@ -21,5 +21,5 @@ public interface ScanEventDeadLetters {
     void forEach(Consumer<DeadLetter> action);
 
     /** Republie clé et valeur vers {@code scan-events}, sans les en-têtes du DLT, et attend l'accusé du broker. */
-    void republish(DeadLetter letter);
+    void republish(String key, String value);
 }

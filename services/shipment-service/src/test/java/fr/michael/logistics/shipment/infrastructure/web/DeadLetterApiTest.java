@@ -4,7 +4,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.hamcrest.Matchers.matchesPattern;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -121,10 +123,18 @@ class DeadLetterApiTest {
         awaitDeadLetter(payload);
         shipments.create(ref, "Nantes", "Lyon", Instant.now().plus(Duration.ofDays(2)));
 
-        assertThat(replayAll()).isPositive();
+        Map<String, Object> job = replayAll();
 
+        assertThat((Integer) job.get("replayed")).isPositive();
+        assertThat(job).containsEntry("failed", 0).containsEntry("error", null)
+                .containsEntry("requestedBy", "test-admin");
+        assertThat(job.get("finishedAt")).isNotNull();
         awaitStatus(ref, ShipmentStatus.IN_TRANSIT);
-        assertThat(replayAll()).isZero();
+        await().atMost(Duration.ofSeconds(30)).untilAsserted(() -> {
+            Map<String, Object> progress = replayJob((String) job.get("id"));
+            assertThat(progress.get("published")).isEqualTo(progress.get("replayed"));
+        });
+        assertThat(replayAll()).containsEntry("replayed", 0);
         Map<String, Object> letter = awaitDeadLetter(payload);
         assertThat(letter).containsEntry("replayed", true);
         assertThat(letter.get("replayedAt")).isNotNull();
@@ -165,6 +175,25 @@ class DeadLetterApiTest {
                     .andExpect(status().isNotFound())
                     .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON));
         }
+    }
+
+    @Test
+    void replayingAllAnswers202BeforeTheReplayRuns() throws Exception {
+        mvc.perform(post("/api/admin/dlt/scan-events/replay").header("Authorization", TestAccounts.adminBearer(mvc)))
+                .andExpect(status().isAccepted())
+                .andExpect(header().string("Location",
+                        matchesPattern(".*/api/admin/dlt/scan-events/replay/[0-9a-f-]{36}")))
+                .andExpect(jsonPath("$.id").isNotEmpty())
+                .andExpect(jsonPath("$.finished").value(false))
+                .andExpect(jsonPath("$.replayed").value(0));
+    }
+
+    @Test
+    void anUnknownReplayGets404() throws Exception {
+        mvc.perform(get("/api/admin/dlt/scan-events/replay/" + UUID.randomUUID())
+                        .header("Authorization", TestAccounts.adminBearer(mvc)))
+                .andExpect(status().isNotFound())
+                .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON));
     }
 
     @Test
@@ -210,7 +239,8 @@ class DeadLetterApiTest {
     private static List<MockHttpServletRequestBuilder> adminRoutes() {
         return List.of(get("/api/admin/dlt/scan-events"),
                 post("/api/admin/dlt/scan-events/0/0/replay"),
-                post("/api/admin/dlt/scan-events/replay"));
+                post("/api/admin/dlt/scan-events/replay"),
+                get("/api/admin/dlt/scan-events/replay/" + UUID.randomUUID()));
     }
 
     private List<ConsumerRecord<String, String>> scanEventsWithValue(String value) {
@@ -234,12 +264,23 @@ class DeadLetterApiTest {
         return found;
     }
 
-    private int replayAll() throws Exception {
+    /** Lance « tout rejouer » et attend la fin du parcours du DLT ; rend l'état final du rejeu. */
+    private Map<String, Object> replayAll() throws Exception {
         String body = mvc.perform(post("/api/admin/dlt/scan-events/replay")
+                        .header("Authorization", TestAccounts.adminBearer(mvc)))
+                .andExpect(status().isAccepted())
+                .andReturn().getResponse().getContentAsString();
+        String id = JsonPath.read(body, "$.id");
+        return await().atMost(Duration.ofSeconds(30))
+                .until(() -> replayJob(id), job -> Boolean.TRUE.equals(job.get("finished")));
+    }
+
+    private Map<String, Object> replayJob(String id) throws Exception {
+        String body = mvc.perform(get("/api/admin/dlt/scan-events/replay/" + id)
                         .header("Authorization", TestAccounts.adminBearer(mvc)))
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
-        return JsonPath.read(body, "$.replayed");
+        return JsonPath.read(body, "$");
     }
 
     private void awaitStatus(String ref, ShipmentStatus expected) {

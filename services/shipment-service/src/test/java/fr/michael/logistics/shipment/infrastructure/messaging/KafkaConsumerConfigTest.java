@@ -10,8 +10,9 @@ import org.springframework.kafka.core.KafkaOperations;
 import org.springframework.kafka.listener.DefaultErrorHandler;
 
 /**
- * Le backoff « expédition inconnue » dort dans le thread du consommateur, sans appeler poll() : une attente plus
- * longue que max.poll.interval.ms ferait sortir le consommateur du groupe (rééquilibrage). Démarrage refusé.
+ * Les nouvelles tentatives dorment dans le thread du consommateur, sans appeler poll() : une attente qui, ajoutée au
+ * traitement des messages du lot qui précèdent l'échec, dépasse max.poll.interval.ms ferait sortir le consommateur
+ * du groupe (rééquilibrage). Démarrage refusé.
  */
 class KafkaConsumerConfigTest {
 
@@ -44,6 +45,41 @@ class KafkaConsumerConfigTest {
                     assertThat(started).hasFailed();
                     assertThat(started.getStartupFailure()).rootCause()
                             .hasMessageContaining("shipment.kafka.unknown-shipment.max-interval")
+                            .hasMessageContaining("max.poll.interval.ms");
+                });
+    }
+
+    @Test
+    void startupFailsWhenAWaitLeavesNoMarginToProcessTheRestOfTheBatch() {
+        context.withPropertyValues(
+                        "shipment.kafka.unknown-shipment.max-interval=280s",
+                        "spring.kafka.consumer.properties.max.poll.interval.ms=300000")
+                .run(started -> {
+                    assertThat(started).hasFailed();
+                    assertThat(started.getStartupFailure()).rootCause()
+                            .hasMessageContaining("shipment.kafka.batch-processing-margin");
+                });
+    }
+
+    @Test
+    void theMarginCanBeLoweredToAllowALongerWait() {
+        context.withPropertyValues(
+                        "shipment.kafka.unknown-shipment.max-interval=280s",
+                        "shipment.kafka.batch-processing-margin=10s",
+                        "spring.kafka.consumer.properties.max.poll.interval.ms=300000")
+                .run(started -> assertThat(started).hasSingleBean(DefaultErrorHandler.class));
+    }
+
+    @Test
+    void startupFailsWhenTheRetryIntervalOfOtherErrorsLeavesNoMargin() {
+        context.withPropertyValues(
+                        "shipment.kafka.unknown-shipment.max-interval=60s",
+                        "shipment.kafka.retry-interval-ms=280000",
+                        "spring.kafka.consumer.properties.max.poll.interval.ms=300000")
+                .run(started -> {
+                    assertThat(started).hasFailed();
+                    assertThat(started.getStartupFailure()).rootCause()
+                            .hasMessageContaining("shipment.kafka.retry-interval-ms")
                             .hasMessageContaining("max.poll.interval.ms");
                 });
     }

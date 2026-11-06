@@ -124,10 +124,10 @@ class KafkaScanEventDeadLetters implements ScanEventDeadLetters {
     }
 
     @Override
-    public void republish(DeadLetter letter) {
+    public void republish(String key, String value) {
         // Sans en-têtes : ceux du DLT (exception, origine) n'ont pas de sens pour l'écouteur.
         try {
-            kafka.send(new ProducerRecord<>(replayTopic, letter.key(), letter.value()))
+            kafka.send(new ProducerRecord<>(replayTopic, key, value))
                     .get(timeout.toMillis(), TimeUnit.MILLISECONDS);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
