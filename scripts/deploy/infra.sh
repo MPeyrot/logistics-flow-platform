@@ -49,7 +49,7 @@ ensure_sa() {
   if exists gcloud iam service-accounts describe "$(sa_email "$name")"; then
     ok "compte de service $name"
   else
-    gcloud iam service-accounts create "$name" --display-name="$display" >/dev/null
+    retry gcloud iam service-accounts create "$name" --display-name="$display" >/dev/null
     made "compte de service $name"
   fi
 }
@@ -76,7 +76,7 @@ log "Artifact Registry"
 if exists gcloud artifacts repositories describe "$AR_REPOSITORY" --location="$REGION"; then
   ok "dépôt $AR_REPOSITORY"
 else
-  gcloud artifacts repositories create "$AR_REPOSITORY" --repository-format=docker \
+  retry gcloud artifacts repositories create "$AR_REPOSITORY" --repository-format=docker \
     --location="$REGION" --description="Images des services de la démo" >/dev/null
   made "dépôt $AR_REPOSITORY"
 fi
@@ -90,7 +90,7 @@ cat > "$tmp/cleanup.json" <<JSON
    "condition": {"tagState": "any"}}
 ]
 JSON
-gcloud artifacts repositories set-cleanup-policies "$AR_REPOSITORY" --location="$REGION" \
+retry gcloud artifacts repositories set-cleanup-policies "$AR_REPOSITORY" --location="$REGION" \
   --policy="$tmp/cleanup.json" --no-dry-run >/dev/null
 ok "règle de nettoyage : $AR_KEEP_IMAGES dernières images par service"
 
@@ -104,7 +104,7 @@ for service in $SERVICES; do
     if exists gcloud secrets describe "$secret"; then
       ok "secret $secret"
     else
-      gcloud secrets create "$secret" --replication-policy=user-managed --locations="$REGION" \
+      retry gcloud secrets create "$secret" --replication-policy=user-managed --locations="$REGION" \
         --labels="service=$service" >/dev/null
       made "secret $secret (sans valeur)"
     fi
@@ -133,26 +133,26 @@ log "Workload Identity Federation"
 if exists gcloud iam workload-identity-pools describe "$WIF_POOL" --location=global; then
   ok "pool $WIF_POOL"
 else
-  gcloud iam workload-identity-pools create "$WIF_POOL" --location=global \
+  retry gcloud iam workload-identity-pools create "$WIF_POOL" --location=global \
     --display-name="GitHub Actions" >/dev/null
   made "pool $WIF_POOL"
 fi
-# Seuls les jetons OIDC émis pour ce dépôt sont acceptés. Réappliqué s'il existe déjà, pour que la
+# Seuls les jetons OIDC émis pour ce dépôt, par un workflow lancé sur main, sont acceptés (C1). Réappliqué s'il existe déjà, pour que la
 # condition reste celle-ci.
 provider_flags=(
   --location=global --workload-identity-pool="$WIF_POOL"
   --display-name="GitHub OIDC"
   --issuer-uri="https://token.actions.githubusercontent.com"
   --attribute-mapping="google.subject=assertion.sub,attribute.repository=assertion.repository,attribute.ref=assertion.ref"
-  --attribute-condition="assertion.repository=='$GITHUB_REPO'"
+  --attribute-condition="assertion.repository=='$GITHUB_REPO' && assertion.ref=='refs/heads/main'"
 )
 if exists gcloud iam workload-identity-pools providers describe "$WIF_PROVIDER" \
     --location=global --workload-identity-pool="$WIF_POOL"; then
-  gcloud iam workload-identity-pools providers update-oidc "$WIF_PROVIDER" "${provider_flags[@]}" >/dev/null
-  ok "fournisseur $WIF_PROVIDER (limité à $GITHUB_REPO)"
+  retry gcloud iam workload-identity-pools providers update-oidc "$WIF_PROVIDER" "${provider_flags[@]}"
+  ok "fournisseur $WIF_PROVIDER (limité à $GITHUB_REPO, branche main)"
 else
-  gcloud iam workload-identity-pools providers create-oidc "$WIF_PROVIDER" "${provider_flags[@]}" >/dev/null
-  made "fournisseur $WIF_PROVIDER (limité à $GITHUB_REPO)"
+  retry gcloud iam workload-identity-pools providers create-oidc "$WIF_PROVIDER" "${provider_flags[@]}"
+  made "fournisseur $WIF_PROVIDER (limité à $GITHUB_REPO, branche main)"
 fi
 pool_path="projects/$PROJECT_NUMBER/locations/global/workloadIdentityPools/$WIF_POOL"
 retry gcloud iam service-accounts add-iam-policy-binding "$(sa_email "$DEPLOY_SA_NAME")" \
@@ -192,9 +192,11 @@ bucketOptions:
     scale: 0.0001
 YAML
 if exists gcloud logging metrics describe "$COST_METRIC"; then
-  ok "métrique $COST_METRIC"
+  # Réappliquée : une modification du filtre ou des étiquettes ici arrive en ligne (C4).
+  retry gcloud logging metrics update "$COST_METRIC" --config-from-file="$tmp/metric.yaml"
+  ok "métrique $COST_METRIC (mise à jour)"
 else
-  gcloud logging metrics create "$COST_METRIC" --config-from-file="$tmp/metric.yaml" >/dev/null
+  retry gcloud logging metrics create "$COST_METRIC" --config-from-file="$tmp/metric.yaml"
   made "métrique $COST_METRIC (logging.googleapis.com/user/$COST_METRIC)"
 fi
 

@@ -156,13 +156,13 @@ write_env() {
 set_secret() {
   local name="$1" value="$2"
   if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
-    if printf '%s' "$value" | gh secret set "$name" >/dev/null 2>&1; then
+    if printf '%s' "$value" | gh secret set "$name" --repo "$GITHUB_REPO" >/dev/null 2>&1; then
       WRITTEN_SECRET+=("$name")
       printf '  %s✓ set%s GitHub secret %s\n' "$GREEN" "$RESET" "$name"
       return
     fi
   fi
-  SKIPPED+=("GitHub secret $name (set it manually: gh secret set $name)")
+  SKIPPED+=("GitHub secret $name (set it manually: gh secret set $name --repo $GITHUB_REPO)")
   warn "skipped GitHub secret $name: gh not ready; set it later"
 }
 
@@ -170,7 +170,7 @@ set_secret() {
 set_var() {
   local name="$1" value="$2"
   if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
-    if gh variable set "$name" --body "$value" >/dev/null 2>&1; then
+    if gh variable set "$name" --repo "$GITHUB_REPO" --body "$value" >/dev/null 2>&1; then
       printf '  %s✓ set%s GitHub variable %s\n' "$GREEN" "$RESET" "$name"
       return
     fi
@@ -258,7 +258,7 @@ env_value() {
 parse_neon() {
   local re='^postgres(ql)?://([^:/@]+):([^@]+)@([^/?]+)/([^?]+)'
   if ! [[ "$1" =~ $re ]]; then
-    warn "format inattendu, attendu : postgresql://utilisateur:mot-de-passe@hôte/base?sslmode=require"
+    warn "format inattendu, attendu : postgresql://utilisateur:mot-de-passe@hôte/base?sslmode=verify-full&sslfactory=org.postgresql.ssl.DefaultJavaSSLFactory"
     return 1
   fi
   NEON_USER="${BASH_REMATCH[2]}"; NEON_PASSWORD="${BASH_REMATCH[3]}"
@@ -271,7 +271,7 @@ parse_neon() {
     warn "identifiant ou mot de passe encodé (%) : à poser à la main, décodé"
     return 1
   fi
-  NEON_JDBC="jdbc:postgresql://$NEON_HOST/$NEON_DB?sslmode=require"
+  NEON_JDBC="jdbc:postgresql://$NEON_HOST/$NEON_DB?sslmode=verify-full&sslfactory=org.postgresql.ssl.DefaultJavaSSLFactory"
 }
 
 # kafka_pair SERVICE PREFIXE : pose PREFIXE_KAFKA_API_KEY et PREFIXE_KAFKA_API_SECRET.
