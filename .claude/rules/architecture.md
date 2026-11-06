@@ -32,6 +32,13 @@
 - Décidé par Michael le 2026-11-06 (revue finale de #33) : **rejeu du DLT par outbox** (le rejeu écrit `dlt_replay` et le message à publier dans `dlt_replay_outbox`, même transaction ; un publieur publie puis marque après l'accusé, migration `V6__`) et **« tout rejouer » asynchrone** (202 et un identifiant, tâche de fond, avancement par une route GET).
 - Décidé par Michael le 2026-11-06 (#53, #54) : un « tout rejouer » interrompu par l'arrêt de l'instance reste « non terminé » ; l'ADMIN le relance (les messages déjà rejoués sont sautés), pas de détection d'abandon. Pas de purge des lignes publiées de `dlt_replay_outbox` (volume faible).
 - Décidé par Michael le 2026-11-06 (#58, #59) : coûts d'ai-service lus dans **Cloud Logging** (métrique basée sur les journaux `costUsd` des extractions), sans registre Micrometer exporté ; `ai-service` tourne sur Cloud Run avec **`max-instances=1`** (les limites en mémoire restent exactes) ; **budget quotidien en dollars dans ai-service** (1 $ par jour, configurable) en plus d'un **plafond de dépense dans la Console Anthropic** (posé par Michael). Tests de `shipment-service` : **un seul Kafka et un seul PostgreSQL** pour toute la JVM, partagés par les contextes Spring (#61).
+- Décidé par Michael le 2026-11-06, pour la spec « déploiement » (#63) :
+  - **Démo à la demande** sur Cloud Run (`europe-west1`, un seul environnement, URL `*.run.app`) : workflows GitHub `workflow_dispatch` `up` (seulement un commit de `main` à CI verte, puis parcours de fumée sans appel à Claude) et `down` (supprime les services). Alerte de budget GCP à 20 $ par mois.
+  - `shipment-service` : `min-instances=1` **et `max-instances=1`** (limites en mémoire exactes), CPU toujours alloué ; `ingestion-service` et `ai-service` : min 0, max 1. 1 vCPU, 1 Gio chacun ; ingress public, nos JWT protègent les routes (pas d'IAM Cloud Run).
+  - Images par `spring-boot:build-image` (Paketo, sans Dockerfile) dans Artifact Registry ; infrastructure par un script `gcloud` idempotent (pas de Terraform) et un assistant pour les étapes de Michael ; secrets dans Secret Manager, un compte de service par service ; GitHub Actions par Workload Identity Federation (actions `google-github-actions/auth` et `setup-gcloud` validées, épinglées par SHA).
+  - **Base en ligne : Neon** (offre gratuite, PostgreSQL 17, `aws-eu-central-1`, connexion directe en TLS), pas Cloud SQL (payant même arrêté).
+  - **Confluent Basic gardé après l'essai** (premier eCKU gratuit) : **profil de repli sans Kafka abandonné** (#2).
+  - Profil **`gcp`** : journaux JSON structurés (champ `severity`), `costUsd` en champ JSON pour la métrique de #58.
 
 ## Structure
 ```
