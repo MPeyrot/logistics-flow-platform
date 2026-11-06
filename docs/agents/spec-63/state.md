@@ -36,5 +36,8 @@ Points : `revue-finale.md`. Revue code-review medium depuis `ca50ff3` : défauts
 |---|---|---|---|---|
 | A | A1 (#69) à A5, ai-service | en cours | worktree isolé / fix/63-revue-lot-a | |
 | B | B1 à B3, tests de shipment-service | à faire | | |
+| C | C1 à C5, infra.sh et assistant | à faire | | |
+| D | D1 (#71), D2 (#72), D3, ai-service et profil gcp | à faire | | |
+| E | E1 (#70) à E5, workflows et scripts | à faire | | |
 
-Hors lots, en issues : #71, #72 (à trancher), #73.
+Hors lots, en issue : #73. Après les lots (demandé par Michael) : fumée en local (`docker compose`, trois services, `smoke.sh` sur localhost) et shellcheck vide.
