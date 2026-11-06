@@ -36,5 +36,12 @@ Une ligne par contexte d'orchestrateur : date, tickets fusionnés, contexte fina
 
 ## Fin de spec
 
-- Revue finale (code-review medium depuis 9d4f959) lancée le 2026-11-06 ; points à écrire dans `revue-finale.md`.
-- En plus des lots de la revue, un lot pour #50 et #51 (décidés par Michael le 2026-11-06, voir les commentaires des issues ; ajouter la décision au journal d'architecture.md dans le même commit).
+- Revue finale faite le 2026-11-06 (code-review medium depuis 9d4f959) : 11 points dans `revue-finale.md` (9 de la revue + #50, #51), décisions de Michael incluses.
+- Lots, un à la fois, dans cet ordre : D (point 1, `V5__`), A (2, 3, 4), C (8 à 11), B (5, 6, 7, `V6__`).
+
+| Lot | Modèle / effort | Statut | Branche | Commit |
+|---|---|---|---|---|
+| D | opus / high | en cours | revue/33-lot-d | |
+| A | sonnet / medium | à faire | | |
+| C | sonnet / medium | à faire | | |
+| B | opus / high | à faire | | |
