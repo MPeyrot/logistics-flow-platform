@@ -2,6 +2,7 @@ package fr.michael.logistics.ai.infrastructure.web;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -9,6 +10,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import fr.michael.logistics.ai.infrastructure.security.TestJwt;
+import io.micrometer.core.instrument.MeterRegistry;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -49,6 +51,9 @@ class DeliveryNoteApiTest {
     @Autowired
     MockMvc mvc;
 
+    @Autowired
+    MeterRegistry meters;
+
     @BeforeEach
     void reset() {
         WIRE_MOCK.resetAll();
@@ -58,6 +63,7 @@ class DeliveryNoteApiTest {
     void extractsDeliveryNoteAndReportsCost() throws Exception {
         stub(200, "{\\\"reference\\\":\\\"BL-77\\\",\\\"deliveryDate\\\":\\\"2026-10-30\\\",\\\"packageCount\\\":2}",
                 1000, 100, 500, 2000);
+        long billedBefore = billedExtractions();
 
         mvc.perform(multipart("/api/delivery-notes/extract").header("Authorization", BEARER).file(file("%PDF-1.4 fake".getBytes())))
                 .andExpect(status().isOk())
@@ -67,6 +73,11 @@ class DeliveryNoteApiTest {
                 .andExpect(jsonPath("$.usage.cacheReadTokens").value(2000))
                 // tarifs par défaut (Haiku 5.5) : 1000*0,10 + 100*0,50 + 500*0,125 + 2000*0,01 = 232,5 micro-dollars
                 .andExpect(jsonPath("$.costUsd").value(0.000233));
+        assertThat(billedExtractions()).isEqualTo(billedBefore + 1);
+    }
+
+    private long billedExtractions() {
+        return meters.get("ai.claude.cost").tags("outcome", "extracted").summary().count();
     }
 
     @Test
