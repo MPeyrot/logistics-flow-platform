@@ -19,6 +19,7 @@ import org.apache.kafka.common.serialization.StringDeserializer;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -26,11 +27,13 @@ import org.testcontainers.kafka.KafkaContainer;
 
 /** Backoff « expédition inconnue » raccourci : 200 ms, ×2, plafond 1 s, 4 s au total. */
 @SpringBootTest(properties = {
+        "spring.kafka.listener.auto-startup=true",
         "shipment.kafka.retry-interval-ms=100", "shipment.kafka.retry-attempts=2",
         "shipment.kafka.unknown-shipment.initial-interval=200ms",
         "shipment.kafka.unknown-shipment.multiplier=2",
         "shipment.kafka.unknown-shipment.max-interval=1s",
         "shipment.kafka.unknown-shipment.max-elapsed-time=4s"})
+@DirtiesContext
 @Import(TestcontainersConfiguration.class)
 class ScanEventListenerTest {
 
