@@ -62,6 +62,24 @@ class GcpLoggingTest {
     MockMvc mvc;
 
     @Test
+    void lesNiveauxLogbackPrennentLesNomsDeCloudLogging(CapturedOutput output) {
+        org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger("severity-test");
+        logger.warn("avertissement-gcp");
+        logger.error("erreur-gcp");
+
+        assertThat(severityOf(output, "avertissement-gcp")).isEqualTo("WARNING");
+        assertThat(severityOf(output, "erreur-gcp")).isEqualTo("ERROR");
+    }
+
+    private static String severityOf(CapturedOutput output, String message) {
+        return Arrays.stream(output.getAll().split("\n"))
+                .filter(l -> l.startsWith("{") && l.contains(message))
+                .map(JSON::readTree)
+                .findFirst().orElseThrow(() -> new AssertionError("aucune ligne JSON : " + output.getAll()))
+                .get("severity").asString();
+    }
+
+    @Test
     void extractionFactureeEstUneLigneJsonAvecSeverityEtCostUsd(CapturedOutput output) throws Exception {
         WIRE_MOCK.stubFor(post("/v1/messages").willReturn(aResponse().withStatus(200)
                 .withHeader("content-type", "application/json")

@@ -53,8 +53,17 @@ class DailyBudgetTest {
     }
 
     @Test
-    void rejectsANonPositiveBudget() {
-        assertThatThrownBy(() -> new DailyBudget(BigDecimal.ZERO, clock)).isInstanceOf(IllegalArgumentException.class);
+    void aZeroBudgetRefusesEveryCallUntilMidnightUtc() {
+        var budget = new DailyBudget(BigDecimal.ZERO, clock);
+        assertThatThrownBy(budget::checkAvailable)
+                .isInstanceOfSatisfying(ExtractionQuotaExceededException.class,
+                        e -> assertThat(e.retryAfterSeconds()).isBetween(14 * 3600L, 14 * 3600L + 2));
+    }
+
+    @Test
+    void rejectsANegativeBudget() {
+        assertThatThrownBy(() -> new DailyBudget(new BigDecimal("-0.01"), clock))
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
     private static final class MutableClock extends Clock {

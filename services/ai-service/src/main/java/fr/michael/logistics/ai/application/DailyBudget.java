@@ -8,7 +8,7 @@ import java.time.LocalDate;
 import java.time.ZoneOffset;
 
 /**
- * Budget quotidien en dollars (#59), jour UTC. Compteur en mémoire, exact tant qu'ai-service tourne
+ * Budget quotidien en dollars (#59), jour UTC ; 0 coupe toutes les extractions (#72). Compteur en mémoire, exact tant qu'ai-service tourne
  * sur une seule instance (max-instances=1). Une fois atteint, plus d'appel au modèle jusqu'à minuit UTC.
  * Des appels simultanés déjà partis peuvent le dépasser de leur coût : la vérification se fait avant l'appel.
  */
@@ -20,8 +20,8 @@ public class DailyBudget {
     private BigDecimal spent = BigDecimal.ZERO;
 
     public DailyBudget(BigDecimal limit, Clock clock) {
-        if (limit.signum() <= 0) {
-            throw new IllegalArgumentException("The daily budget must be positive");
+        if (limit.signum() < 0) {
+            throw new IllegalArgumentException("The daily budget must not be negative");
         }
         this.limit = limit;
         this.clock = clock;

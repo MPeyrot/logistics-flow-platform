@@ -17,7 +17,24 @@ class QuotaConfig {
     }
 
     @Bean
-    DailyBudget dailyBudget(@Value("${ai.extraction.daily-budget-usd}") BigDecimal dailyBudgetUsd) {
-        return new DailyBudget(dailyBudgetUsd, Clock.systemUTC());
+    DailyBudget dailyBudget(@Value("${ai.extraction.daily-budget-usd:}") String dailyBudgetUsd) {
+        return new DailyBudget(parseBudget(dailyBudgetUsd), Clock.systemUTC());
+    }
+
+    private static BigDecimal parseBudget(String raw) {
+        String message = "AI_DAILY_BUDGET_USD must be a number of dollars, 0 or more (0 refuses every extraction), got '"
+                + raw + "'";
+        if (raw == null || raw.isBlank()) {
+            throw new IllegalStateException(message);
+        }
+        try {
+            BigDecimal value = new BigDecimal(raw.trim());
+            if (value.signum() < 0) {
+                throw new IllegalStateException(message);
+            }
+            return value;
+        } catch (NumberFormatException e) {
+            throw new IllegalStateException(message, e);
+        }
     }
 }
