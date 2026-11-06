@@ -1,6 +1,6 @@
 # État — spec #63 : déploiement à la demande sur Cloud Run
 
-STATUT: en cours
+STATUT: terminé
 <!-- en cours | décision attendue | terminé. Lu par orchestrate.sh : garder « STATUT: » en début de ligne. -->
 
 Spec : issue #63. Branche d'intégration : `spec/63-deploiement-cloud-run` (repo principal). Parallèle : 2.
@@ -28,6 +28,8 @@ Fichiers partagés : README (#65 puis #67), les trois `pom.xml` et `ci.yml` (#67
 
 Une ligne par contexte d'orchestrateur : date, tickets fusionnés, contexte final.
 
+- 2026-11-06 : #64, #66, #67 fusionnés ; revue finale (deux revues opus), lots A à E et E2 bis fusionnés ; contexte final ~150k.
+
 ## Fin de spec
 
 Points : `revue-finale.md`. Revue code-review medium depuis `ca50ff3` : défauts du code antérieur seulement ; revue ciblée des fichiers de déploiement lancée en plus (opus / medium).
@@ -39,6 +41,6 @@ Points : `revue-finale.md`. Revue code-review medium depuis `ca50ff3` : défauts
 | C | C1 à C5, infra.sh et assistant | fusionné | fix/63-revue-lot-c | 30968b1 |
 | D | D1 (#71), D2 (#72), D3, ai-service et profil gcp | fusionné | fix/63-revue-lot-d | db7d444 |
 | E | E1 (#70) à E5, workflows et scripts | fusionné | fix/63-revue-lot-e | 410b35a |
-| E2 bis | `smoke.sh` : `-H @<(…)` dans un tableau, fermé dans un pipeline en bash 3.2 (vu à la fumée locale) | en cours | worktree isolé / fix/63-smoke-procsub | |
+| E2 bis | `smoke.sh` : `-H @<(…)` dans un tableau, fermé dans un pipeline en bash 3.2 (vu à la fumée locale) | fusionné | fix/63-smoke-procsub | 00382c7 |
 
-Hors lots, en issue : #73. Après les lots (demandé par Michael) : fumée en local (`docker compose`, trois services, `smoke.sh` sur localhost) et shellcheck vide.
+Hors lots, en issue : #73. Après les lots : fumée locale verte (2026-11-06, projet compose `logistics-smoke` jetable, trois services, `smoke.sh` sur localhost), shellcheck 0.11.0 vide, `verify` des trois services vert après le lot D (aucun Java touché ensuite).
