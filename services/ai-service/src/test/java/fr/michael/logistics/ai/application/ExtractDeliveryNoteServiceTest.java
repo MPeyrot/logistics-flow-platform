@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import fr.michael.logistics.ai.domain.DeliveryNote;
 import fr.michael.logistics.ai.domain.DocumentFormat;
 import fr.michael.logistics.ai.domain.ModelPricing;
+import fr.michael.logistics.ai.domain.RateCard;
 import fr.michael.logistics.ai.domain.SourceDocument;
 import fr.michael.logistics.ai.domain.TokenUsage;
 import java.math.BigDecimal;
@@ -13,8 +14,8 @@ import org.junit.jupiter.api.Test;
 
 class ExtractDeliveryNoteServiceTest {
 
-    private final ModelPricing pricing = new ModelPricing(
-            new BigDecimal("4.00"), new BigDecimal("20.00"), new BigDecimal("5.00"), new BigDecimal("0.20"));
+    private final ModelPricing pricing = new ModelPricing(new RateCard(
+            new BigDecimal("4.00"), new BigDecimal("20.00"), new BigDecimal("5.00"), new BigDecimal("0.20")));
     private final ExtractionQuota quota = new ExtractionQuota(100, java.time.Clock.systemUTC());
     private final SourceDocument document = new SourceDocument("%PDF-1.4".getBytes(), DocumentFormat.PDF);
 

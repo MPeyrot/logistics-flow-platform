@@ -163,7 +163,8 @@ class ClaudeDeliveryNoteExtractorTest {
         var props = new ClaudeProperties(withKey ? "test-key" : "", wireMock.baseUrl(), "claude-opus-5-5", "low",
                 2048, 0, Duration.ofSeconds(10),
                 Map.of("claude-opus-5-5",
-                        new ClaudeProperties.Pricing(BigDecimal.ONE, BigDecimal.ONE, BigDecimal.ONE, BigDecimal.ONE)));
+                        new ClaudeProperties.Pricing(BigDecimal.ONE, BigDecimal.ONE, BigDecimal.ONE, BigDecimal.ONE,
+                                null)));
         var client = AnthropicOkHttpClient.builder()
                 .apiKey(withKey ? "test-key" : "unused")
                 .baseUrl(wireMock.baseUrl())
