@@ -85,12 +85,21 @@ DUE=$(date -u -v+3d +%Y-%m-%dT%H:%M:%SZ)
 curl -X POST localhost:8080/api/shipments -H "Authorization: Bearer $OPERATOR" -H 'Content-Type: application/json' \
   -d '{"reference":"REF-1001","origin":"Nantes","destination":"Lyon","expectedDeliveryAt":"'"$DUE"'"}'
 
-# 5. envoyer un scan (SCANNER ; le site doit être celui du compte ; traité en asynchrone via Kafka)
+# 5. envoyer un scan (SCANNER ; le site doit être celui du compte ; traité en asynchrone via Kafka,
+#    message au format contracts/scan-event.v2.schema.json)
 curl -X POST localhost:8081/api/scans -H "Authorization: Bearer $SCANNER" -H 'Content-Type: application/json' \
   -d '{"shipmentReference":"REF-1001","type":"PICKED_UP","site":"Nantes"}'
 
 # 6. le statut est passé de CREATED à IN_TRANSIT
 curl -H "Authorization: Bearer $OPERATOR" localhost:8080/api/shipments
+
+#    suite du parcours : OUT_FOR_DELIVERY, puis DELIVERED, ou DELIVERY_FAILED avec un motif facultatif
+#    (reason, 1 à 200 caractères, seulement avec DELIVERY_FAILED, sinon 400). Le compte SCANNER de
+#    l'exemple est rattaché à Nantes : il scanne donc tout depuis Nantes.
+curl -X POST localhost:8081/api/scans -H "Authorization: Bearer $SCANNER" -H 'Content-Type: application/json' \
+  -d '{"shipmentReference":"REF-1001","type":"OUT_FOR_DELIVERY","site":"Nantes"}'
+curl -X POST localhost:8081/api/scans -H "Authorization: Bearer $SCANNER" -H 'Content-Type: application/json' \
+  -d '{"shipmentReference":"REF-1001","type":"DELIVERY_FAILED","site":"Nantes","reason":"Destinataire absent"}'
 
 # 7. lire un bon de livraison (PDF ou image) : données extraites, coût, expédition correspondante.
 #    Chaque appel coûte un appel à l'API Claude : 20 par heure et par utilisateur (429 avec Retry-After au-delà).
@@ -138,4 +147,4 @@ Statuts d'une expédition et transitions permises (tout autre scan est refusé e
 | OUT_FOR_DELIVERY | DELIVERY_FAILED | DELIVERY_FAILED |
 | DELIVERY_FAILED | ARRIVED_AT_SITE | IN_TRANSIT |
 
-DELIVERED est terminal. Le contrat Kafka `scan-event.v1` ne porte encore que PICKED_UP, ARRIVED_AT_SITE et DELIVERED : en attendant `scan-event.v2`, une expédition ne peut pas encore être livrée par un scan.
+DELIVERED est terminal. Le contrat Kafka `contracts/scan-event.v2.schema.json` porte les cinq types de scan et le motif facultatif `reason` d'un DELIVERY_FAILED ; un message `scan-event.v1` (sous-ensemble de v2) reste lisible.

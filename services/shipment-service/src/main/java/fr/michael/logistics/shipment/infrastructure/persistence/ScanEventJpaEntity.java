@@ -32,6 +32,9 @@ class ScanEventJpaEntity {
     @Column(name = "occurred_at", nullable = false)
     private Instant occurredAt;
 
+    @Column(length = ScanEvent.REASON_MAX_LENGTH)
+    private String reason;
+
     protected ScanEventJpaEntity() {
     }
 
@@ -42,6 +45,7 @@ class ScanEventJpaEntity {
         entity.type = event.type();
         entity.site = event.site();
         entity.occurredAt = event.occurredAt();
+        entity.reason = event.reason();
         return entity;
     }
 }

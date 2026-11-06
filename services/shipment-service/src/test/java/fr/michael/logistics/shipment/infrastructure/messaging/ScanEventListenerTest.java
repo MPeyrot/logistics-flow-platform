@@ -62,6 +62,51 @@ class ScanEventListenerTest {
     }
 
     @Test
+    void followsAFailedDeliveryThenASecondAttemptUpToDelivery() {
+        String ref = newShipment();
+        UUID failure = UUID.randomUUID();
+
+        send(ref, UUID.randomUUID(), "PICKED_UP");
+        send(ref, UUID.randomUUID(), "OUT_FOR_DELIVERY");
+        kafka.send("scan-events", ref, message(ref, failure, "DELIVERY_FAILED", "Destinataire absent"));
+        awaitStatus(ref, ShipmentStatus.DELIVERY_FAILED);
+        send(ref, UUID.randomUUID(), "ARRIVED_AT_SITE");
+        send(ref, UUID.randomUUID(), "OUT_FOR_DELIVERY");
+        send(ref, UUID.randomUUID(), "DELIVERED");
+
+        awaitStatus(ref, ShipmentStatus.DELIVERED);
+        assertThat(jdbc.queryForObject("SELECT reason FROM scan_event WHERE event_id = ?", String.class, failure))
+                .isEqualTo("Destinataire absent");
+    }
+
+    @Test
+    void stillReadsAMessageWrittenAgainstV1() {
+        String ref = newShipment();
+        UUID eventId = UUID.randomUUID();
+
+        // Exemple de contracts/scan-event.v1.schema.json : ni OUT_FOR_DELIVERY, ni DELIVERY_FAILED, ni reason.
+        kafka.send("scan-events", ref, """
+                {"eventId":"%s","shipmentReference":"%s","type":"PICKED_UP","site":"Nantes","occurredAt":"2026-10-31T10:00:00Z"}"""
+                .formatted(eventId, ref));
+
+        awaitStatus(ref, ShipmentStatus.IN_TRANSIT);
+        assertThat(jdbc.queryForObject("SELECT reason FROM scan_event WHERE event_id = ?", String.class, eventId))
+                .isNull();
+    }
+
+    @Test
+    void sendsReasonOnAnotherTypeToDeadLetterTopic() {
+        String ref = newShipment();
+        String payload = message(ref, UUID.randomUUID(), "PICKED_UP", "Destinataire absent");
+
+        kafka.send("scan-events", ref, payload);
+
+        assertThat(readDeadLetters(payload)).isEqualTo(payload);
+        assertThat(repository.findByReference(ref)).get()
+                .extracting(s -> s.status()).isEqualTo(ShipmentStatus.CREATED);
+    }
+
+    @Test
     void processesARedeliveredEventOnlyOnce() {
         String ref = newShipment();
         UUID pickup = UUID.randomUUID();
@@ -155,6 +200,12 @@ class ScanEventListenerTest {
         return """
                 {"eventId":"%s","shipmentReference":"%s","type":"%s","site":"Nantes","occurredAt":"2026-10-31T10:00:00Z"}"""
                 .formatted(eventId, ref, type);
+    }
+
+    private static String message(String ref, UUID eventId, String type, String reason) {
+        return """
+                {"eventId":"%s","shipmentReference":"%s","type":"%s","site":"Nantes","occurredAt":"2026-10-31T10:00:00Z","reason":"%s"}"""
+                .formatted(eventId, ref, type, reason);
     }
 
     private Integer storedCount(UUID eventId) {

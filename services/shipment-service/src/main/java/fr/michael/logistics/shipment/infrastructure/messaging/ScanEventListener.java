@@ -34,7 +34,7 @@ class ScanEventListener {
         try {
             return json.readValue(payload, ScanEventMessage.class).toDomain();
         } catch (RuntimeException e) {
-            throw new InvalidMessageException("Message does not match scan-event.v1", e);
+            throw new InvalidMessageException("Message does not match scan-event.v2", e);
         }
     }
 }

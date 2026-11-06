@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "scan-event.v1",
   "title": "ScanEvent v1",
-  "description": "Événement de scan publié sur le topic Kafka `scan-events` (clé = shipmentReference). Un champ ajouté sans rupture reste en v1 ; toute rupture crée scan-event.v2.schema.json.",
+  "description": "Remplacé par scan-event.v2.schema.json (2026-11, #37), gardé pour l'historique. Événement de scan publié sur le topic Kafka `scan-events` (clé = shipmentReference). Un champ ajouté sans rupture reste en v1 ; toute rupture crée scan-event.v2.schema.json.",
   "type": "object",
   "required": ["eventId", "shipmentReference", "type", "site", "occurredAt"],
   "properties": {

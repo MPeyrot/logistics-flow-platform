@@ -23,7 +23,7 @@ class IngestScanServiceTest {
 
     @Test
     void generatesEventIdAndTimestampWhenAbsent() {
-        UUID id = service.ingest(null, "REF-1", ScanType.PICKED_UP, "Nantes", null);
+        UUID id = service.ingest(null, "REF-1", ScanType.PICKED_UP, "Nantes", null, null);
 
         assertThat(published).singleElement().satisfies(event -> {
             assertThat(event.eventId()).isEqualTo(id);
@@ -35,12 +35,26 @@ class IngestScanServiceTest {
     void keepsEventIdProvidedByCaller() {
         UUID id = UUID.randomUUID();
 
-        assertThat(service.ingest(id, "REF-1", ScanType.DELIVERED, "Lyon", NOW)).isEqualTo(id);
+        assertThat(service.ingest(id, "REF-1", ScanType.DELIVERED, "Lyon", NOW, null)).isEqualTo(id);
+    }
+
+    @Test
+    void publishesTheReasonOfAFailedDelivery() {
+        service.ingest(null, "REF-1", ScanType.DELIVERY_FAILED, "Lyon", NOW, "Destinataire absent");
+
+        assertThat(published).singleElement().extracting(ScanEvent::reason).isEqualTo("Destinataire absent");
+    }
+
+    @Test
+    void rejectsReasonOnAnotherTypeWithoutPublishing() {
+        assertThatThrownBy(() -> service.ingest(null, "REF-1", ScanType.DELIVERED, "Lyon", NOW, "Destinataire absent"))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThat(published).isEmpty();
     }
 
     @Test
     void rejectsBlankReferenceWithoutPublishing() {
-        assertThatThrownBy(() -> service.ingest(null, " ", ScanType.PICKED_UP, "Nantes", null))
+        assertThatThrownBy(() -> service.ingest(null, " ", ScanType.PICKED_UP, "Nantes", null, null))
                 .isInstanceOf(IllegalArgumentException.class);
         assertThat(published).isEmpty();
     }

@@ -32,6 +32,7 @@ class ScanController {
                     ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, "Scan site does not match the token site"), null);
         }
         return new ScanAccepted(service.ingest(
-                request.eventId(), request.shipmentReference(), request.type(), request.site(), request.occurredAt()));
+                request.eventId(), request.shipmentReference(), request.type(), request.site(), request.occurredAt(),
+                request.reason()));
     }
 }
