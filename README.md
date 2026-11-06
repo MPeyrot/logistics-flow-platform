@@ -120,6 +120,27 @@ Accès aux routes de `shipment-service` (sans jeton : 401 ; rôle non permis : 4
 | `POST /api/delivery-notes/extract` | oui | oui | 403 |
 | `POST /api/users`, `PATCH /api/users/{id}` | oui | 403 | 403 |
 
+### Contre Confluent Cloud
+
+Les deux services peuvent se connecter à un cluster Confluent Cloud au lieu du Kafka local, avec le profil Spring `confluent` (SASL_SSL, mécanisme PLAIN, topics à 3 répliques). Sans le profil, rien ne change.
+
+```sh
+mkdir -p .secrets    # ignoré par git
+cat > .secrets/confluent.env <<'ENV'
+export KAFKA_BOOTSTRAP_SERVERS=pkc-xxxxx.region.provider.confluent.cloud:9092
+export KAFKA_API_KEY=...
+export KAFKA_API_SECRET=...
+ENV
+source .secrets/confluent.env
+export SPRING_PROFILES_ACTIVE=confluent
+(cd services/shipment-service && ./mvnw spring-boot:run) &
+(cd services/ingestion-service && ./mvnw spring-boot:run) &
+```
+
+Le démarrage est refusé si `KAFKA_API_KEY` ou `KAFKA_API_SECRET` manque. PostgreSQL reste celui de Docker Compose (`docker compose up -d shipments-db --wait`). Le nombre de répliques se règle avec `KAFKA_TOPICS_REPLICAS` (1 par défaut, 3 avec le profil).
+
+Droits de la clé d'API : créer des topics (`scan-events` et `scan-events.DLT`, 3 partitions chacun, déclarés au démarrage) et lire en tant que groupe de consommateurs `shipment-service`. Sans le droit de créer des topics, les créer à la main dans l'interface Confluent avant de lancer les services.
+
 ## Tests
 
 ```sh
