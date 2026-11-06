@@ -22,12 +22,12 @@ class JpaScanRepository implements ScanRepository {
     }
 
     @Override
-    public void save(UUID shipmentId, ScanEvent event) {
-        jpa.save(ScanEventJpaEntity.from(shipmentId, event));
+    public void save(UUID shipmentId, ScanEvent event, Instant receivedAt) {
+        jpa.save(ScanEventJpaEntity.from(shipmentId, event, receivedAt));
     }
 
     @Override
-    public Optional<Instant> lastOccurredAt(UUID shipmentId) {
-        return jpa.findLastOccurredAt(shipmentId);
+    public Optional<Instant> lastReceivedAt(UUID shipmentId) {
+        return jpa.findLastReceivedAt(shipmentId);
     }
 }

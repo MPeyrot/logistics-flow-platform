@@ -6,6 +6,7 @@ import fr.michael.logistics.shipment.TestcontainersConfiguration;
 import fr.michael.logistics.shipment.application.AnomalyRepository;
 import fr.michael.logistics.shipment.application.DetectAnomaliesService;
 import fr.michael.logistics.shipment.application.RecordScanService;
+import fr.michael.logistics.shipment.application.ScanRepository;
 import fr.michael.logistics.shipment.application.ShipmentRepository;
 import fr.michael.logistics.shipment.domain.Anomaly;
 import fr.michael.logistics.shipment.domain.AnomalyType;
@@ -13,8 +14,10 @@ import fr.michael.logistics.shipment.domain.ScanEvent;
 import fr.michael.logistics.shipment.domain.ScanType;
 import fr.michael.logistics.shipment.domain.Shipment;
 import fr.michael.logistics.shipment.domain.ShipmentStatus;
+import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -48,6 +51,9 @@ class AnomalyDetectionTest {
 
     @Autowired
     RecordScanService scans;
+
+    @Autowired
+    ScanRepository scanHistory;
 
     @Autowired
     List<ScheduledTaskHolder> scheduledTasks;
@@ -124,14 +130,41 @@ class AnomalyDetectionTest {
         assertThat(openTypes(shipment)).isEmpty();
     }
 
+    /** Scanner resté hors ligne, ou message rejoué depuis le DLT : la date métier du scan est ancienne. */
     @Test
-    void stalledShipmentIsDetectedAgainAfterItsAnomalyWasResolved() {
+    void lateScanCountsFromItsReceptionNotFromItsOccurredAt() {
         Instant now = Instant.now();
         Shipment shipment = save(ShipmentStatus.CREATED, now.minus(Duration.ofDays(5)), null);
         detection.detect();
         scans.record(new ScanEvent(UUID.randomUUID(), shipment.reference(), ScanType.PICKED_UP, "Nantes",
                 now.minus(Duration.ofDays(3))));
+
+        detection.detect();
+
         assertThat(openTypes(shipment)).isEmpty();
+    }
+
+    @Test
+    void stalledShipmentIsDetectedAgainAfterItsAnomalyWasResolved() {
+        Instant now = Instant.now();
+        Shipment shipment = save(ShipmentStatus.CREATED, now.minus(Duration.ofDays(5)), null);
+        detection.detect();
+        recordReceivedAt(now.minus(Duration.ofDays(3)), new ScanEvent(UUID.randomUUID(), shipment.reference(),
+                ScanType.PICKED_UP, "Nantes", now.minus(Duration.ofDays(3))));
+        assertThat(openTypes(shipment)).isEmpty();
+
+        detection.detect();
+
+        assertThat(openTypes(shipment)).containsExactly(AnomalyType.STALLED);
+    }
+
+    /** Horloge du scanner en avance, ou saisie erronée : la date métier ne repousse pas STALLED. */
+    @Test
+    void scanDatedInTheFutureDoesNotPreventStalled() {
+        Instant now = Instant.now();
+        Shipment shipment = save(ShipmentStatus.CREATED, now.minus(Duration.ofDays(5)), null);
+        recordReceivedAt(now.minus(Duration.ofHours(49)), new ScanEvent(UUID.randomUUID(), shipment.reference(),
+                ScanType.PICKED_UP, "Nantes", now.plus(Duration.ofDays(10))));
 
         detection.detect();
 
@@ -194,6 +227,13 @@ class AnomalyDetectionTest {
 
     private void scan(Shipment shipment, ScanType type) {
         scans.record(new ScanEvent(UUID.randomUUID(), shipment.reference(), type, "Nantes", Instant.now()));
+    }
+
+    /** Applique le scan comme si shipment-service l'avait reçu à {@code receivedAt}. */
+    private void recordReceivedAt(Instant receivedAt, ScanEvent event) {
+        RecordScanService receivedThen = new RecordScanService(
+                shipments, scanHistory, anomalies, Clock.fixed(receivedAt, ZoneOffset.UTC));
+        transactions.executeWithoutResult(status -> receivedThen.record(event));
     }
 
     private Shipment save(ShipmentStatus status, Instant createdAt, Instant expectedDeliveryAt) {

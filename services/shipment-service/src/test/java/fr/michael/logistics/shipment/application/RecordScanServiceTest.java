@@ -159,12 +159,12 @@ class RecordScanServiceTest {
         }
 
         @Override
-        public void save(UUID shipmentId, ScanEvent event) {
+        public void save(UUID shipmentId, ScanEvent event, Instant receivedAt) {
             saved.add(event);
         }
 
         @Override
-        public Optional<Instant> lastOccurredAt(UUID shipmentId) {
+        public Optional<Instant> lastReceivedAt(UUID shipmentId) {
             throw new UnsupportedOperationException();
         }
     }

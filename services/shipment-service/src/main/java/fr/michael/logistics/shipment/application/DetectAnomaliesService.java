@@ -54,7 +54,7 @@ public class DetectAnomaliesService {
         int opened = 0;
         for (ShipmentActivity activity : shipments.findUndeliveredActivity()) {
             UUID shipmentId = activity.shipment().id();
-            boolean somethingToOpen = AnomalyRules.detect(activity.shipment(), activity.lastScanAt(), now, stalledAfter)
+            boolean somethingToOpen = AnomalyRules.detect(activity.shipment(), activity.lastScanReceivedAt(), now, stalledAfter)
                     .stream()
                     .anyMatch(type -> !open.contains(new OpenKey(shipmentId, type)));
             if (somethingToOpen) {
@@ -73,9 +73,9 @@ public class DetectAnomaliesService {
         if (shipment == null) {
             return 0;
         }
-        Instant lastScanAt = scans.lastOccurredAt(shipmentId).orElse(null);
+        Instant lastScanReceivedAt = scans.lastReceivedAt(shipmentId).orElse(null);
         int opened = 0;
-        for (AnomalyType type : AnomalyRules.detect(shipment, lastScanAt, now, stalledAfter)) {
+        for (AnomalyType type : AnomalyRules.detect(shipment, lastScanReceivedAt, now, stalledAfter)) {
             if (anomalies.openIfAbsent(Anomaly.open(shipmentId, type, now))) {
                 opened++;
             }

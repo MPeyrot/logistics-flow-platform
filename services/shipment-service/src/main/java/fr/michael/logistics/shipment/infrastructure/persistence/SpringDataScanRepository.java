@@ -8,6 +8,6 @@ import org.springframework.data.jpa.repository.Query;
 
 interface SpringDataScanRepository extends JpaRepository<ScanEventJpaEntity, UUID> {
 
-    @Query("select max(e.occurredAt) from ScanEventJpaEntity e where e.shipmentId = :shipmentId")
-    Optional<Instant> findLastOccurredAt(UUID shipmentId);
+    @Query("select max(e.receivedAt) from ScanEventJpaEntity e where e.shipmentId = :shipmentId")
+    Optional<Instant> findLastReceivedAt(UUID shipmentId);
 }

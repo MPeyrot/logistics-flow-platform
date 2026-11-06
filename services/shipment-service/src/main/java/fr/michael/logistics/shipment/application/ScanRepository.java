@@ -10,8 +10,9 @@ public interface ScanRepository {
 
     boolean existsByEventId(UUID eventId);
 
-    void save(UUID shipmentId, ScanEvent event);
+    /** @param receivedAt heure à laquelle ce service a reçu le scan (pas sa date métier {@code occurredAt}) */
+    void save(UUID shipmentId, ScanEvent event, Instant receivedAt);
 
-    /** {@code occurredAt} le plus récent des scans de l'expédition ; vide si elle n'a jamais été scannée. */
-    Optional<Instant> lastOccurredAt(UUID shipmentId);
+    /** Heure de réception la plus récente des scans de l'expédition ; vide si elle n'a jamais été scannée. */
+    Optional<Instant> lastReceivedAt(UUID shipmentId);
 }

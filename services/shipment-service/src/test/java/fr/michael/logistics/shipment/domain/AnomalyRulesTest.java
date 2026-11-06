@@ -72,8 +72,8 @@ class AnomalyRulesTest {
                 .containsExactlyInAnyOrder(AnomalyType.STALLED, AnomalyType.LATE);
     }
 
-    private static java.util.Set<AnomalyType> detect(Shipment shipment, Instant lastScanAt) {
-        return AnomalyRules.detect(shipment, lastScanAt, NOW, STALLED_AFTER);
+    private static java.util.Set<AnomalyType> detect(Shipment shipment, Instant lastScanReceivedAt) {
+        return AnomalyRules.detect(shipment, lastScanReceivedAt, NOW, STALLED_AFTER);
     }
 
     private static Shipment shipment(ShipmentStatus status, Instant createdAt, Instant expectedDeliveryAt) {

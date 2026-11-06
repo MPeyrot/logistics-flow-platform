@@ -22,11 +22,12 @@
   - **Nouvelles tentatives** « expédition inconnue » : bloquantes (backoff exponentiel dans le `DefaultErrorHandler`), pour garder l'ordre par expédition ; la partition attend jusqu'à ~5 min. Pas de topics de retentative.
   - **Bascule `scan-event.v2`** : coupure nette, sans champ de version ; les types v1 sont un sous-ensemble de v2. Motif facultatif `reason` (≤ 200 caractères), accepté seulement avec DELIVERY_FAILED (400 sinon).
   - **`expectedDeliveryAt`** obligatoire à la création ; NULL pour les expéditions déjà en base (jamais LATE).
-  - **Anomalies** : tâche planifiée dans `shipment-service`, enregistrées en table (une seule ouverte par expédition et type, même avec plusieurs instances). Clôture automatique : STALLED au scan suivant, LATE à la livraison. STALLED compte depuis le dernier scan, ou depuis `createdAt` sans scan. Lecture : `GET /api/anomalies` et anomalies ouvertes dans la réponse d'une expédition.
+  - **Anomalies** : tâche planifiée dans `shipment-service`, enregistrées en table (une seule ouverte par expédition et type, même avec plusieurs instances). Clôture automatique : STALLED au scan suivant, LATE à la livraison. STALLED compte depuis la réception du dernier scan (revu le 2026-11-06, voir plus bas), ou depuis `createdAt` sans scan. Lecture : `GET /api/anomalies` et anomalies ouvertes dans la réponse d'une expédition.
   - **Rejeu du DLT** : rejeux enregistrés en table, « tout rejouer » saute les messages déjà rejoués.
   - Une seule migration `V4__` pour toute la spec ; spec/13 fusionnée dans `main` avant le lancement.
 - Validé par Michael le 2026-11-03 (#14, #15, #16) : dans les trois services, `spring-boot-starter-security`, `spring-boot-starter-security-oauth2-resource-server` et leurs starters de test ; `wiremock-standalone` 3.13.2 en test dans `ingestion-service`.
 - Décidé par Michael le 2026-11-06 (#43, #46, #48) : `spring.kafka.listener.concurrency=3` gardé dans `shipment-service` (seule la partition de l'expédition attendue gèle) ; sur Cloud Run, `shipment-service` tourne avec `min-instances` ≥ 1 (détection des anomalies et consommateur Kafka), le délai initial de 15 min reste ; liste du DLT : plus récents d'abord.
+- Décidé par Michael le 2026-11-06 (revue finale de #33) : **STALLED compte depuis l'heure de réception** du dernier scan par `shipment-service` (`scan_event.received_at`, horloge du service, migration `V5__`), sinon depuis `createdAt`. `occurredAt` reste la date métier, fournie par le client : un scan en retard (scanner hors ligne, rejeu du DLT) ne rouvre plus STALLED aussitôt, un scan daté dans le futur ne l'empêche plus. Scans antérieurs à `V5__` : `received_at` = `occurred_at`.
 
 ## Structure
 ```

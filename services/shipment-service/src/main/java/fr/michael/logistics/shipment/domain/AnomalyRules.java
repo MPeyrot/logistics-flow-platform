@@ -14,11 +14,14 @@ public final class AnomalyRules {
     /**
      * Anomalies présentes à l'instant {@code now}. Une expédition livrée n'en a aucune.
      * LATE : {@code expectedDeliveryAt} dépassé (jamais si elle est null, expéditions antérieures à ce champ).
-     * STALLED : dernier scan ({@code lastScanAt}), ou création sans scan, vieux d'au moins {@code stalledAfter}.
+     * STALLED : dernier scan reçu, ou création sans scan, vieux d'au moins {@code stalledAfter}.
      *
-     * @param lastScanAt instant du dernier scan appliqué, null si l'expédition n'a jamais été scannée
+     * @param lastScanReceivedAt heure à laquelle le service a reçu le dernier scan appliqué, pas sa date métier
+     *        {@code occurredAt} fournie par le client (un scan en retard ou daté dans le futur fausserait la
+     *        règle) ; null si l'expédition n'a jamais été scannée
      */
-    public static Set<AnomalyType> detect(Shipment shipment, Instant lastScanAt, Instant now, Duration stalledAfter) {
+    public static Set<AnomalyType> detect(
+            Shipment shipment, Instant lastScanReceivedAt, Instant now, Duration stalledAfter) {
         Set<AnomalyType> found = EnumSet.noneOf(AnomalyType.class);
         if (shipment.status() == ShipmentStatus.DELIVERED) {
             return found;
@@ -26,7 +29,7 @@ public final class AnomalyRules {
         if (shipment.expectedDeliveryAt() != null && now.isAfter(shipment.expectedDeliveryAt())) {
             found.add(AnomalyType.LATE);
         }
-        Instant lastActivity = lastScanAt != null ? lastScanAt : shipment.createdAt();
+        Instant lastActivity = lastScanReceivedAt != null ? lastScanReceivedAt : shipment.createdAt();
         if (!lastActivity.plus(stalledAfter).isAfter(now)) {
             found.add(AnomalyType.STALLED);
         }

@@ -35,7 +35,7 @@ class LifecycleMigrationTest {
 				s.execute("INSERT INTO shipment (id, reference, origin, destination, status, created_at) VALUES ('"
 						+ shipment + "', 'REF-1', 'Lyon', 'Paris', 'CREATED', now())");
 
-				flyway(db, "latest").migrate();
+				flyway(db, "4").migrate();
 
 				var rs = s.executeQuery("SELECT expected_delivery_at FROM shipment WHERE id = '" + shipment + "'");
 				assertThat(rs.next()).isTrue();

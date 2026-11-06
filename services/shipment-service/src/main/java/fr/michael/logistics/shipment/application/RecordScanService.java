@@ -28,6 +28,7 @@ public class RecordScanService {
     /**
      * Applique un scan à son expédition. Idempotent : un événement déjà traité (même {@code eventId})
      * est ignoré, car Kafka garantit au moins une livraison, pas exactement une.
+     * Le scan est enregistré avec son heure de réception (l'horloge du service), d'où compte STALLED.
      * Dans la même transaction, ferme les anomalies que le scan règle ({@link AnomalyRules#resolvedByScan}) ;
      * un scan refusé lève avant et ne ferme rien.
      */
@@ -39,9 +40,9 @@ public class RecordScanService {
         Shipment shipment = shipments.lockByReference(event.shipmentReference())
                 .orElseThrow(() -> new ShipmentNotFoundException(event.shipmentReference()));
         Shipment scanned = shipment.applyScan(event);
-        shipments.save(scanned);
-        scans.save(shipment.id(), event);
         Instant now = clock.instant();
+        shipments.save(scanned);
+        scans.save(shipment.id(), event, now);
         for (AnomalyType type : AnomalyRules.resolvedByScan(scanned)) {
             anomalies.resolveOpen(shipment.id(), type, now);
         }

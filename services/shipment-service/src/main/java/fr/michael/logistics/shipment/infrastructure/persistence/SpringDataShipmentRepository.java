@@ -20,9 +20,9 @@ interface SpringDataShipmentRepository extends JpaRepository<ShipmentJpaEntity, 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     Optional<ShipmentJpaEntity> findWithLockById(UUID id);
 
-    /** Lignes [expédition, instant du dernier scan ou null]. */
+    /** Lignes [expédition, heure de réception du dernier scan ou null]. */
     @Query("""
-            select s, (select max(e.occurredAt) from ScanEventJpaEntity e where e.shipmentId = s.id)
+            select s, (select max(e.receivedAt) from ScanEventJpaEntity e where e.shipmentId = s.id)
             from ShipmentJpaEntity s
             where s.status <> :status""")
     List<Object[]> findWithLastScanByStatusNot(ShipmentStatus status);
