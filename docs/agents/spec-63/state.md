@@ -12,7 +12,7 @@ Ce fichier est relu par chaque orchestrateur neuf : il décrit l'état présent,
 | Issue | Titre court | Bloqué par | Modèle / effort | Statut | Slot / worktree / branche | Commit |
 |---|---|---|---|---|---|---|
 | #64 | profil `gcp` : journaux JSON, `costUsd` en champ | — | sonnet / medium | à faire | | |
-| #65 | infrastructure GCP (`infra.sh`, assistant), ferme #58 | — | opus / high | à faire | | |
+| #65 | infrastructure GCP (`infra.sh`, assistant), ferme #58 | — | opus / high | fusionné | ticket/65-infra-gcp | c68f4ac |
 | #66 | script de fumée | — | sonnet / medium | à faire | | |
 | #67 | workflows `up` / `down`, images, ferme #2 | #65, #66 | sonnet / medium | à faire | | |
 
