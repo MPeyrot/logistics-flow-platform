@@ -1,12 +1,15 @@
 package fr.michael.logistics.ai.infrastructure.metrics;
 
 import fr.michael.logistics.ai.application.ExtractionMetrics;
+import fr.michael.logistics.ai.domain.DocumentFormat;
 import fr.michael.logistics.ai.domain.TokenUsage;
+import fr.michael.logistics.ai.infrastructure.claude.ClaudeProperties;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.DistributionSummary;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.math.BigDecimal;
-import org.springframework.beans.factory.annotation.Value;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 /**
@@ -21,6 +24,9 @@ import org.springframework.stereotype.Component;
 @Component
 class MicrometerExtractionMetrics implements ExtractionMetrics {
 
+    private static final Logger log = LoggerFactory.getLogger(MicrometerExtractionMetrics.class);
+
+    private final String model;
     private final DistributionSummary extractedCost;
     private final DistributionSummary unreadableCost;
     private final Counter inputTokens;
@@ -28,7 +34,9 @@ class MicrometerExtractionMetrics implements ExtractionMetrics {
     private final Counter cacheWriteTokens;
     private final Counter cacheReadTokens;
 
-    MicrometerExtractionMetrics(MeterRegistry registry, @Value("${ai.claude.model}") String model) {
+    MicrometerExtractionMetrics(MeterRegistry registry, ClaudeProperties props) {
+        String model = props.model();
+        this.model = model;
         this.extractedCost = cost(registry, model, "extracted");
         this.unreadableCost = cost(registry, model, "unreadable");
         this.inputTokens = tokens(registry, model, "input");
@@ -38,12 +46,28 @@ class MicrometerExtractionMetrics implements ExtractionMetrics {
     }
 
     @Override
-    public void recordBilledCall(TokenUsage usage, BigDecimal costUsd, boolean extracted) {
+    public void recordBilledCall(DocumentFormat format, TokenUsage usage, BigDecimal costUsd, boolean extracted) {
         (extracted ? extractedCost : unreadableCost).record(costUsd.doubleValue());
         inputTokens.increment(usage.inputTokens());
         outputTokens.increment(usage.outputTokens());
         cacheWriteTokens.increment(usage.cacheWriteTokens());
         cacheReadTokens.increment(usage.cacheReadTokens());
+        // Ligne lue par la métrique Cloud Logging ai-claude-cost (#58) : champs costUsd, model, outcome.
+        if (extracted) {
+            log.atInfo()
+                    .addKeyValue("costUsd", costUsd)
+                    .addKeyValue("model", model)
+                    .addKeyValue("outcome", "extracted")
+                    .log("delivery note extracted: format={} inputTokens={} outputTokens={} cacheWriteTokens={} cacheReadTokens={} costUsd={}",
+                            format, usage.inputTokens(), usage.outputTokens(), usage.cacheWriteTokens(),
+                            usage.cacheReadTokens(), costUsd.toPlainString());
+        } else {
+            log.atWarn()
+                    .addKeyValue("costUsd", costUsd)
+                    .addKeyValue("model", model)
+                    .addKeyValue("outcome", "unreadable")
+                    .log("delivery note unreadable: format={} costUsd={}", format, costUsd.toPlainString());
+        }
     }
 
     private static DistributionSummary cost(MeterRegistry registry, String model, String outcome) {

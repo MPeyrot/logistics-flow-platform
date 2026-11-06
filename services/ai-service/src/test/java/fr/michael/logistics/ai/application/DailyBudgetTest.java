@@ -18,9 +18,9 @@ class DailyBudgetTest {
     @Test
     void refusesOnceSpentUntilMidnightUtc() {
         var budget = new DailyBudget(new BigDecimal("1"), clock);
-        budget.record(new BigDecimal("0.6"));
+        budget.record(budget.checkAvailable(), new BigDecimal("0.6"));
         assertThatCode(budget::checkAvailable).doesNotThrowAnyException();
-        budget.record(new BigDecimal("0.4"));
+        budget.record(budget.checkAvailable(), new BigDecimal("0.4"));
 
         // 10:00 UTC -> minuit : 14 h
         assertThatThrownBy(budget::checkAvailable)
@@ -31,11 +31,24 @@ class DailyBudgetTest {
     @Test
     void startsAgainAtMidnightUtc() {
         var budget = new DailyBudget(new BigDecimal("1"), clock);
-        budget.record(new BigDecimal("1"));
+        budget.record(budget.checkAvailable(), new BigDecimal("1"));
         clock.now = Instant.parse("2026-11-03T23:59:59Z");
         assertThatThrownBy(budget::checkAvailable).isInstanceOf(ExtractionQuotaExceededException.class);
 
         clock.now = Instant.parse("2026-11-04T00:00:00Z");
+        assertThatCode(budget::checkAvailable).doesNotThrowAnyException();
+    }
+
+    /** Un appel contrôlé le 3 à 23:59:59 et terminé le 4 est imputé au 3 : le budget du 4 reste intact. */
+    @Test
+    void chargesACallToTheDayItWasCheckedOn() {
+        var budget = new DailyBudget(new BigDecimal("1"), clock);
+        clock.now = Instant.parse("2026-11-03T23:59:59Z");
+        var checkedOn = budget.checkAvailable();
+
+        clock.now = Instant.parse("2026-11-04T00:00:05Z");
+        budget.record(checkedOn, new BigDecimal("1"));
+
         assertThatCode(budget::checkAvailable).doesNotThrowAnyException();
     }
 
