@@ -20,6 +20,15 @@ public record RateCard(
         Objects.requireNonNull(cacheReadPerMillion, "cacheReadPerMillion");
     }
 
+    /** Grille des quatre prix, ou {@code null} si l'un manque : seul contrôle de complétude, pour les propriétés. */
+    public static RateCard ofOrNull(BigDecimal input, BigDecimal output, BigDecimal cacheWrite,
+            BigDecimal cacheRead) {
+        if (input == null || output == null || cacheWrite == null || cacheRead == null) {
+            return null;
+        }
+        return new RateCard(input, output, cacheWrite, cacheRead);
+    }
+
     /** Coût en dollars, arrondi au millionième. */
     BigDecimal costOf(TokenUsage usage) {
         return inputPerMillion.multiply(BigDecimal.valueOf(usage.inputTokens()))

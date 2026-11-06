@@ -19,7 +19,7 @@ class ExtractDeliveryNoteServiceTest {
     private final ExtractionQuota quota = new ExtractionQuota(100, java.time.Clock.systemUTC());
     private final DailyBudget budget = new DailyBudget(new BigDecimal("1"), java.time.Clock.systemUTC());
     private final java.util.List<String> billed = new java.util.ArrayList<>();
-    private final ExtractionMetrics metrics = (usage, cost, extracted) ->
+    private final ExtractionMetrics metrics = (format, usage, cost, extracted) ->
             billed.add((extracted ? "extracted " : "unreadable ") + cost.toPlainString());
     private final SourceDocument document = new SourceDocument("%PDF-1.4".getBytes(), DocumentFormat.PDF);
 

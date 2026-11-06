@@ -19,6 +19,7 @@ import fr.michael.logistics.ai.application.UnreadableDocumentException;
 import fr.michael.logistics.ai.domain.DocumentFormat;
 import fr.michael.logistics.ai.domain.SourceDocument;
 import jakarta.validation.Validation;
+import jakarta.validation.Validator;
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.LocalDate;
@@ -144,6 +145,23 @@ class ClaudeDeliveryNoteExtractorTest {
         assertThatThrownBy(() -> extractor(true).extract(pdf)).isInstanceOf(UnreadableDocumentException.class);
     }
 
+    /** Une erreur imprévue après la réponse du modèle (ici : le validateur plante) reste un appel facturé :
+     *  UnreadableDocumentException avec l'usage, pas une 500 qui échappe au budget et aux métriques. */
+    @Test
+    void unexpectedFailureAfterTheModelAnsweredKeepsUsage() {
+        stubMessage(200, "{\"reference\":\"BL-1\"}", 300, 7, 0, 0);
+        Validator broken = org.mockito.Mockito.mock(Validator.class);
+        org.mockito.Mockito.when(broken.validate(org.mockito.ArgumentMatchers.<DeliveryNoteDraft>any()))
+                .thenThrow(new IllegalStateException("validator down"));
+
+        assertThatThrownBy(() -> extractor(true, broken).extract(pdf))
+                .isInstanceOfSatisfying(UnreadableDocumentException.class, e -> {
+                    assertThat(e.usage().inputTokens()).isEqualTo(300);
+                    assertThat(e.usage().outputTokens()).isEqualTo(7);
+                    assertThat(e).hasCauseInstanceOf(IllegalStateException.class);
+                });
+    }
+
     @Test
     void wrapsProviderErrors() {
         wireMock.stubFor(post("/v1/messages").willReturn(aResponse().withStatus(500)
@@ -160,6 +178,10 @@ class ClaudeDeliveryNoteExtractorTest {
     }
 
     private ClaudeDeliveryNoteExtractor extractor(boolean withKey) {
+        return extractor(withKey, Validation.buildDefaultValidatorFactory().getValidator());
+    }
+
+    private ClaudeDeliveryNoteExtractor extractor(boolean withKey, Validator validator) {
         var props = new ClaudeProperties(withKey ? "test-key" : "", wireMock.baseUrl(), "claude-opus-5-5", "low",
                 2048, 0, Duration.ofSeconds(10),
                 Map.of("claude-opus-5-5",
@@ -170,7 +192,6 @@ class ClaudeDeliveryNoteExtractorTest {
                 .baseUrl(wireMock.baseUrl())
                 .maxRetries(0)
                 .build();
-        var validator = Validation.buildDefaultValidatorFactory().getValidator();
         return new ClaudeDeliveryNoteExtractor(client, props, validator, JsonMapper.builder().build());
     }
 

@@ -14,7 +14,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.transaction.support.TransactionOperations;
 
 /** Un seul publieur de l'outbox à la fois, quelle que soit l'instance : le verrou suit la transaction. */
-@SpringBootTest(properties = "shipment.kafka.dlt.outbox.interval=1s")
+@SpringBootTest
 @Import(TestcontainersConfiguration.class)
 class DeadLetterOutboxLockTest {
 
@@ -24,7 +24,6 @@ class DeadLetterOutboxLockTest {
     @Autowired
     TransactionOperations transactions;
 
-    /** Réessayé : la publication planifiée de ce contexte prend le même verrou une fois par seconde. */
     @Test
     void thePublisherLockIsHeldUntilTheEndOfItsTransaction() {
         await().atMost(Duration.ofSeconds(10)).untilAsserted(() -> {

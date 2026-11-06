@@ -55,7 +55,18 @@ class ClaudeDeliveryNoteExtractor implements DeliveryNoteExtractor {
         }
         Message response = call(document);
         TokenUsage usage = usageOf(response);
+        try {
+            return interpret(response, usage);
+        } catch (UnreadableDocumentException e) {
+            throw e;
+        } catch (RuntimeException e) {
+            // Le modèle a répondu, l'appel est facturé : une erreur imprévue ne doit pas échapper au budget.
+            throw new UnreadableDocumentException("Unexpected failure reading the model answer: " + e.getMessage(),
+                    usage, e);
+        }
+    }
 
+    private ModelExtraction interpret(Message response, TokenUsage usage) {
         if (response.stopReason().filter(r -> r.equals(StopReason.REFUSAL) || r.equals(StopReason.MAX_TOKENS)).isPresent()) {
             throw new UnreadableDocumentException("Model stopped early: " + response.stopReason().orElseThrow(), usage);
         }

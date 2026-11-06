@@ -155,6 +155,56 @@ Le démarrage est refusé si `KAFKA_API_KEY` ou `KAFKA_API_SECRET` manque. Le no
 
 Droits des clés d'API : ingestion-service écrit sur `scan-events` ; shipment-service lit `scan-events` (groupe de consommateurs `shipment-service`), lit et écrit `scan-events.DLT`, et republie sur `scan-events` lors d'un rejeu du DLT. Chaque service déclare ses topics au démarrage (3 partitions chacun) : sans le droit de créer des topics, les créer à la main dans l'interface Confluent avant de lancer les services.
 
+## Déployer
+
+Démo à la demande sur Google Cloud Run (`europe-west1`), base Neon, Kafka sur Confluent Cloud. Projet personnel : ce n'est pas un environnement de production.
+
+Sur Cloud Run, les services tournent avec `SPRING_PROFILES_ACTIVE=confluent,gcp` : le profil `gcp` écrit les journaux en JSON structuré pour Cloud Logging (`severity`, `message`). Sans lui, journaux texte.
+
+### Mise en place
+
+Une seule fois, avant le premier déploiement :
+
+```sh
+scripts/deploy/setup-wizard.sh
+```
+
+L'assistant guide pas à pas ce qui demande un compte ou une valeur secrète, puis lance le reste. Relançable : une étape déjà faite se garde (il demande avant de remplacer un secret).
+
+1. `gcloud` en local : il refuse le Python 3.9 de macOS ; l'assistant installe `python@3.13` (Homebrew) si besoin et le désigne par `CLOUDSDK_PYTHON`. Connexions `gcloud` et `gh`.
+2. Projet GCP, rattachement à un compte de facturation, alerte de budget à 20 $ par mois.
+3. `scripts/deploy/infra.sh` (ressources ci-dessous).
+4. Base Neon : PostgreSQL 17, région AWS Europe Central 1 (Frankfurt), chaîne de connexion **directe** (pas le pooler : Flyway et ses verrous), `sslmode=require`. L'assistant la découpe en `DB_URL` (JDBC), `DB_USER`, `DB_PASSWORD`.
+5. Clé JWT neuve (`scripts/generate-jwt-key.sh --stdout`), distincte de la clé locale ; mot de passe du premier ADMIN ; clés d'API Confluent (une par service, reprises de `.secrets/confluent.env` si elles y sont) ; clé de l'API Claude et plafond de dépense dans la Console Anthropic.
+6. Variables du dépôt GitHub, lues par les workflows.
+
+Les valeurs secrètes sont lues masquées au clavier et passées à `gcloud secrets versions add` par l'entrée standard : jamais affichées, jamais écrites dans un fichier. Les valeurs non secrètes (projet, adresse Kafka, identifiant de l'ADMIN) sont gardées dans `.secrets/deploy.env` (ignoré par git) pour une relance.
+
+`infra.sh` se lance aussi seul : `PROJECT_ID=<projet> scripts/deploy/infra.sh` (`REGION` facultatif, `europe-west1` par défaut). Il crée ce qui manque, ne supprime rien et ne pose aucune valeur de secret. Noms des ressources : `scripts/deploy/names.sh`.
+
+| Ressource | Nom et droits |
+|---|---|
+| API | Cloud Run, Artifact Registry, Secret Manager, IAM, IAM Credentials, STS, Resource Manager, Logging, Monitoring |
+| Artifact Registry | dépôt Docker `logistics` ; règle de nettoyage : les 2 dernières images par service |
+| Comptes d'exécution | `shipment-service-run`, `ingestion-service-run`, `ai-service-run` : `logging.logWriter`, `secretmanager.secretAccessor` sur leurs seuls secrets |
+| Secrets (sans valeur) | shipment-service : `JWT_PRIVATE_KEY`, `BOOTSTRAP_ADMIN_PASSWORD`, `DB_URL`, `DB_USER`, `DB_PASSWORD`, `SHIPMENT_KAFKA_API_KEY`, `SHIPMENT_KAFKA_API_SECRET` ; ingestion-service : `INGESTION_KAFKA_API_KEY`, `INGESTION_KAFKA_API_SECRET` ; ai-service : `ANTHROPIC_API_KEY` |
+| Compte de déploiement | `github-deployer` : `run.admin`, `artifactregistry.writer` sur `logistics`, `iam.serviceAccountUser` sur les trois comptes d'exécution |
+| Workload Identity Federation | pool `github`, fournisseur `github-oidc` (GitHub OIDC), limité au dépôt `MPeyrot/logistics-flow-platform` ; GitHub Actions s'authentifie sans clé JSON |
+| Métrique basée sur les journaux | `ai-claude-cost` : distribution de `jsonPayload.costUsd` des extractions facturées d'ai-service, étiquettes `model` et `outcome` |
+
+Variables du dépôt GitHub : `GCP_PROJECT_ID`, `GCP_PROJECT_NUMBER`, `GCP_REGION`, `GCP_AR_REPOSITORY`, `GCP_WIF_PROVIDER`, `GCP_DEPLOY_SA`, `KAFKA_BOOTSTRAP_SERVERS`, `BOOTSTRAP_ADMIN_USERNAME`. Secret du dépôt : `BOOTSTRAP_ADMIN_PASSWORD` (le parcours de fumée se connecte en ADMIN).
+
+Coûts attendus, démo arrêtée : ~0 $. Cloud Run ne coûte rien une fois les services supprimés ; les images restent sous les 0,5 Go gratuits d'Artifact Registry ; Secret Manager offre 6 versions actives, les 10 secrets coûtent donc ~0,25 $ par mois (0,06 $ par version active au-delà, chaque remplacement en ajoute une) ; Neon gratuit : ~100 h de calcul par mois (environ 400 h de démo à 0,25 CU, la base s'éteint seule après 5 min sans connexion) ; Confluent Basic : premier eCKU gratuit, quelques centimes de données.
+
+### Up, down, coûts
+
+Deux workflows GitHub Actions, lancés à la main (onglet Actions, « Run workflow »), jamais automatiquement :
+
+- **Deploy up** (`.github/workflows/deploy-up.yml`) : à lancer depuis `main`. Il refuse un commit hors de `main` ou dont la CI (`ci.yml`) n'est pas verte (lue par l'API GitHub, sans relancer les tests). Puis il construit les trois images (`spring-boot:build-image`, Paketo, Java 21) et les pousse dans Artifact Registry sous `<service>:<sha du commit>`. Il déploie `shipment-service` (`min-instances=1`, `max-instances=1`, CPU toujours alloué), attend son `/.well-known/jwks.json`, puis `ingestion-service` et `ai-service` (min 0, max 1, facturés à la requête). Les trois : 1 vCPU, 1 Gio, `--cpu-boost`, ingress public (nos JWT protègent les routes), profils `confluent,gcp`. Enfin il lance `scripts/deploy/smoke.sh` (sans appel à Claude) : un échec de la fumée fait échouer le workflow. Les URL `*.run.app` sont dans le résumé du run.
+- **Deploy down** (`.github/workflows/deploy-down.yml`) : supprime les trois services Cloud Run (sans erreur s'ils n'existent pas). Les secrets, les images, Neon et Confluent ne sont pas touchés.
+
+Coûts : démo arrêtée, ~0 $ (voir ci-dessus). Démo en marche, `shipment-service` reste actif jour et nuit (CPU toujours alloué, 1 vCPU et 1 Gio) : de l'ordre de 2 à 3 $ par jour d'après les tarifs publiés de Cloud Run (estimation à vérifier dans la console de facturation) ; `ingestion-service` et `ai-service` ne coûtent que pendant les requêtes. Lancer **down** dès la démo finie. L'alerte de budget GCP (20 $ par mois) prévient en cas d'oubli.
+
 ## Tests
 
 ```sh
