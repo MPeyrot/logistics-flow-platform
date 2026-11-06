@@ -33,3 +33,8 @@ Parallélisme : #34 et #37 tournent seuls (migration, contrat). #35 et #36 peuve
 
 Une ligne par contexte d'orchestrateur : date, tickets fusionnés, contexte final.
 - 2026-11-05 : #34, #35, #36, #38, #39, #41, #40 fusionnés ; verify des trois services vert à 5554024. Arrêt demandé par Michael. Reste #45 puis #37 (seul, en dernier).
+
+## Fin de spec
+
+- Revue finale (code-review medium depuis 9d4f959) lancée le 2026-11-06 ; points à écrire dans `revue-finale.md`.
+- En plus des lots de la revue, un lot pour #50 et #51 (décidés par Michael le 2026-11-06, voir les commentaires des issues ; ajouter la décision au journal d'architecture.md dans le même commit).
