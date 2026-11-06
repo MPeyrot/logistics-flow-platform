@@ -14,12 +14,12 @@ Ce fichier est relu par chaque orchestrateur neuf : il décrit l'état présent,
 | #34 | migration `V4__` du cycle de vie (**seul**) | — | sonnet / medium | fusionné | ticket/34-migration-v4 | 5aa40ba |
 | #35 | statuts et transitions définitifs (domaine) | #34 | opus / high | fusionné | ticket/35-statuts-transitions | ccab8f7 |
 | #36 | backoff exponentiel « expédition inconnue » | #34 | opus / high | fusionné | ticket/36-backoff-inconnue | ac5fa8d |
-| #37 | contrat `scan-event.v2` + motif (**seul**) | #34, #35 | opus / high | à faire | | |
+| #37 | contrat `scan-event.v2` + motif (**seul**) | #34, #35 | opus / high | en cours | slot 1 / worktree isolé / ticket/37-scan-event-v2 | |
 | #38 | `expectedDeliveryAt` à la création | #34, #35 | opus / high | fusionné | ticket/38-expected-delivery-at | 203ae7f |
 | #39 | détection et clôture des anomalies | #35, #38 | opus / high | fusionné | ticket/39-anomalies | 7113cd3 |
 | #40 | lecture des anomalies (API), ferme #1 | #39 | sonnet / medium | fusionné | ticket/40-lecture-anomalies | 5554024 |
 | #41 | lecture et rejeu du DLT (ADMIN), ferme #4 | #34, #36 | opus / high | fusionné | ticket/41-rejeu-dlt | 873c2b5 |
-| #45 | `expectedDeliveryAt` : ISO-8601 seulement (décidé par Michael) | #38 | sonnet / medium | à faire | | |
+| #45 | `expectedDeliveryAt` : ISO-8601 seulement (décidé par Michael) | #38 | sonnet / medium | fusionné | ticket/45-iso-8601 | e991891 |
 
 Statuts : `à faire`, `en cours`, `partiel`, `décision attendue`, `fusionné`.
 
