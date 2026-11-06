@@ -40,6 +40,13 @@
   - **Confluent Basic gardé après l'essai** (premier eCKU gratuit) : **profil de repli sans Kafka abandonné** (#2).
   - Profil **`gcp`** : journaux JSON structurés (champ `severity`), `costUsd` en champ JSON pour la métrique de #58.
 
+## Ressources GCP (spec #63, #65)
+- `scripts/deploy/infra.sh` (idempotent, ne supprime rien) crée les ressources ; `scripts/deploy/setup-wizard.sh` guide Michael (comptes, facturation, valeurs des secrets) et le lance. Noms dans `scripts/deploy/names.sh`, repris par les workflows via les variables du dépôt (`GCP_PROJECT_ID`, `GCP_PROJECT_NUMBER`, `GCP_REGION`, `GCP_AR_REPOSITORY`, `GCP_WIF_PROVIDER`, `GCP_DEPLOY_SA`, `KAFKA_BOOTSTRAP_SERVERS`, `BOOTSTRAP_ADMIN_USERNAME` ; secret `BOOTSTRAP_ADMIN_PASSWORD` pour la fumée).
+- Artifact Registry `logistics` (Docker, `europe-west1`, 2 dernières images par service). Secrets en `europe-west1` ; la paire Confluent de chaque service est nommée `SHIPMENT_KAFKA_API_*` / `INGESTION_KAFKA_API_*` et injectée sous `KAFKA_API_KEY` / `KAFKA_API_SECRET`.
+- IAM : compte d'exécution `<service>-run` par service (`logging.logWriter`, `secretAccessor` posé sur chacun de ses secrets, pas sur le projet) ; compte `github-deployer` (`run.admin`, `artifactregistry.writer` sur le dépôt, `serviceAccountUser` sur les comptes d'exécution), joint par WIF (pool `github`, fournisseur `github-oidc`, condition `assertion.repository` = `MPeyrot/logistics-flow-platform`).
+- Métrique `ai-claude-cost` (#58) : distribution de `jsonPayload.costUsd` des lignes d'ai-service (étiquettes `model`, `outcome`).
+- La clé JWT en ligne est neuve (`generate-jwt-key.sh --stdout`), distincte de la clé locale.
+
 ## Structure
 ```
 javaProject/
