@@ -28,18 +28,24 @@ public class DailyBudget {
     }
 
     /** Lève {@link ExtractionQuotaExceededException} (retour à minuit UTC) si le budget du jour est consommé. */
-    public synchronized void checkAvailable() {
+    public synchronized LocalDate checkAvailable() {
         Instant now = rollOver();
         if (spent.compareTo(limit) >= 0) {
             Instant midnight = day.plusDays(1).atStartOfDay().toInstant(ZoneOffset.UTC);
             throw new ExtractionQuotaExceededException(Math.max(1, Duration.between(now, midnight).toSeconds() + 1));
         }
+        return day;
     }
 
-    /** Ajoute le coût d'un appel facturé au jour courant. */
-    public synchronized void record(BigDecimal costUsd) {
+    /**
+     * Ajoute le coût d'un appel facturé au jour où il a été contrôlé ({@code checkedOn}, rendu par
+     * {@link #checkAvailable()}) : un appel qui finit après minuit n'entame pas le budget du jour suivant.
+     */
+    public synchronized void record(LocalDate checkedOn, BigDecimal costUsd) {
         rollOver();
-        spent = spent.add(costUsd);
+        if (checkedOn.equals(day)) {
+            spent = spent.add(costUsd);
+        }
     }
 
     private Instant rollOver() {

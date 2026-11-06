@@ -2,28 +2,22 @@ package fr.michael.logistics.ai.application;
 
 import fr.michael.logistics.ai.domain.ModelPricing;
 import fr.michael.logistics.ai.domain.SourceDocument;
+import fr.michael.logistics.ai.domain.TokenUsage;
 import java.math.BigDecimal;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
+import java.time.LocalDate;
 import org.springframework.stereotype.Service;
 
 @Service
 public class ExtractDeliveryNoteService {
-
-    private static final Logger log = LoggerFactory.getLogger(ExtractDeliveryNoteService.class);
 
     private final DeliveryNoteExtractor extractor;
     private final ModelPricing pricing;
     private final ExtractionQuota quota;
     private final DailyBudget budget;
     private final ExtractionMetrics metrics;
-    private final String model;
 
     public ExtractDeliveryNoteService(DeliveryNoteExtractor extractor, ModelPricing pricing,
-            ExtractionQuota quota, DailyBudget budget, ExtractionMetrics metrics,
-            @Value("${ai.claude.model}") String model) {
-        this.model = model;
+            ExtractionQuota quota, DailyBudget budget, ExtractionMetrics metrics) {
         this.budget = budget;
         this.extractor = extractor;
         this.quota = quota;
@@ -32,21 +26,14 @@ public class ExtractDeliveryNoteService {
     }
 
     public ExtractionResult extract(SourceDocument document) {
-        budget.checkAvailable();
+        LocalDate budgetDay = budget.checkAvailable();
         quota.acquire();
         ModelExtraction extraction;
         try {
             extraction = extractor.extract(document);
         } catch (UnreadableDocumentException e) {
             if (e.usage() != null) {
-                BigDecimal cost = pricing.costOf(e.usage());
-                budget.record(cost);
-                metrics.recordBilledCall(e.usage(), cost, false);
-                log.atWarn()
-                        .addKeyValue("costUsd", cost)
-                        .addKeyValue("model", model)
-                        .addKeyValue("outcome", "unreadable")
-                        .log("delivery note unreadable: format={} costUsd={}", document.format(), cost.toPlainString());
+                billed(budgetDay, document, e.usage(), false);
             }
             throw e;
         } catch (ExtractionUnavailableException | ExtractionFailedException e) {
@@ -54,16 +41,15 @@ public class ExtractDeliveryNoteService {
             quota.release();
             throw e;
         }
-        BigDecimal cost = pricing.costOf(extraction.usage());
-        budget.record(cost);
-        metrics.recordBilledCall(extraction.usage(), cost, true);
-        log.atInfo()
-                .addKeyValue("costUsd", cost)
-                .addKeyValue("model", model)
-                .addKeyValue("outcome", "extracted")
-                .log("delivery note extracted: format={} inputTokens={} outputTokens={} cacheWriteTokens={} cacheReadTokens={} costUsd={}",
-                        document.format(), extraction.usage().inputTokens(), extraction.usage().outputTokens(),
-                        extraction.usage().cacheWriteTokens(), extraction.usage().cacheReadTokens(), cost.toPlainString());
+        BigDecimal cost = billed(budgetDay, document, extraction.usage(), true);
         return new ExtractionResult(extraction.note(), extraction.usage(), cost);
+    }
+
+    /** Un appel facturé : imputé au budget du jour contrôlé, puis tracé (métriques et journal). */
+    private BigDecimal billed(LocalDate budgetDay, SourceDocument document, TokenUsage usage, boolean extracted) {
+        BigDecimal cost = pricing.costOf(usage);
+        budget.record(budgetDay, cost);
+        metrics.recordBilledCall(document.format(), usage, cost, extracted);
+        return cost;
     }
 }
