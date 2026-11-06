@@ -27,3 +27,8 @@ Fichiers partagés : README (#65 puis #67), les trois `pom.xml` et `ci.yml` (#67
 ## Lots
 
 Une ligne par contexte d'orchestrateur : date, tickets fusionnés, contexte final.
+
+## Fin de spec
+
+- Revue finale (opus / medium) lancée depuis `ca50ff3`. Points à écrire dans `revue-finale.md`, puis lots de corrections.
+- À ajouter aux lots : #69 (décidé par Michael le 2026-11-06, voir le commentaire de l'issue) : journal `costUsd` derrière `ExtractionMetrics`.
