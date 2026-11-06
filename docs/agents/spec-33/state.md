@@ -43,5 +43,5 @@ Une ligne par contexte d'orchestrateur : date, tickets fusionnés, contexte fina
 |---|---|---|---|---|
 | D | opus / high | fusionné | revue/33-lot-d | 7d6c8fa |
 | A | sonnet / medium | fusionné | revue/33-lot-a | 88bf97b |
-| C | sonnet / medium | en cours | revue/33-lot-c | |
-| B | opus / high | à faire | | |
+| C | sonnet / medium | fusionné | revue/33-lot-c | fc00818 |
+| B | opus / high | en cours | revue/33-lot-b | |
