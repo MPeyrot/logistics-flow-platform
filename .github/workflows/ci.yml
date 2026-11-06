@@ -45,3 +45,14 @@ jobs:
           name: surefire-reports-${{ matrix.service }}
           path: services/${{ matrix.service }}/target/surefire-reports
           retention-days: 7
+
+  shellcheck:
+    name: ShellCheck (scripts)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+
+      # ShellCheck est préinstallé sur les runners ubuntu-latest.
+      - name: ShellCheck
+        run: find scripts -name '*.sh' -print0 | xargs -0 shellcheck

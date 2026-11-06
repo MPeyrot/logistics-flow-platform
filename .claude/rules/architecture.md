@@ -46,6 +46,7 @@
 - IAM : compte d'exécution `<service>-run` par service (`logging.logWriter`, `secretAccessor` posé sur chacun de ses secrets, pas sur le projet) ; compte `github-deployer` (`run.admin`, `artifactregistry.writer` sur le dépôt, `serviceAccountUser` sur les comptes d'exécution), joint par WIF (pool `github`, fournisseur `github-oidc`, condition `assertion.repository` = `MPeyrot/logistics-flow-platform`).
 - Métrique `ai-claude-cost` (#58) : distribution de `jsonPayload.costUsd` des lignes d'ai-service (étiquettes `model`, `outcome`).
 - La clé JWT en ligne est neuve (`generate-jwt-key.sh --stdout`), distincte de la clé locale.
+- Workflows (#67) : `deploy-up.yml` (`workflow_dispatch`) refuse un commit hors de `main` ou à CI non verte (API GitHub), construit et pousse les trois images (`spring-boot:build-image`, tag = SHA), déploie `shipment-service` puis, son JWKS prêt, `ingestion-service` et `ai-service`, et lance `scripts/deploy/smoke.sh`. `deploy-down.yml` supprime seulement les trois services Cloud Run. Job `shellcheck` dans `ci.yml`.
 
 ## Structure
 ```

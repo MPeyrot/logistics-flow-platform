@@ -1,0 +1,46 @@
+name: Deploy down
+
+# Arrête la démo : supprime les trois services Cloud Run. Ne touche ni aux secrets, ni aux images
+# d'Artifact Registry, ni à Neon, ni à Confluent. Sans erreur si un service n'existe pas.
+on:
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: deploy-demo
+  cancel-in-progress: false
+
+jobs:
+  down:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
+        with:
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SA }}
+
+      - uses: google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db # v3.0.1
+
+      - name: Supprimer les services Cloud Run
+        env:
+          PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+          REGION: ${{ vars.GCP_REGION }}
+        run: |
+          set -euo pipefail
+          if [ -z "$PROJECT_ID" ] || [ -z "$REGION" ]; then
+            echo "::error::Variables du dépôt GCP_PROJECT_ID et GCP_REGION manquantes."
+            exit 1
+          fi
+          for service in ingestion-service ai-service shipment-service; do
+            existing="$(gcloud run services list --project="$PROJECT_ID" --region="$REGION" --filter="metadata.name=$service" --format='value(metadata.name)')"
+            if [ -n "$existing" ]; then
+              gcloud run services delete "$service" --project="$PROJECT_ID" --region="$REGION" --quiet
+              echo "$service supprimé."
+            else
+              echo "$service n'existe pas : rien à faire."
+            fi
+          done

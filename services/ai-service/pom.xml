@@ -28,6 +28,8 @@
 	</scm>
 	<properties>
 		<java.version>21</java.version>
+		<!-- Image de spring-boot:build-image (Paketo) ; deploy-up passe -Dimage.name=europe-west1-docker.pkg.dev/<projet>/<depot>/<service>:<sha> -->
+		<image.name>${project.artifactId}:${project.version}</image.name>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -100,6 +102,14 @@
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
+				<configuration>
+					<image>
+						<name>${image.name}</name>
+						<env>
+							<BP_JVM_VERSION>21</BP_JVM_VERSION>
+						</env>
+					</image>
+				</configuration>
 			</plugin>
 		</plugins>
 	</build>
