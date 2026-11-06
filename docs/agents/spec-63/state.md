@@ -39,5 +39,6 @@ Points : `revue-finale.md`. Revue code-review medium depuis `ca50ff3` : défauts
 | C | C1 à C5, infra.sh et assistant | fusionné | fix/63-revue-lot-c | 30968b1 |
 | D | D1 (#71), D2 (#72), D3, ai-service et profil gcp | fusionné | fix/63-revue-lot-d | db7d444 |
 | E | E1 (#70) à E5, workflows et scripts | fusionné | fix/63-revue-lot-e | 410b35a |
+| E2 bis | `smoke.sh` : `-H @<(…)` dans un tableau, fermé dans un pipeline en bash 3.2 (vu à la fumée locale) | en cours | worktree isolé / fix/63-smoke-procsub | |
 
 Hors lots, en issue : #73. Après les lots (demandé par Michael) : fumée en local (`docker compose`, trois services, `smoke.sh` sur localhost) et shellcheck vide.
