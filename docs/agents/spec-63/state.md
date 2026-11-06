@@ -1,0 +1,29 @@
+# État — spec #63 : déploiement à la demande sur Cloud Run
+
+STATUT: en cours
+<!-- en cours | décision attendue | terminé. Lu par orchestrate.sh : garder « STATUT: » en début de ligne. -->
+
+Spec : issue #63. Branche d'intégration : `spec/63-deploiement-cloud-run` (repo principal). Parallèle : 2.
+
+Ce fichier est relu par chaque orchestrateur neuf : il décrit l'état présent, pas l'histoire (l'histoire est dans `git log`). Moins de 6 ko.
+
+## Tickets
+
+| Issue | Titre court | Bloqué par | Modèle / effort | Statut | Slot / worktree / branche | Commit |
+|---|---|---|---|---|---|---|
+| #64 | profil `gcp` : journaux JSON, `costUsd` en champ | — | sonnet / medium | à faire | | |
+| #65 | infrastructure GCP (`infra.sh`, assistant), ferme #58 | — | opus / high | à faire | | |
+| #66 | script de fumée | — | sonnet / medium | à faire | | |
+| #67 | workflows `up` / `down`, images, ferme #2 | #65, #66 | sonnet / medium | à faire | | |
+
+Statuts : `à faire`, `en cours`, `partiel`, `décision attendue`, `fusionné`.
+
+Fichiers partagés : README (#65 puis #67), les trois `pom.xml` et `ci.yml` (#67 seul). Aucun ticket n'appelle GCP ni ne déploie.
+
+## En attente de Michael
+
+- #68 : validation sur un vrai déploiement (assistant, `up`, fumée, `down`), après fusion de la spec dans `main`. Hors orchestration.
+
+## Lots
+
+Une ligne par contexte d'orchestrateur : date, tickets fusionnés, contexte final.
