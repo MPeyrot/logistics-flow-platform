@@ -194,6 +194,15 @@ Variables du dépôt GitHub : `GCP_PROJECT_ID`, `GCP_PROJECT_NUMBER`, `GCP_REGIO
 
 Coûts attendus, démo arrêtée : ~0 $. Cloud Run ne coûte rien une fois les services supprimés ; les images restent sous les 0,5 Go gratuits d'Artifact Registry ; Secret Manager offre 6 versions actives, les 10 secrets coûtent donc ~0,25 $ par mois (0,06 $ par version active au-delà, chaque remplacement en ajoute une) ; Neon gratuit : ~100 h de calcul par mois (environ 400 h de démo à 0,25 CU, la base s'éteint seule après 5 min sans connexion) ; Confluent Basic : premier eCKU gratuit, quelques centimes de données.
 
+### Up, down, coûts
+
+Deux workflows GitHub Actions, lancés à la main (onglet Actions, « Run workflow »), jamais automatiquement :
+
+- **Deploy up** (`.github/workflows/deploy-up.yml`) : à lancer depuis `main`. Il refuse un commit hors de `main` ou dont la CI (`ci.yml`) n'est pas verte (lue par l'API GitHub, sans relancer les tests). Puis il construit les trois images (`spring-boot:build-image`, Paketo, Java 21) et les pousse dans Artifact Registry sous `<service>:<sha du commit>`. Il déploie `shipment-service` (`min-instances=1`, `max-instances=1`, CPU toujours alloué), attend son `/.well-known/jwks.json`, puis `ingestion-service` et `ai-service` (min 0, max 1, facturés à la requête). Les trois : 1 vCPU, 1 Gio, `--cpu-boost`, ingress public (nos JWT protègent les routes), profils `confluent,gcp`. Enfin il lance `scripts/deploy/smoke.sh` (sans appel à Claude) : un échec de la fumée fait échouer le workflow. Les URL `*.run.app` sont dans le résumé du run.
+- **Deploy down** (`.github/workflows/deploy-down.yml`) : supprime les trois services Cloud Run (sans erreur s'ils n'existent pas). Les secrets, les images, Neon et Confluent ne sont pas touchés.
+
+Coûts : démo arrêtée, ~0 $ (voir ci-dessus). Démo en marche, `shipment-service` reste actif jour et nuit (CPU toujours alloué, 1 vCPU et 1 Gio) : de l'ordre de 2 à 3 $ par jour d'après les tarifs publiés de Cloud Run (estimation à vérifier dans la console de facturation) ; `ingestion-service` et `ai-service` ne coûtent que pendant les requêtes. Lancer **down** dès la démo finie. L'alerte de budget GCP (20 $ par mois) prévient en cas d'oubli.
+
 ## Tests
 
 ```sh
