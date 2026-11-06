@@ -137,7 +137,13 @@ class DeadLetterApiTest {
             Map<String, Object> progress = replayJob((String) job.get("id"));
             assertThat(progress.get("published")).isEqualTo(progress.get("replayed"));
         });
-        assertThat(replayAll()).containsEntry("replayed", 0);
+        // Kafka est partagé avec les autres classes de test : le DLT peut contenir d'autres messages à rejouer.
+        // Ce message-ci, déjà rejoué, est sauté : il reste publié deux fois (l'original, puis son seul rejeu).
+        Map<String, Object> second = replayAll();
+        await().atMost(Duration.ofSeconds(30)).untilAsserted(() ->
+                assertThat(replayJob((String) second.get("id"))).satisfies(progress ->
+                        assertThat(progress.get("published")).isEqualTo(progress.get("replayed"))));
+        assertThat(scanEventsWithValue(payload)).hasSize(2);
         Map<String, Object> letter = awaitDeadLetter(payload);
         assertThat(letter).containsEntry("replayed", true);
         assertThat(letter.get("replayedAt")).isNotNull();
