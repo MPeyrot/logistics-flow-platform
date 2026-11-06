@@ -258,7 +258,7 @@ env_value() {
 parse_neon() {
   local re='^postgres(ql)?://([^:/@]+):([^@]+)@([^/?]+)/([^?]+)'
   if ! [[ "$1" =~ $re ]]; then
-    warn "format inattendu, attendu : postgresql://utilisateur:mot-de-passe@hôte/base?sslmode=verify-full&sslfactory=org.postgresql.ssl.DefaultJavaSSLFactory"
+    warn "format inattendu, attendu : postgresql://utilisateur:mot-de-passe@hôte/base?sslmode=require"
     return 1
   fi
   NEON_USER="${BASH_REMATCH[2]}"; NEON_PASSWORD="${BASH_REMATCH[3]}"
@@ -445,7 +445,12 @@ pause "Entrée pour continuer"
 stage "Premier ADMIN"
 say "shipment-service crée cet ADMIN au démarrage s'il n'en existe aucun ;"
 say "le parcours de fumée du workflow up se connecte avec lui."
-ask BOOTSTRAP_ADMIN_USERNAME "Identifiant de l'ADMIN (ex. admin) :"
+while :; do
+  ask BOOTSTRAP_ADMIN_USERNAME "Identifiant de l'ADMIN (ex. admin) :"
+  if [[ -z "$BOOTSTRAP_ADMIN_USERNAME" || "$BOOTSTRAP_ADMIN_USERNAME" == *[\|,\ ]* ]]; then
+    warn "identifiant vide, ou avec |, virgule ou espace (le workflow up le passe tel quel à Cloud Run)."
+  else break; fi
+done
 write_env BOOTSTRAP_ADMIN_USERNAME "$BOOTSTRAP_ADMIN_USERNAME"
 if should_set BOOTSTRAP_ADMIN_PASSWORD; then
   while :; do

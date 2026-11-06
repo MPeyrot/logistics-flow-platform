@@ -22,13 +22,14 @@ STATUS=""
 step() { printf '\n== %s\n' "$*"; }
 fail() { echo "ECHEC : $*" >&2; exit 1; }
 
-# call METHOD URL [TOKEN [JSON]] : renseigne STATUS et BODY_FILE. Le jeton passe par stdin, pas par la ligne de commande.
+# call METHOD URL [TOKEN [JSON]] : renseigne STATUS et BODY_FILE. Jeton et corps passent par des descripteurs
+# (printf est interne au shell), jamais par la ligne de commande, visible dans ps.
 call() {
   local method="$1" url="$2" token="${3:-}" json="${4:-}" args=()
   args=(-sS --max-time 60 -o "$BODY_FILE" -w '%{http_code}' -X "$method")
-  if [ -n "$json" ]; then args+=(-H 'Content-Type: application/json' --data "$json"); fi
-  if [ -n "$token" ]; then
-    STATUS="$(printf 'Authorization: Bearer %s\n' "$token" | curl "${args[@]}" -H @- "$url")" \
+  if [ -n "$token" ]; then args+=(-H @<(printf 'Authorization: Bearer %s\n' "$token")); fi
+  if [ -n "$json" ]; then
+    STATUS="$(printf '%s' "$json" | curl "${args[@]}" -H 'Content-Type: application/json' --data @- "$url")" \
       || fail "$method $url injoignable"
   else
     STATUS="$(curl "${args[@]}" "$url")" || fail "$method $url injoignable"
@@ -50,7 +51,7 @@ expect() { # expect STATUT_ATTENDU MESSAGE
 
 token_for() { # token_for USER PASSWORD : écrit le jeton sur stdout
   local json
-  json="$(jq -nc --arg u "$1" --arg p "$2" '{username:$u,password:$p}')"
+  json="$(U="$1" P="$2" jq -nc '{username:env.U,password:env.P}')"
   call POST "$SHIPMENT_URL/api/auth/token" "" "$json"
   expect 200 "Jeton obtenu pour $1" >&2
   jq -er '.accessToken' "$BODY_FILE"
@@ -74,10 +75,10 @@ ADMIN_TOKEN="$(token_for "$ADMIN_USERNAME" "$ADMIN_PASSWORD")"
 
 step "2. Comptes SCANNER (avec site) et OPERATOR"
 call POST "$SHIPMENT_URL/api/users" "$ADMIN_TOKEN" \
-  "$(jq -nc --arg u "$SCANNER_USER" --arg p "$ACCOUNT_PASSWORD" --arg s "$SITE" '{username:$u,password:$p,role:"SCANNER",site:$s}')"
+  "$(U="$SCANNER_USER" P="$ACCOUNT_PASSWORD" S="$SITE" jq -nc '{username:env.U,password:env.P,role:"SCANNER",site:env.S}')"
 expect 201 "Compte SCANNER $SCANNER_USER créé (site $SITE)"
 call POST "$SHIPMENT_URL/api/users" "$ADMIN_TOKEN" \
-  "$(jq -nc --arg u "$OPERATOR_USER" --arg p "$ACCOUNT_PASSWORD" '{username:$u,password:$p,role:"OPERATOR"}')"
+  "$(U="$OPERATOR_USER" P="$ACCOUNT_PASSWORD" jq -nc '{username:env.U,password:env.P,role:"OPERATOR"}')"
 expect 201 "Compte OPERATOR $OPERATOR_USER créé"
 
 step "3. Jetons SCANNER et OPERATOR"
