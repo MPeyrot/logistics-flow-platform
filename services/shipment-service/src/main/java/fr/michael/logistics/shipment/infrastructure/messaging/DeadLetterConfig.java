@@ -9,12 +9,10 @@ import fr.michael.logistics.shipment.application.ScanEventDeadLetters;
 import java.time.Clock;
 import java.time.Duration;
 import java.util.concurrent.Executor;
-import org.apache.kafka.clients.admin.NewTopic;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.kafka.config.TopicBuilder;
 import org.springframework.kafka.core.ConsumerFactory;
 import org.springframework.kafka.core.KafkaOperations;
 import org.springframework.transaction.support.TransactionOperations;
@@ -23,15 +21,6 @@ import org.springframework.transaction.support.TransactionOperations;
 class DeadLetterConfig {
 
     static final String DLT_TOPIC = ScanEventListener.TOPIC + ".DLT";
-
-    /**
-     * Déclaré au démarrage (KafkaAdmin) : un Kafka managé ne crée pas forcément les topics à la volée.
-     * Facteur de réplication : celui du broker.
-     */
-    @Bean
-    NewTopic scanEventsDeadLetterTopic() {
-        return TopicBuilder.name(DLT_TOPIC).partitions(3).build();
-    }
 
     @Bean
     ScanEventDeadLetters scanEventDeadLetters(ConsumerFactory<?, ?> consumers, KafkaOperations<String, String> kafka,
