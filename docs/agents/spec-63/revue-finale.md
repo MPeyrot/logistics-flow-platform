@@ -34,7 +34,7 @@ Revue `code-review` medium depuis `ca50ff3` (opus, 2026-11-06). Elle n'a relevé
 
 - **E1 (#70)** `scripts/env.sh:1`, `:3`, `:9` : shellcheck (que la CI lance sur tous les `scripts/*.sh`) relève SC2148 (pas de shebang : ajouter `# shellcheck shell=bash`, le fichier est sourcé) et SC2155 ×2 (déclarer puis assigner). `shellcheck scripts/*.sh scripts/deploy/*.sh` doit être vide (installé en local).
 - **E2** `scripts/deploy/smoke.sh:53` : mots de passe passés en argument (`jq --arg`, `curl --data "$json"`), visibles dans `ps`. Corps par `curl --data @-`, valeurs lues par jq depuis l'environnement ou stdin.
-- **E3** `.github/workflows/deploy-up.yml:113` : séparateur `^@^` de `--set-env-vars`, alors que `setup-wizard.sh:448` accepte un identifiant avec `@`. Choisir un séparateur impossible dans un identifiant, et valider l'identifiant dans l'assistant.
+- **E3** `.github/workflows/deploy-up.yml:113` : séparateur `^@^` de `--set-env-vars`, alors que `setup-wizard.sh:448` accepte un identifiant avec `@`. Choisir un séparateur impossible dans un identifiant, et valider l'identifiant dans l'assistant. Au passage, `setup-wizard.sh:261` : le message d'erreur de `parse_neon` décrit la chaîne que donne Neon ; remettre `?sslmode=require` (le lot C y a mis les paramètres JDBC, que Neon ne fournit pas).
 - **E4** `.github/workflows/deploy-up.yml:59` : le garde « CI verte » ne regarde que les jobs `Tests (…` et ignore le job ShellCheck. Exiger tous les jobs de `ci.yml`.
 - **E5** `.github/workflows/ci.yml:12` : `cancel-in-progress: true` s'applique aussi à `main` ; une CI annulée bloque `up` sur ce commit. `cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}`.
 
