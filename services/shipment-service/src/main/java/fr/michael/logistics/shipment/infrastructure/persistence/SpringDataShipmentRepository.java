@@ -2,6 +2,7 @@ package fr.michael.logistics.shipment.infrastructure.persistence;
 
 import fr.michael.logistics.shipment.domain.ShipmentStatus;
 import jakarta.persistence.LockModeType;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -20,12 +21,20 @@ interface SpringDataShipmentRepository extends JpaRepository<ShipmentJpaEntity, 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     Optional<ShipmentJpaEntity> findWithLockById(UUID id);
 
-    /** Lignes [expédition, heure de réception du dernier scan ou null]. */
+    /** Voir {@code ShipmentRepository#findAnomalyCandidateIds} ; {@code status} : le statut terminal à exclure. */
     @Query("""
-            select s, (select max(e.receivedAt) from ScanEventJpaEntity e where e.shipmentId = s.id)
-            from ShipmentJpaEntity s
-            where s.status <> :status""")
-    List<Object[]> findWithLastScanByStatusNot(ShipmentStatus status);
+            select s.id from ShipmentJpaEntity s
+            where s.status <> :status
+              and ((s.expectedDeliveryAt < :now
+                    and not exists (select 1 from AnomalyJpaEntity a
+                        where a.shipmentId = s.id and a.type = fr.michael.logistics.shipment.domain.AnomalyType.LATE
+                          and a.resolvedAt is null))
+                or (coalesce((select max(e.receivedAt) from ScanEventJpaEntity e where e.shipmentId = s.id), s.createdAt)
+                        <= :stalledBefore
+                    and not exists (select 1 from AnomalyJpaEntity a
+                        where a.shipmentId = s.id and a.type = fr.michael.logistics.shipment.domain.AnomalyType.STALLED
+                          and a.resolvedAt is null)))""")
+    List<UUID> findAnomalyCandidateIds(ShipmentStatus status, Instant now, Instant stalledBefore);
 
     boolean existsByReference(String reference);
 }

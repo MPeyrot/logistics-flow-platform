@@ -22,6 +22,9 @@ public interface AnomalyRepository {
 
     List<Anomaly> findOpen();
 
+    /** Anomalies ouvertes d'une expédition. */
+    List<Anomaly> findOpenByShipmentId(UUID shipmentId);
+
     /** Anomalies avec la référence de leur expédition, détectées en dernier d'abord. open : null = toutes. */
     List<AnomalyView> findViews(Boolean open);
 }

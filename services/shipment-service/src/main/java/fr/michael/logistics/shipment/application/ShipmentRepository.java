@@ -1,6 +1,7 @@
 package fr.michael.logistics.shipment.application;
 
 import fr.michael.logistics.shipment.domain.Shipment;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -23,8 +24,13 @@ public interface ShipmentRepository {
     /** Verrouille l'expédition jusqu'à la fin de la transaction en cours (voir {@link #lockByReference}). */
     Optional<Shipment> lockById(UUID id);
 
-    /** Expéditions non livrées, avec l'instant de leur dernier scan. */
-    List<ShipmentActivity> findUndeliveredActivity();
+    /**
+     * Identifiants des expéditions non livrées qui ont une anomalie à ouvrir : échéance {@code expectedDeliveryAt}
+     * dépassée à {@code now} sans LATE ouverte, ou dernier scan reçu (sinon création) au plus tard à
+     * {@code stalledBefore} sans STALLED ouverte. Le filtre est fait par la base ; {@link
+     * fr.michael.logistics.shipment.domain.AnomalyRules#detect} reste la règle une fois l'expédition verrouillée.
+     */
+    List<UUID> findAnomalyCandidateIds(Instant now, Instant stalledBefore);
 
     boolean existsByReference(String reference);
 }

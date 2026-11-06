@@ -35,6 +35,11 @@ class JpaAnomalyRepository implements AnomalyRepository {
     }
 
     @Override
+    public List<Anomaly> findOpenByShipmentId(UUID shipmentId) {
+        return jpa.findByShipmentIdAndResolvedAtIsNull(shipmentId).stream().map(AnomalyJpaEntity::toDomain).toList();
+    }
+
+    @Override
     public List<Anomaly> findOpen() {
         return jpa.findByResolvedAtIsNull().stream().map(AnomalyJpaEntity::toDomain).toList();
     }

@@ -140,7 +140,7 @@ class RecordScanServiceTest {
         }
 
         @Override
-        public List<ShipmentActivity> findUndeliveredActivity() {
+        public List<UUID> findAnomalyCandidateIds(Instant now, Instant stalledBefore) {
             throw new UnsupportedOperationException();
         }
 
@@ -198,6 +198,11 @@ class RecordScanServiceTest {
             Anomaly closed = new Anomaly(open.id(), open.shipmentId(), open.type(), open.detectedAt(), resolvedAt);
             resolved.add(closed);
             return closed;
+        }
+
+        @Override
+        public List<Anomaly> findOpenByShipmentId(UUID shipmentId) {
+            return findOpen().stream().filter(a -> a.shipmentId().equals(shipmentId)).toList();
         }
 
         @Override

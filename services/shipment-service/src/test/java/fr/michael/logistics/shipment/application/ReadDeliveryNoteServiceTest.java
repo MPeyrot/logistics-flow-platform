@@ -24,7 +24,7 @@ class ReadDeliveryNoteServiceTest {
         readerCalls++;
         throw readerFailures.removeFirst();
     };
-    private final ReadDeliveryNoteService service = new ReadDeliveryNoteService(reader, new NoShipments(),
+    private final ReadDeliveryNoteService service = new ReadDeliveryNoteService(reader, new NoShipments(), new NoAnomalies(),
             new ExtractionRateLimiter(1, Duration.ofHours(1),
                     Clock.fixed(Instant.parse("2026-11-03T10:00:00Z"), ZoneOffset.UTC)));
 
@@ -82,6 +82,33 @@ class ReadDeliveryNoteServiceTest {
         service.read("alice", new byte[] {1}, "note.pdf");
     }
 
+    private static final class NoAnomalies implements AnomalyRepository {
+        @Override
+        public boolean openIfAbsent(fr.michael.logistics.shipment.domain.Anomaly anomaly) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public void resolveOpen(UUID shipmentId, fr.michael.logistics.shipment.domain.AnomalyType type, Instant resolvedAt) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public List<fr.michael.logistics.shipment.domain.Anomaly> findOpen() {
+            return List.of();
+        }
+
+        @Override
+        public List<fr.michael.logistics.shipment.domain.Anomaly> findOpenByShipmentId(UUID shipmentId) {
+            return List.of();
+        }
+
+        @Override
+        public List<AnomalyView> findViews(Boolean open) {
+            return List.of();
+        }
+    }
+
     private static final class NoShipments implements ShipmentRepository {
         @Override
         public Shipment save(Shipment shipment) {
@@ -109,7 +136,7 @@ class ReadDeliveryNoteServiceTest {
         }
 
         @Override
-        public List<ShipmentActivity> findUndeliveredActivity() {
+        public List<UUID> findAnomalyCandidateIds(Instant now, Instant stalledBefore) {
             return List.of();
         }
 

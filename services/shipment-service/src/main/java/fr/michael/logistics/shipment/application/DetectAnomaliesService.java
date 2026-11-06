@@ -7,9 +7,9 @@ import fr.michael.logistics.shipment.domain.Shipment;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.transaction.support.TransactionOperations;
 
 /**
@@ -17,6 +17,8 @@ import org.springframework.transaction.support.TransactionOperations;
  * Appelé par une tâche planifiée, éventuellement sur plusieurs instances en même temps.
  */
 public class DetectAnomaliesService {
+
+    private static final Logger log = LoggerFactory.getLogger(DetectAnomaliesService.class);
 
     private final ShipmentRepository shipments;
     private final ScanRepository scans;
@@ -41,24 +43,20 @@ public class DetectAnomaliesService {
     }
 
     /**
-     * Repère d'abord, sans verrou, les expéditions qui ont une anomalie pas encore ouverte ; puis, pour chacune,
-     * dans sa propre transaction, verrouille l'expédition, relit son état et ouvre ce qui reste à ouvrir.
+     * La base repère les expéditions qui ont une anomalie pas encore ouverte ; puis, pour chacune, dans sa propre
+     * transaction, on verrouille l'expédition, relit son état et ouvre ce qui reste à ouvrir. Une expédition en
+     * échec (verrou, deadlock, base coupée) est journalisée et n'arrête pas la passe : la suivante la reprendra.
      *
      * @return nombre d'anomalies ouvertes par cet appel
      */
     public int detect() {
         Instant now = clock.instant();
-        Set<OpenKey> open = anomalies.findOpen().stream()
-                .map(a -> new OpenKey(a.shipmentId(), a.type()))
-                .collect(Collectors.toSet());
         int opened = 0;
-        for (ShipmentActivity activity : shipments.findUndeliveredActivity()) {
-            UUID shipmentId = activity.shipment().id();
-            boolean somethingToOpen = AnomalyRules.detect(activity.shipment(), activity.lastScanReceivedAt(), now, stalledAfter)
-                    .stream()
-                    .anyMatch(type -> !open.contains(new OpenKey(shipmentId, type)));
-            if (somethingToOpen) {
+        for (UUID shipmentId : shipments.findAnomalyCandidateIds(now, now.minus(stalledAfter))) {
+            try {
                 opened += transactions.execute(status -> openStillPresent(shipmentId, now));
+            } catch (RuntimeException e) {
+                log.warn("Détection d'anomalies impossible pour l'expédition {} : passe poursuivie", shipmentId, e);
             }
         }
         return opened;
@@ -81,8 +79,5 @@ public class DetectAnomaliesService {
             }
         }
         return opened;
-    }
-
-    private record OpenKey(UUID shipmentId, AnomalyType type) {
     }
 }

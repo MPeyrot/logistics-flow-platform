@@ -1,6 +1,5 @@
 package fr.michael.logistics.shipment.infrastructure.persistence;
 
-import fr.michael.logistics.shipment.application.ShipmentActivity;
 import fr.michael.logistics.shipment.application.ShipmentRepository;
 import fr.michael.logistics.shipment.domain.Shipment;
 import fr.michael.logistics.shipment.domain.ShipmentStatus;
@@ -48,10 +47,8 @@ class JpaShipmentRepository implements ShipmentRepository {
     }
 
     @Override
-    public List<ShipmentActivity> findUndeliveredActivity() {
-        return jpa.findWithLastScanByStatusNot(ShipmentStatus.DELIVERED).stream()
-                .map(row -> new ShipmentActivity(((ShipmentJpaEntity) row[0]).toDomain(), (Instant) row[1]))
-                .toList();
+    public List<UUID> findAnomalyCandidateIds(Instant now, Instant stalledBefore) {
+        return jpa.findAnomalyCandidateIds(ShipmentStatus.DELIVERED, now, stalledBefore);
     }
 
     @Override
