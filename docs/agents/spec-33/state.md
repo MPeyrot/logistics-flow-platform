@@ -41,7 +41,7 @@ Une ligne par contexte d'orchestrateur : date, tickets fusionnés, contexte fina
 
 | Lot | Modèle / effort | Statut | Branche | Commit |
 |---|---|---|---|---|
-| D | opus / high | en cours | revue/33-lot-d | |
-| A | sonnet / medium | à faire | | |
+| D | opus / high | fusionné | revue/33-lot-d | 7d6c8fa |
+| A | sonnet / medium | en cours | revue/33-lot-a | |
 | C | sonnet / medium | à faire | | |
 | B | opus / high | à faire | | |
