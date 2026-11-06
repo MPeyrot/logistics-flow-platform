@@ -159,6 +159,8 @@ Droits des clés d'API : ingestion-service écrit sur `scan-events` ; shipment-s
 
 Démo à la demande sur Google Cloud Run (`europe-west1`), base Neon, Kafka sur Confluent Cloud. Projet personnel : ce n'est pas un environnement de production.
 
+Sur Cloud Run, les services tournent avec `SPRING_PROFILES_ACTIVE=confluent,gcp` : le profil `gcp` écrit les journaux en JSON structuré pour Cloud Logging (`severity`, `message`). Sans lui, journaux texte.
+
 ### Mise en place
 
 Une seule fois, avant le premier déploiement :
