@@ -32,9 +32,16 @@ class ScanEventTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"", "   "})
+    @ValueSource(strings = {"", "   ", "\u00a0", " \u3000\ufeff"})
     void rejectsBlankReason(String reason) {
         assertThatThrownBy(() -> scan(ScanType.DELIVERY_FAILED, reason))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void countsReasonLengthInCodePoints() {
+        assertThat(scan(ScanType.DELIVERY_FAILED, "\uD83D\uDE00".repeat(200)).reason()).hasSize(400);
+        assertThatThrownBy(() -> scan(ScanType.DELIVERY_FAILED, "\uD83D\uDE00".repeat(201)))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 

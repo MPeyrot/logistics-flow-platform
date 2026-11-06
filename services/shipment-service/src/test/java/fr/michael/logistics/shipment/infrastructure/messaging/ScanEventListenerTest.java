@@ -107,6 +107,20 @@ class ScanEventListenerTest {
     }
 
     @Test
+    void sendsMessageBreakingTheContractLimitsToDeadLetterTopic() {
+        String ref = newShipment();
+        String payload = """
+                {"eventId":"%s","shipmentReference":"%s","type":"PICKED_UP","site":"%s","occurredAt":"2026-10-31T10:00:00Z"}"""
+                .formatted(UUID.randomUUID(), ref, "N".repeat(101));
+
+        kafka.send("scan-events", ref, payload);
+
+        assertThat(readDeadLetters(payload)).isEqualTo(payload);
+        assertThat(repository.findByReference(ref)).get()
+                .extracting(s -> s.status()).isEqualTo(ShipmentStatus.CREATED);
+    }
+
+    @Test
     void processesARedeliveredEventOnlyOnce() {
         String ref = newShipment();
         UUID pickup = UUID.randomUUID();

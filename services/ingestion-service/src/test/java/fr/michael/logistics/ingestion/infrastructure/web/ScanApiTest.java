@@ -116,6 +116,8 @@ class ScanApiTest {
                 "\"type\":\"PICKED_UP\",\"reason\":\"Destinataire absent\"",
                 "\"type\":\"DELIVERY_FAILED\",\"reason\":\"\"",
                 "\"type\":\"DELIVERY_FAILED\",\"reason\":\"   \"",
+                "\"type\":\"DELIVERY_FAILED\",\"reason\":\"\u00a0 \u3000\"",
+                "\"type\":\"DELIVERY_FAILED\",\"reason\":\"" + "\uD83D\uDE00".repeat(201) + "\"",
                 "\"type\":\"DELIVERY_FAILED\",\"reason\":\"" + "x".repeat(201) + "\"");
     }
 
@@ -132,6 +134,59 @@ class ScanApiTest {
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
                 .andExpect(jsonPath("$.status").value(400))
                 .andExpect(jsonPath("$.detail").value(org.hamcrest.Matchers.containsString("reason")));
+    }
+
+    @Test
+    void countsTheReasonLengthInCodePointsLikeTheContract() throws Exception {
+        mvc.perform(post("/api/scans")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + TestJwt.scanner("Nantes").build())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"shipmentReference":"KAFKA-%s","type":"DELIVERY_FAILED","site":"Nantes","reason":"%s"}"""
+                                .formatted(UUID.randomUUID(), "\uD83D\uDE00".repeat(200))))
+                .andExpect(status().isAccepted());
+    }
+
+    @Test
+    void reportsAnEmptyReasonOnce() throws Exception {
+        mvc.perform(post("/api/scans")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + TestJwt.scanner("Nantes").build())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"shipmentReference":"REF","type":"DELIVERY_FAILED","site":"Nantes","reason":""}"""))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.detail").value("reason: must not be blank"));
+    }
+
+    @Test
+    void rejectsOccurredAtGivenAsANumber() throws Exception {
+        mvc.perform(post("/api/scans")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + TestJwt.scanner("Nantes").build())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"shipmentReference":"REF","type":"PICKED_UP","site":"Nantes","occurredAt":1767225600}"""))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.detail").value("Invalid value for occurredAt"));
+    }
+
+    @Test
+    void answersAProblemDetailOnMalformedJsonOrUnknownType() throws Exception {
+        mvc.perform(post("/api/scans")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + TestJwt.scanner("Nantes").build())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"shipmentReference\":"))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.detail").value("Malformed request body"));
+        mvc.perform(post("/api/scans")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + TestJwt.scanner("Nantes").build())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"shipmentReference":"REF","type":"UNKNOWN","site":"Nantes"}"""))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.detail").value("Invalid value for type"));
     }
 
     @Test
