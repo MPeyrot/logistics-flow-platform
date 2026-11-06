@@ -1,6 +1,6 @@
 # État — spec #33 : cycle de vie des expéditions (statuts, anomalies, DLT)
 
-STATUT: en cours
+STATUT: terminé
 <!-- en cours | décision attendue | terminé. Lu par orchestrate.sh : garder « STATUT: » en début de ligne. -->
 
 Spec : issue #33. Branche d'intégration : `spec/33-cycle-vie-expeditions` (repo principal). Parallèle : 2.
@@ -33,6 +33,7 @@ Parallélisme : #34 et #37 tournent seuls (migration, contrat). #35 et #36 peuve
 
 Une ligne par contexte d'orchestrateur : date, tickets fusionnés, contexte final.
 - 2026-11-05 : #34, #35, #36, #38, #39, #41, #40 fusionnés ; verify des trois services vert à 5554024. Arrêt demandé par Michael. Reste #45 puis #37 (seul, en dernier).
+- 2026-11-06 : #45, #37 fusionnés ; revue finale (11 points, lots D, A, C, B) corrigée et fusionnée ; verify des trois services vert à 876380a (231, 37, 50 tests). Points ouverts créés : #50, #51 (corrigés), #53, #54 (à trancher). Spec terminée, rien poussé.
 
 ## Fin de spec
 
@@ -44,4 +45,4 @@ Une ligne par contexte d'orchestrateur : date, tickets fusionnés, contexte fina
 | D | opus / high | fusionné | revue/33-lot-d | 7d6c8fa |
 | A | sonnet / medium | fusionné | revue/33-lot-a | 88bf97b |
 | C | sonnet / medium | fusionné | revue/33-lot-c | fc00818 |
-| B | opus / high | en cours | revue/33-lot-b | |
+| B | opus / high | fusionné | revue/33-lot-b | 876380a |
