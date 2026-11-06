@@ -3,7 +3,7 @@
 Lu par l'orchestrateur, les implémenteurs et `/preparer-spec` (skills globaux `~/.claude/skills/orchestrer-spec` et `preparer-spec`). Seulement ce qui est propre à ce projet.
 
 ## Vérifications
-- Toujours `source scripts/env.sh` d'abord, dans le même appel que `./mvnw` (le shell ne garde pas l'environnement d'un appel à l'autre).
+- `JAVA_HOME` (openjdk@21) est fixé pour toute session Claude Code du projet par `.claude/settings.local.json` (`env`, non commité, #44) : `./mvnw` tourne en Java 21 sans rien d'autre. Agent en worktree isolé : **jamais `source`** (refusé par le garde-fou de Claude Code). Dans le repo principal, `source scripts/env.sh` reste possible (il charge aussi `JWT_PRIVATE_KEY`, inutile aux tests).
 - Rapides (après chaque fusion) : `./mvnw -B -ntp -q verify` dans chaque service touché par le ticket (`services/<service>`). Un test : `./mvnw -B -ntp test -Dtest=<Classe>`.
 - Tester un statut d'erreur rendu par `/error` (400 de Spring MVC, 413, 500) : MockMvc ne fait pas le dispatch ERROR, il faut un vrai serveur (`webEnvironment = RANDOM_PORT`, `@LocalServerPort` de `org.springframework.boot.test.web.server`, `java.net.http.HttpClient` ; pas de `TestRestTemplate` sans dépendance en plus). Exemple : `ErrorDispatchTest` (ingestion-service, ai-service).
 - shipment-service (#38) : `ApiExceptionHandler` rend en `ProblemDetail` les 400 de Bean Validation (`detail` = `champ: message`, ex. `expectedDeliveryAt: must not be null`) et de JSON illisible (`Invalid value for <champ>`, ou `Malformed request body`) : MockMvc les voit, pas besoin de vrai serveur. `ShipmentApiTest.DUE` : une `expectedDeliveryAt` valide (dans 3 jours) pour créer une expédition dans un test.
@@ -18,7 +18,7 @@ Lu par l'orchestrateur, les implémenteurs et `/preparer-spec` (skills globaux `
 - Rien à copier : aucun secret n'est nécessaire aux tests (WireMock pour l'API Claude, Testcontainers pour PostgreSQL et Kafka).
 - Docker doit tourner (OrbStack). Les tests ne fixent aucun port (Testcontainers choisit les siens) : deux implémenteurs en parallèle ne se gênent pas, mais chacun démarre ses conteneurs. Pas de `docker compose up` dans un worktree (ports 5432 et 9092 fixes, partagés).
 - Le worktree isolé part de `main` : créer sa branche depuis la branche d'intégration (`git checkout -B <branche> <intégration>`) avant tout.
-- Hook rtk : les commandes git locales (pas `git push`), `cd`, `source scripts/env.sh` et `./mvnw` sont autorisées par `~/.claude/settings.json` (réglé le 2026-11-04, #21). Si une commande reste refusée : `/usr/bin/git`, et `JAVA_HOME=/opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home ./mvnw …` sur une seule ligne.
+- Hook rtk : les commandes git locales (pas `git push`), `cd` et `./mvnw` sont autorisées par `~/.claude/settings.json` (#21). Dans un worktree isolé, `git` n'est pas réécrit en `rtk git` (enveloppe `~/.claude/hooks/rtk-worktree-git.sh`, #44) : `git`, `cd … && ./mvnw`, variables et heredocs passent (vérifié le 2026-11-06). Si une commande reste refusée : des appels simples, `/usr/bin/git`, et `JAVA_HOME=/opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home ./mvnw …`.
 - Lancer un service à la main (rare) : `PORT=<8090 + 10×slot + n>`, jamais 8081 ou 8082.
 
 ## Authentification (tests de shipment-service)
