@@ -25,14 +25,22 @@ fail() { echo "ECHEC : $*" >&2; exit 1; }
 # call METHOD URL [TOKEN [JSON]] : renseigne STATUS et BODY_FILE. Jeton et corps passent par des descripteurs
 # (printf est interne au shell), jamais par la ligne de commande, visible dans ps.
 call() {
-  local method="$1" url="$2" token="${3:-}" json="${4:-}" args=()
-  args=(-sS --max-time 60 -o "$BODY_FILE" -w '%{http_code}' -X "$method")
-  if [ -n "$token" ]; then args+=(-H @<(printf 'Authorization: Bearer %s\n' "$token")); fi
-  if [ -n "$json" ]; then
-    STATUS="$(printf '%s' "$json" | curl "${args[@]}" -H 'Content-Type: application/json' --data @- "$url")" \
+  local method="$1" url="$2" token="${3:-}" json="${4:-}"
+  local opts=(-sS --max-time 60 -o "$BODY_FILE" -w '%{http_code}' -X "$method")
+  # Les substitutions de processus sont écrites dans la commande curl elle-même : rangées dans un
+  # tableau, leur descripteur est déjà fermé quand curl tourne (bash 3.2, pipeline).
+  if [ -n "$token" ] && [ -n "$json" ]; then
+    STATUS="$(curl "${opts[@]}" -H @<(printf 'Authorization: Bearer %s\n' "$token") \
+      -H 'Content-Type: application/json' --data @<(printf '%s' "$json") "$url")" \
+      || fail "$method $url injoignable"
+  elif [ -n "$json" ]; then
+    STATUS="$(curl "${opts[@]}" -H 'Content-Type: application/json' --data @<(printf '%s' "$json") "$url")" \
+      || fail "$method $url injoignable"
+  elif [ -n "$token" ]; then
+    STATUS="$(curl "${opts[@]}" -H @<(printf 'Authorization: Bearer %s\n' "$token") "$url")" \
       || fail "$method $url injoignable"
   else
-    STATUS="$(curl "${args[@]}" "$url")" || fail "$method $url injoignable"
+    STATUS="$(curl "${opts[@]}" "$url")" || fail "$method $url injoignable"
   fi
 }
 
