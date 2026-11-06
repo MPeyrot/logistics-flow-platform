@@ -36,6 +36,7 @@ import org.apache.kafka.common.serialization.StringDeserializer;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
@@ -50,11 +51,13 @@ import org.testcontainers.kafka.KafkaContainer;
  * que tout rejeu, même celui d'un autre test, s'applique et ne revienne pas en DLT.
  */
 @SpringBootTest(properties = {
+        "spring.kafka.listener.auto-startup=true", "shipment.kafka.dlt.outbox.interval=1s",
         "shipment.kafka.unknown-shipment.initial-interval=100ms",
         "shipment.kafka.unknown-shipment.multiplier=2",
         "shipment.kafka.unknown-shipment.max-interval=200ms",
         "shipment.kafka.unknown-shipment.max-elapsed-time=500ms"})
 @AutoConfigureMockMvc
+@DirtiesContext
 @Import(TestcontainersConfiguration.class)
 class DeadLetterApiTest {
 
@@ -134,7 +137,13 @@ class DeadLetterApiTest {
             Map<String, Object> progress = replayJob((String) job.get("id"));
             assertThat(progress.get("published")).isEqualTo(progress.get("replayed"));
         });
-        assertThat(replayAll()).containsEntry("replayed", 0);
+        // Kafka est partagé avec les autres classes de test : le DLT peut contenir d'autres messages à rejouer.
+        // Ce message-ci, déjà rejoué, est sauté : il reste publié deux fois (l'original, puis son seul rejeu).
+        Map<String, Object> second = replayAll();
+        await().atMost(Duration.ofSeconds(30)).untilAsserted(() ->
+                assertThat(replayJob((String) second.get("id"))).satisfies(progress ->
+                        assertThat(progress.get("published")).isEqualTo(progress.get("replayed"))));
+        assertThat(scanEventsWithValue(payload)).hasSize(2);
         Map<String, Object> letter = awaitDeadLetter(payload);
         assertThat(letter).containsEntry("replayed", true);
         assertThat(letter.get("replayedAt")).isNotNull();

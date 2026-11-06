@@ -11,4 +11,9 @@ public record TokenUsage(long inputTokens, long outputTokens, long cacheWriteTok
             throw new IllegalArgumentException("token counts must not be negative");
         }
     }
+
+    /** Taille du prompt : entrée, plus les jetons écrits et lus dans le cache. */
+    public long promptTokens() {
+        return inputTokens + cacheWriteTokens + cacheReadTokens;
+    }
 }

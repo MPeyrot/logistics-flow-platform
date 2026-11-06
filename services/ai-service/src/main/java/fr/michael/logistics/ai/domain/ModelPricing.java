@@ -1,31 +1,37 @@
 package fr.michael.logistics.ai.domain;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.Objects;
 
-/** Tarif d'un modèle en dollars par million de jetons. */
-public record ModelPricing(
-        BigDecimal inputPerMillion,
-        BigDecimal outputPerMillion,
-        BigDecimal cacheWritePerMillion,
-        BigDecimal cacheReadPerMillion) {
+/**
+ * Tarif d'un modèle. Certains modèles (Claude Haiku 5.5) facturent une requête entière avec une seconde
+ * grille dès que son prompt dépasse un seuil : {@code longContext}, absent pour les autres.
+ */
+public record ModelPricing(RateCard rates, LongContext longContext) {
 
-    private static final BigDecimal MILLION = BigDecimal.valueOf(1_000_000);
+    /** Grille appliquée à toute la requête quand son prompt compte plus de {@code thresholdTokens} jetons. */
+    public record LongContext(long thresholdTokens, RateCard rates) {
+
+        public LongContext {
+            if (thresholdTokens <= 0) {
+                throw new IllegalArgumentException("thresholdTokens must be positive");
+            }
+            Objects.requireNonNull(rates, "rates");
+        }
+    }
 
     public ModelPricing {
-        Objects.requireNonNull(inputPerMillion, "inputPerMillion");
-        Objects.requireNonNull(outputPerMillion, "outputPerMillion");
-        Objects.requireNonNull(cacheWritePerMillion, "cacheWritePerMillion");
-        Objects.requireNonNull(cacheReadPerMillion, "cacheReadPerMillion");
+        Objects.requireNonNull(rates, "rates");
+    }
+
+    /** Tarif sans seconde grille. */
+    public ModelPricing(RateCard rates) {
+        this(rates, null);
     }
 
     /** Coût en dollars, arrondi au millionième. */
     public BigDecimal costOf(TokenUsage usage) {
-        return inputPerMillion.multiply(BigDecimal.valueOf(usage.inputTokens()))
-                .add(outputPerMillion.multiply(BigDecimal.valueOf(usage.outputTokens())))
-                .add(cacheWritePerMillion.multiply(BigDecimal.valueOf(usage.cacheWriteTokens())))
-                .add(cacheReadPerMillion.multiply(BigDecimal.valueOf(usage.cacheReadTokens())))
-                .divide(MILLION, 6, RoundingMode.HALF_UP);
+        boolean longPrompt = longContext != null && usage.promptTokens() > longContext.thresholdTokens();
+        return (longPrompt ? longContext.rates() : rates).costOf(usage);
     }
 }

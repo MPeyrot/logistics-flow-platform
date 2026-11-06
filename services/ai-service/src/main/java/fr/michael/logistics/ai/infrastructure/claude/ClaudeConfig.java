@@ -3,6 +3,7 @@ package fr.michael.logistics.ai.infrastructure.claude;
 import com.anthropic.client.AnthropicClient;
 import com.anthropic.client.okhttp.AnthropicOkHttpClient;
 import fr.michael.logistics.ai.domain.ModelPricing;
+import fr.michael.logistics.ai.domain.RateCard;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -29,15 +30,26 @@ class ClaudeConfig {
     /**
      * Tarif du modèle configuré. Démarrage refusé si le modèle n'a pas de tarif complet dans
      * {@code ai.claude.pricing.<modèle>.*} : costUsd serait sinon calculé avec le tarif d'un autre modèle.
+     * Même refus pour une grille {@code long-context} commencée mais incomplète.
      */
     @Bean
     ModelPricing modelPricing(ClaudeProperties props) {
         var p = props.pricing() == null ? null : props.pricing().get(props.model());
-        if (p == null || p.input() == null || p.output() == null || p.cacheWrite() == null || p.cacheRead() == null) {
+        String prefix = "ai.claude.pricing." + props.model();
+        if (p == null || !p.isComplete()) {
             throw new IllegalStateException("No complete pricing for model " + props.model()
-                    + ": set ai.claude.pricing." + props.model()
-                    + ".{input,output,cache-write,cache-read} in application.properties");
+                    + ": set " + prefix + ".{input,output,cache-write,cache-read} in application.properties");
         }
-        return new ModelPricing(p.input(), p.output(), p.cacheWrite(), p.cacheRead());
+        var rates = new RateCard(p.input(), p.output(), p.cacheWrite(), p.cacheRead());
+        var lc = p.longContext();
+        if (lc == null) {
+            return new ModelPricing(rates);
+        }
+        if (!lc.isComplete()) {
+            throw new IllegalStateException("Incomplete long-context pricing for model " + props.model()
+                    + ": set " + prefix + ".long-context.{threshold-tokens,input,output,cache-write,cache-read}");
+        }
+        return new ModelPricing(rates, new ModelPricing.LongContext(lc.thresholdTokens(),
+                new RateCard(lc.input(), lc.output(), lc.cacheWrite(), lc.cacheRead())));
     }
 }

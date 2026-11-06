@@ -14,7 +14,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.transaction.support.TransactionOperations;
 
 /** Un seul publieur de l'outbox à la fois, quelle que soit l'instance : le verrou suit la transaction. */
-@SpringBootTest
+@SpringBootTest(properties = "shipment.kafka.dlt.outbox.interval=1s")
 @Import(TestcontainersConfiguration.class)
 class DeadLetterOutboxLockTest {
 
