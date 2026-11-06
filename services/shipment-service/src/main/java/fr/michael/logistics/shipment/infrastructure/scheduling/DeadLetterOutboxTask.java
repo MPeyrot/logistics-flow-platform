@@ -3,14 +3,17 @@ package fr.michael.logistics.shipment.infrastructure.scheduling;
 import fr.michael.logistics.shipment.application.DeadLetterOutboxPublisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 /**
  * Publie l'outbox des rejeux du DLT toutes les {@code shipment.kafka.dlt.outbox.interval}. Chaque instance lance la
- * sienne ; le verrou du publieur en laisse passer une seule à la fois.
+ * sienne ; le verrou du publieur en laisse passer une seule à la fois. {@code shipment.kafka.dlt.outbox.enabled=false}
+ * coupe la tâche (tests : la base est partagée entre contextes en cache).
  */
 @Component
+@ConditionalOnProperty(name = "shipment.kafka.dlt.outbox.enabled", matchIfMissing = true)
 class DeadLetterOutboxTask {
 
     private static final Logger log = LoggerFactory.getLogger(DeadLetterOutboxTask.class);
