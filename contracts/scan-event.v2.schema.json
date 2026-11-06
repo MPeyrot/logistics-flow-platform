@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "scan-event.v2",
+  "title": "ScanEvent v2",
+  "description": "Événement de scan publié sur le topic Kafka `scan-events` (clé = shipmentReference). Remplace scan-event.v1 (coupure nette, sans champ de version) : les types v1 sont un sous-ensemble des types v2, un message v1 reste donc un message v2 valide. Un champ ajouté sans rupture reste en v2 ; toute rupture crée scan-event.v3.schema.json.",
+  "type": "object",
+  "required": ["eventId", "shipmentReference", "type", "site", "occurredAt"],
+  "properties": {
+    "eventId": { "type": "string", "format": "uuid", "description": "Identifiant unique, sert à l'idempotence côté consommateur." },
+    "shipmentReference": { "type": "string", "minLength": 1, "maxLength": 50 },
+    "type": { "enum": ["PICKED_UP", "ARRIVED_AT_SITE", "OUT_FOR_DELIVERY", "DELIVERED", "DELIVERY_FAILED"] },
+    "site": { "type": "string", "minLength": 1, "maxLength": 100 },
+    "occurredAt": { "type": "string", "format": "date-time" },
+    "reason": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "pattern": "\\S",
+      "description": "Motif facultatif d'un échec de livraison, permis seulement avec DELIVERY_FAILED. Au moins un caractère autre qu'une espace."
+    }
+  },
+  "if": { "properties": { "type": { "not": { "const": "DELIVERY_FAILED" } } } },
+  "then": { "properties": { "reason": false } },
+  "additionalProperties": true,
+  "examples": [
+    {
+      "eventId": "3f1c3c1e-5a52-4d5c-9d3e-2b8f5f0c1a11",
+      "shipmentReference": "REF-1001",
+      "type": "PICKED_UP",
+      "site": "Nantes",
+      "occurredAt": "2026-10-31T10:00:00Z"
+    },
+    {
+      "eventId": "8b0e2c4a-7d1f-4f3b-a6c2-5e9d0f1b2c33",
+      "shipmentReference": "REF-1001",
+      "type": "OUT_FOR_DELIVERY",
+      "site": "Lyon",
+      "occurredAt": "2026-11-02T07:30:00Z"
+    },
+    {
+      "eventId": "c5a9d7e1-2b4f-4c8a-9e3d-1f6b0a2c4d55",
+      "shipmentReference": "REF-1001",
+      "type": "DELIVERY_FAILED",
+      "site": "Lyon",
+      "occurredAt": "2026-11-02T11:15:00Z",
+      "reason": "Destinataire absent"
+    }
+  ]
+}

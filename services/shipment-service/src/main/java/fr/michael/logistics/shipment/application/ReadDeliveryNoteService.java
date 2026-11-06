@@ -7,11 +7,14 @@ public class ReadDeliveryNoteService {
 
     private final DeliveryNoteReader reader;
     private final ShipmentRepository shipments;
+    private final AnomalyRepository anomalies;
     private final ExtractionRateLimiter rateLimiter;
 
-    public ReadDeliveryNoteService(DeliveryNoteReader reader, ShipmentRepository shipments, ExtractionRateLimiter rateLimiter) {
+    public ReadDeliveryNoteService(DeliveryNoteReader reader, ShipmentRepository shipments,
+            AnomalyRepository anomalies, ExtractionRateLimiter rateLimiter) {
         this.reader = reader;
         this.shipments = shipments;
+        this.anomalies = anomalies;
         this.rateLimiter = rateLimiter;
     }
 
@@ -27,6 +30,7 @@ public class ReadDeliveryNoteService {
             rateLimiter.release(user);
             throw e;
         }
-        return new DeliveryNoteMatch(reading, shipments.findByReference(reading.note().reference()));
+        return new DeliveryNoteMatch(reading, shipments.findByReference(reading.note().reference())
+                .map(shipment -> new ShipmentWithAnomalies(shipment, anomalies.findOpenByShipmentId(shipment.id()))));
     }
 }

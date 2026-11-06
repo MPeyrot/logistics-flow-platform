@@ -79,21 +79,46 @@ SCANNER=$(curl -s -X POST localhost:8080/api/auth/token -H 'Content-Type: applic
 OPERATOR=$(curl -s -X POST localhost:8080/api/auth/token -H 'Content-Type: application/json' \
   -d '{"username":"operateur","password":"un mot de passe long"}' | jq -r .accessToken)
 
-# 4. créer une expédition (OPERATOR)
+# 4. créer une expédition (OPERATOR). expectedDeliveryAt (ISO-8601) est obligatoire et dans le futur, sinon 400.
+#    Ici dans trois jours (macOS ; sous Linux : date -u -d '+3 days' +%Y-%m-%dT%H:%M:%SZ).
+DUE=$(date -u -v+3d +%Y-%m-%dT%H:%M:%SZ)
 curl -X POST localhost:8080/api/shipments -H "Authorization: Bearer $OPERATOR" -H 'Content-Type: application/json' \
-  -d '{"reference":"REF-1001","origin":"Nantes","destination":"Lyon"}'
+  -d '{"reference":"REF-1001","origin":"Nantes","destination":"Lyon","expectedDeliveryAt":"'"$DUE"'"}'
 
-# 5. envoyer un scan (SCANNER ; le site doit être celui du compte ; traité en asynchrone via Kafka)
+# 5. envoyer un scan (SCANNER ; le site doit être celui du compte ; traité en asynchrone via Kafka,
+#    message au format contracts/scan-event.v2.schema.json)
 curl -X POST localhost:8081/api/scans -H "Authorization: Bearer $SCANNER" -H 'Content-Type: application/json' \
   -d '{"shipmentReference":"REF-1001","type":"PICKED_UP","site":"Nantes"}'
 
 # 6. le statut est passé de CREATED à IN_TRANSIT
 curl -H "Authorization: Bearer $OPERATOR" localhost:8080/api/shipments
 
+#    suite du parcours : OUT_FOR_DELIVERY, puis DELIVERED, ou DELIVERY_FAILED avec un motif facultatif
+#    (reason, 1 à 200 caractères, seulement avec DELIVERY_FAILED, sinon 400). Le compte SCANNER de
+#    l'exemple est rattaché à Nantes : il scanne donc tout depuis Nantes.
+curl -X POST localhost:8081/api/scans -H "Authorization: Bearer $SCANNER" -H 'Content-Type: application/json' \
+  -d '{"shipmentReference":"REF-1001","type":"OUT_FOR_DELIVERY","site":"Nantes"}'
+curl -X POST localhost:8081/api/scans -H "Authorization: Bearer $SCANNER" -H 'Content-Type: application/json' \
+  -d '{"shipmentReference":"REF-1001","type":"DELIVERY_FAILED","site":"Nantes","reason":"Destinataire absent"}'
+
 # 7. lire un bon de livraison (PDF ou image) : données extraites, coût, expédition correspondante.
 #    Chaque appel coûte un appel à l'API Claude : 20 par heure et par utilisateur (429 avec Retry-After au-delà).
 curl -H "Authorization: Bearer $OPERATOR" -F file=@bon.pdf localhost:8080/api/delivery-notes/extract
+
+# 8. anomalies (ADMIN, OPERATOR) : open=true (ouvertes), open=false (closes), sans paramètre (toutes),
+#    les plus récemment détectées d'abord ; open invalide : 400.
+curl -H "Authorization: Bearer $OPERATOR" 'localhost:8080/api/anomalies?open=true'
+#    les anomalies ouvertes d'une expédition sont aussi dans openAnomalies de GET /api/shipments
 ```
+
+Accès aux routes de `shipment-service` (sans jeton : 401 ; rôle non permis : 403) :
+
+| Route | ADMIN | OPERATOR | SCANNER |
+| --- | --- | --- | --- |
+| `GET /api/shipments`, `POST /api/shipments` | oui | oui | 403 |
+| `GET /api/anomalies` | oui | oui | 403 |
+| `POST /api/delivery-notes/extract` | oui | oui | 403 |
+| `POST /api/users`, `PATCH /api/users/{id}` | oui | 403 | 403 |
 
 ## Tests
 
@@ -111,4 +136,15 @@ Fait : création et liste des expéditions, authentification JWT (comptes, rôle
 
 À venir : import par lot (Spring Batch), front Vue 3 + TypeScript, déploiement sur GCP Cloud Run.
 
-Les statuts d'expédition et les types de scan sont provisoires.
+Statuts d'une expédition et transitions permises (tout autre scan est refusé et part dans `scan-events.DLT`) :
+
+| Statut | Scan | Nouveau statut |
+| --- | --- | --- |
+| CREATED | PICKED_UP | IN_TRANSIT |
+| IN_TRANSIT | ARRIVED_AT_SITE | IN_TRANSIT |
+| IN_TRANSIT | OUT_FOR_DELIVERY | OUT_FOR_DELIVERY |
+| OUT_FOR_DELIVERY | DELIVERED | DELIVERED |
+| OUT_FOR_DELIVERY | DELIVERY_FAILED | DELIVERY_FAILED |
+| DELIVERY_FAILED | ARRIVED_AT_SITE | IN_TRANSIT |
+
+DELIVERED est terminal. Le contrat Kafka `contracts/scan-event.v2.schema.json` porte les cinq types de scan et le motif facultatif `reason` d'un DELIVERY_FAILED ; un message `scan-event.v1` (sous-ensemble de v2) reste lisible.

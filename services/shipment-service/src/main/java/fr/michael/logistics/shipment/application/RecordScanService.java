@@ -1,7 +1,11 @@
 package fr.michael.logistics.shipment.application;
 
+import fr.michael.logistics.shipment.domain.AnomalyRules;
+import fr.michael.logistics.shipment.domain.AnomalyType;
 import fr.michael.logistics.shipment.domain.ScanEvent;
 import fr.michael.logistics.shipment.domain.Shipment;
+import java.time.Clock;
+import java.time.Instant;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -10,24 +14,37 @@ public class RecordScanService {
 
     private final ShipmentRepository shipments;
     private final ScanRepository scans;
+    private final AnomalyRepository anomalies;
+    private final Clock clock;
 
-    public RecordScanService(ShipmentRepository shipments, ScanRepository scans) {
+    public RecordScanService(
+            ShipmentRepository shipments, ScanRepository scans, AnomalyRepository anomalies, Clock clock) {
         this.shipments = shipments;
         this.scans = scans;
+        this.anomalies = anomalies;
+        this.clock = clock;
     }
 
     /**
      * Applique un scan à son expédition. Idempotent : un événement déjà traité (même {@code eventId})
      * est ignoré, car Kafka garantit au moins une livraison, pas exactement une.
+     * Le scan est enregistré avec son heure de réception (l'horloge du service), d'où compte STALLED.
+     * Dans la même transaction, ferme les anomalies que le scan règle ({@link AnomalyRules#resolvedByScan}) ;
+     * un scan refusé lève avant et ne ferme rien.
      */
     @Transactional
     public void record(ScanEvent event) {
         if (scans.existsByEventId(event.eventId())) {
             return;
         }
-        Shipment shipment = shipments.findByReference(event.shipmentReference())
+        Shipment shipment = shipments.lockByReference(event.shipmentReference())
                 .orElseThrow(() -> new ShipmentNotFoundException(event.shipmentReference()));
-        shipments.save(shipment.applyScan(event));
-        scans.save(shipment.id(), event);
+        Shipment scanned = shipment.applyScan(event);
+        Instant now = clock.instant();
+        shipments.save(scanned);
+        scans.save(shipment.id(), event, now);
+        for (AnomalyType type : AnomalyRules.resolvedByScan(scanned)) {
+            anomalies.resolveOpen(shipment.id(), type, now);
+        }
     }
 }

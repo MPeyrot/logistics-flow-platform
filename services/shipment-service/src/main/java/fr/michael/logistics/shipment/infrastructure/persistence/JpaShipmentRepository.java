@@ -2,8 +2,11 @@ package fr.michael.logistics.shipment.infrastructure.persistence;
 
 import fr.michael.logistics.shipment.application.ShipmentRepository;
 import fr.michael.logistics.shipment.domain.Shipment;
+import fr.michael.logistics.shipment.domain.ShipmentStatus;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Repository;
 
@@ -31,6 +34,21 @@ class JpaShipmentRepository implements ShipmentRepository {
     @Override
     public Optional<Shipment> findByReference(String reference) {
         return jpa.findByReference(reference).map(ShipmentJpaEntity::toDomain);
+    }
+
+    @Override
+    public Optional<Shipment> lockByReference(String reference) {
+        return jpa.findWithLockByReference(reference).map(ShipmentJpaEntity::toDomain);
+    }
+
+    @Override
+    public Optional<Shipment> lockById(UUID id) {
+        return jpa.findWithLockById(id).map(ShipmentJpaEntity::toDomain);
+    }
+
+    @Override
+    public List<UUID> findAnomalyCandidateIds(Instant now, Instant stalledBefore) {
+        return jpa.findAnomalyCandidateIds(ShipmentStatus.DELIVERED, now, stalledBefore);
     }
 
     @Override

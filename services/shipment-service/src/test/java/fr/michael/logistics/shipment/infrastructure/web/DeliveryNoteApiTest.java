@@ -16,8 +16,16 @@ import fr.michael.logistics.shipment.TestAccounts;
 import fr.michael.logistics.shipment.TestcontainersConfiguration;
 import fr.michael.logistics.shipment.application.AccountService;
 import com.nimbusds.jose.jwk.RSAKey;
+import fr.michael.logistics.shipment.application.AnomalyRepository;
+import fr.michael.logistics.shipment.application.ShipmentRepository;
+import fr.michael.logistics.shipment.domain.Anomaly;
+import fr.michael.logistics.shipment.domain.AnomalyType;
 import fr.michael.logistics.shipment.domain.Role;
+import fr.michael.logistics.shipment.domain.Shipment;
+import fr.michael.logistics.shipment.domain.ShipmentStatus;
 import java.time.Duration;
+import java.time.Instant;
+import java.util.UUID;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -66,6 +74,12 @@ class DeliveryNoteApiTest {
     @Autowired
     RSAKey signingKey;
 
+    @Autowired
+    ShipmentRepository shipmentRepository;
+
+    @Autowired
+    AnomalyRepository anomalyRepository;
+
     String bearer;
 
     @BeforeEach
@@ -77,7 +91,7 @@ class DeliveryNoteApiTest {
     @Test
     void returnsDeliveryNoteWithMatchingShipment() throws Exception {
         mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/api/shipments").header("Authorization", bearer).contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"reference\":\"BL-MATCH\",\"origin\":\"Nantes\",\"destination\":\"Lyon\"}"))
+                        .content("{\"reference\":\"BL-MATCH\",\"origin\":\"Nantes\",\"destination\":\"Lyon\",\"expectedDeliveryAt\":\"" + ShipmentApiTest.DUE + "\"}"))
                 .andExpect(status().isCreated());
         stub(200, body("BL-MATCH"));
 
@@ -87,7 +101,23 @@ class DeliveryNoteApiTest {
                 .andExpect(jsonPath("$.deliveryNote.packageCount").value(2))
                 .andExpect(jsonPath("$.costUsd").value(0.0089))
                 .andExpect(jsonPath("$.shipment.status").value("CREATED"))
-                .andExpect(jsonPath("$.shipment.origin").value("Nantes"));
+                .andExpect(jsonPath("$.shipment.origin").value("Nantes"))
+                .andExpect(jsonPath("$.shipment.expectedDeliveryAt").value(ShipmentApiTest.DUE.toString()));
+    }
+
+    @Test
+    void matchedShipmentCarriesItsOpenAnomalies() throws Exception {
+        Instant detectedAt = Instant.parse("2026-11-01T08:00:00Z");
+        Shipment late = shipmentRepository.save(new Shipment(UUID.randomUUID(), "BL-ANOMALY", "Nantes", "Lyon",
+                ShipmentStatus.IN_TRANSIT, detectedAt.minusSeconds(86_400), detectedAt));
+        anomalyRepository.openIfAbsent(Anomaly.open(late.id(), AnomalyType.LATE, detectedAt));
+        stub(200, body("BL-ANOMALY"));
+
+        mvc.perform(multipart("/api/delivery-notes/extract").file(pdf()).header("Authorization", bearer))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.shipment.openAnomalies.length()").value(1))
+                .andExpect(jsonPath("$.shipment.openAnomalies[0].type").value("LATE"))
+                .andExpect(jsonPath("$.shipment.openAnomalies[0].detectedAt").value(detectedAt.toString()));
     }
 
     @Test

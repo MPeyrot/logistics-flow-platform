@@ -2,6 +2,7 @@ package fr.michael.logistics.shipment.infrastructure.messaging;
 
 import fr.michael.logistics.shipment.application.RecordScanService;
 import fr.michael.logistics.shipment.domain.ScanEvent;
+import jakarta.validation.Validator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.kafka.annotation.KafkaListener;
@@ -17,10 +18,12 @@ class ScanEventListener {
 
     private final RecordScanService service;
     private final JsonMapper json;
+    private final Validator validator;
 
-    ScanEventListener(RecordScanService service, JsonMapper json) {
+    ScanEventListener(RecordScanService service, JsonMapper json, Validator validator) {
         this.service = service;
         this.json = json;
+        this.validator = validator;
     }
 
     @KafkaListener(topics = TOPIC)
@@ -32,9 +35,13 @@ class ScanEventListener {
 
     private ScanEvent parse(String payload) {
         try {
-            return json.readValue(payload, ScanEventMessage.class).toDomain();
+            ScanEventMessage message = json.readValue(payload, ScanEventMessage.class);
+            if (!validator.validate(message).isEmpty()) {
+                throw new IllegalArgumentException("Message breaks the scan-event.v2 constraints");
+            }
+            return message.toDomain();
         } catch (RuntimeException e) {
-            throw new InvalidMessageException("Message does not match scan-event.v1", e);
+            throw new InvalidMessageException("Message does not match scan-event.v2", e);
         }
     }
 }

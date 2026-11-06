@@ -22,13 +22,15 @@ public class IngestScanService {
      * Crée l'événement et le publie. Si l'appelant fournit un {@code eventId}, il est conservé :
      * un scanneur qui rejoue la même requête produit le même événement, dédoublonné par le consommateur.
      */
-    public UUID ingest(UUID eventId, String shipmentReference, ScanType type, String site, Instant occurredAt) {
+    public UUID ingest(
+            UUID eventId, String shipmentReference, ScanType type, String site, Instant occurredAt, String reason) {
         ScanEvent event = new ScanEvent(
                 eventId != null ? eventId : UUID.randomUUID(),
                 shipmentReference,
                 type,
                 site,
-                occurredAt != null ? occurredAt : clock.instant());
+                occurredAt != null ? occurredAt : clock.instant(),
+                reason);
         publisher.publish(event);
         return event.eventId();
     }

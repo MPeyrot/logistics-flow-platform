@@ -3,10 +3,14 @@
 Lu par l'orchestrateur, les implémenteurs et `/preparer-spec` (skills globaux `~/.claude/skills/orchestrer-spec` et `preparer-spec`). Seulement ce qui est propre à ce projet.
 
 ## Vérifications
-- Toujours `source scripts/env.sh` d'abord, dans le même appel que `./mvnw` (le shell ne garde pas l'environnement d'un appel à l'autre).
+- `JAVA_HOME` (openjdk@21) est fixé pour toute session Claude Code du projet par `.claude/settings.local.json` (`env`, non commité, #44) : `./mvnw` tourne en Java 21 sans rien d'autre. Agent en worktree isolé : **jamais `source`** (refusé par le garde-fou de Claude Code). Dans le repo principal, `source scripts/env.sh` reste possible (il charge aussi `JWT_PRIVATE_KEY`, inutile aux tests).
 - Rapides (après chaque fusion) : `./mvnw -B -ntp -q verify` dans chaque service touché par le ticket (`services/<service>`). Un test : `./mvnw -B -ntp test -Dtest=<Classe>`.
 - Tester un statut d'erreur rendu par `/error` (400 de Spring MVC, 413, 500) : MockMvc ne fait pas le dispatch ERROR, il faut un vrai serveur (`webEnvironment = RANDOM_PORT`, `@LocalServerPort` de `org.springframework.boot.test.web.server`, `java.net.http.HttpClient` ; pas de `TestRestTemplate` sans dépendance en plus). Exemple : `ErrorDispatchTest` (ingestion-service, ai-service).
+- shipment-service (#38) : `ApiExceptionHandler` rend en `ProblemDetail` les 400 de Bean Validation (`detail` = `champ: message`, ex. `expectedDeliveryAt: must not be null`) et de JSON illisible (`Invalid value for <champ>`, ou `Malformed request body`) : MockMvc les voit, pas besoin de vrai serveur. `ShipmentApiTest.DUE` : une `expectedDeliveryAt` valide (dans 3 jours) pour créer une expédition dans un test.
 - Simuler ai-service arrêté (connexion refusée) dans un test Spring : WireMock sur un port fixe choisi au démarrage, `stop()` puis `start()` à la même adresse (exemple : `DeliveryNoteApiTest`). Le contexte Spring garde l'URL, un port dynamique changerait au redémarrage.
+- Nouvelles tentatives Kafka en test : chaque tentative coûte ~0,5 s de plus que son backoff (relecture après le seek, `fetch.max.wait.ms`) ; les attentes d'un test doivent en tenir compte (exemple : `ScanEventListenerTest`, backoff raccourci par propriétés). Le topic `scan-events` des tests est créé automatiquement avec une seule partition.
+- `ApplicationContextRunner` avec un `@Value Duration` (`"1s"`) : ajouter `ApplicationConversionService.getSharedInstance()` comme service de conversion (exemple : `KafkaConsumerConfigTest`).
+- `DeadLetterApiTest` a son propre contexte, donc son propre DLT, et ses tests appellent « tout rejouer » : un test qui y envoie un message en DLT doit le rendre rejouable sans échec (scan d'expédition inconnue, puis création de l'expédition), sinon un second « tout rejouer » ne rend plus 0. « Tout rejouer » est asynchrone (202, puis `GET …/replay/{id}` jusqu'à `finished`, helper `replayAll()`), et un rejeu n'est publié que par l'outbox (tâche planifiée toutes les secondes dans chaque contexte de test) : attendre l'effet, jamais le supposer immédiat.
 - Finales (implémenteur) : `./mvnw -B -ntp verify` dans les trois services (compilation, tests, règles ArchUnit). Pas de suite e2e.
 - Suite complète (orchestrateur, au passage de main) : `verify` des trois services.
 
@@ -14,7 +18,7 @@ Lu par l'orchestrateur, les implémenteurs et `/preparer-spec` (skills globaux `
 - Rien à copier : aucun secret n'est nécessaire aux tests (WireMock pour l'API Claude, Testcontainers pour PostgreSQL et Kafka).
 - Docker doit tourner (OrbStack). Les tests ne fixent aucun port (Testcontainers choisit les siens) : deux implémenteurs en parallèle ne se gênent pas, mais chacun démarre ses conteneurs. Pas de `docker compose up` dans un worktree (ports 5432 et 9092 fixes, partagés).
 - Le worktree isolé part de `main` : créer sa branche depuis la branche d'intégration (`git checkout -B <branche> <intégration>`) avant tout.
-- Hook rtk : les commandes git locales (pas `git push`), `cd`, `source scripts/env.sh` et `./mvnw` sont autorisées par `~/.claude/settings.json` (réglé le 2026-11-04, #21). Si une commande reste refusée : `/usr/bin/git`, et `JAVA_HOME=/opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home ./mvnw …` sur une seule ligne.
+- Hook rtk : les commandes git locales (pas `git push`), `cd` et `./mvnw` sont autorisées par `~/.claude/settings.json` (#21). Dans un worktree isolé, `git` n'est pas réécrit en `rtk git` (enveloppe `~/.claude/hooks/rtk-worktree-git.sh`, #44) : `git`, `cd … && ./mvnw`, variables et heredocs passent (vérifié le 2026-11-06). Si une commande reste refusée : des appels simples, `/usr/bin/git`, et `JAVA_HOME=/opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home ./mvnw …`.
 - Lancer un service à la main (rare) : `PORT=<8090 + 10×slot + n>`, jamais 8081 ou 8082.
 
 ## Authentification (tests de shipment-service)
@@ -23,6 +27,11 @@ Lu par l'orchestrateur, les implémenteurs et `/preparer-spec` (skills globaux `
 - `POST /api/auth/token` : corps `{"username","password"}`, réponse `{"accessToken","tokenType":"Bearer","expiresAt"}`. `sub` = identifiant du compte.
 - `POST /api/users` (ADMIN) : corps `{"username","password","role","site"}`, 201 + `Location`, réponse `{"id","username","role","site","active","createdAt"}`. `PATCH /api/users/{id}` : corps `{"active":false}` (désactive) ou `{"active":true}` (réactive, #25), idempotent, 200 + le compte ; `active` absent ou null : 400.
 - Blocage après échecs (`LoginThrottle`, `auth.login.*`) : en mémoire, donc partagé par toutes les classes de test qui partagent le contexte Spring. Échouer la connexion avec un identifiant propre au test, jamais 5 fois avec `test-admin` ; une connexion réussie remet le compteur à zéro.
+
+## Anomalies (shipment-service, #39)
+- Port `AnomalyRepository` : `openIfAbsent` (INSERT … ON CONFLICT sur l'index partiel de V4, false si déjà ouverte), `resolveOpen`, `findOpen`. Cas d'usage `DetectAnomaliesService.detect()`, bean créé par `infrastructure/scheduling/AnomalyDetectionConfig` (`shipment.anomaly.stalled-after`).
+- Tâche planifiée : première passe un intervalle (15 min) après le démarrage, donc jamais pendant les tests ; les tests appellent `detect()` directement. La base est partagée entre classes de test : `detect()` ouvre aussi des anomalies sur les expéditions des autres classes, ne vérifier que les siennes.
+- Un scan (`RecordScanService`) et la détection verrouillent l'expédition (`lockByReference`, `lockById`, SELECT … FOR UPDATE) : sans ce verrou, une STALLED pouvait s'ouvrir juste après la clôture par un scan concurrent.
 
 ## Projet
 - Branche de base des specs : `main`. Ne rien pousser sans Michael.

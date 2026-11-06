@@ -1,6 +1,11 @@
 package fr.michael.logistics.ingestion.infrastructure.web;
 
 import fr.michael.logistics.ingestion.application.ScanPublicationException;
+import java.util.Objects;
+import java.util.stream.Collectors;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import tools.jackson.core.JacksonException;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
@@ -20,6 +25,29 @@ class ApiExceptionHandler {
     @ExceptionHandler(ErrorResponseException.class)
     ResponseEntity<ProblemDetail> errorResponse(ErrorResponseException e) {
         return ResponseEntity.status(e.getStatusCode()).headers(e.getHeaders()).body(e.getBody());
+    }
+
+    /** Requête hors contrat (Bean Validation) : 400 problem+json, champs fautifs dans {@code detail}. */
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    ProblemDetail invalidRequest(MethodArgumentNotValidException e) {
+        String detail = e.getBindingResult().getFieldErrors().stream()
+                .map(error -> error.getField() + ": " + error.getDefaultMessage())
+                .sorted()
+                .collect(Collectors.joining("; "));
+        return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, detail);
+    }
+
+    /** JSON illisible ou valeur impossible à convertir (date, type inconnu…) : on nomme le champ, sans le message de Jackson. */
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    ProblemDetail unreadableBody(HttpMessageNotReadableException e) {
+        String field = e.getCause() instanceof JacksonException json
+                ? json.getPath().stream()
+                        .map(JacksonException.Reference::getPropertyName)
+                        .filter(Objects::nonNull)
+                        .collect(Collectors.joining("."))
+                : "";
+        return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST,
+                field.isEmpty() ? "Malformed request body" : "Invalid value for " + field);
     }
 
     @ExceptionHandler(IllegalArgumentException.class)

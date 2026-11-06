@@ -10,3 +10,6 @@ node_modules/
 # Orchestration des agents (skill global orchestrer-spec)
 docs/agents/*/runs.log
 docs/agents/*/STOP
+
+# Worktrees des agents Claude Code (isolation worktree)
+.claude/worktrees/

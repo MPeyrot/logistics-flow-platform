@@ -32,16 +32,24 @@ class ScanEventJpaEntity {
     @Column(name = "occurred_at", nullable = false)
     private Instant occurredAt;
 
+    @Column(length = ScanEvent.REASON_MAX_LENGTH)
+    private String reason;
+
+    @Column(name = "received_at", nullable = false)
+    private Instant receivedAt;
+
     protected ScanEventJpaEntity() {
     }
 
-    static ScanEventJpaEntity from(UUID shipmentId, ScanEvent event) {
+    static ScanEventJpaEntity from(UUID shipmentId, ScanEvent event, Instant receivedAt) {
         ScanEventJpaEntity entity = new ScanEventJpaEntity();
         entity.eventId = event.eventId();
         entity.shipmentId = shipmentId;
         entity.type = event.type();
         entity.site = event.site();
         entity.occurredAt = event.occurredAt();
+        entity.reason = event.reason();
+        entity.receivedAt = receivedAt;
         return entity;
     }
 }

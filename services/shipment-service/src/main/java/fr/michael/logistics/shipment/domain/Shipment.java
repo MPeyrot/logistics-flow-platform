@@ -4,13 +4,15 @@ import java.time.Instant;
 import java.util.Objects;
 import java.util.UUID;
 
+/** {@code expectedDeliveryAt} est null pour les expéditions créées avant qu'il soit obligatoire (jamais LATE). */
 public record Shipment(
         UUID id,
         String reference,
         String origin,
         String destination,
         ShipmentStatus status,
-        Instant createdAt) {
+        Instant createdAt,
+        Instant expectedDeliveryAt) {
 
     public Shipment {
         Objects.requireNonNull(id, "id");
@@ -24,25 +26,44 @@ public record Shipment(
         }
     }
 
-    public static Shipment create(String reference, String origin, String destination, Instant now) {
-        return new Shipment(UUID.randomUUID(), reference, origin, destination, ShipmentStatus.CREATED, now);
+    public static Shipment create(
+            String reference, String origin, String destination, Instant expectedDeliveryAt, Instant now) {
+        if (expectedDeliveryAt == null) {
+            throw new IllegalArgumentException("expectedDeliveryAt is required");
+        }
+        if (!expectedDeliveryAt.isAfter(now)) {
+            throw new IllegalArgumentException("expectedDeliveryAt must be in the future");
+        }
+        return new Shipment(
+                UUID.randomUUID(), reference, origin, destination, ShipmentStatus.CREATED, now, expectedDeliveryAt);
     }
 
-    /** Applique un scan. Transitions provisoires. */
+    /**
+     * Applique un scan. Transitions permises (toute autre combinaison lève {@link InvalidScanException}) :
+     * CREATED + PICKED_UP → IN_TRANSIT ; IN_TRANSIT + ARRIVED_AT_SITE → IN_TRANSIT ;
+     * IN_TRANSIT + OUT_FOR_DELIVERY → OUT_FOR_DELIVERY ; OUT_FOR_DELIVERY + DELIVERED → DELIVERED ;
+     * OUT_FOR_DELIVERY + DELIVERY_FAILED → DELIVERY_FAILED ; DELIVERY_FAILED + ARRIVED_AT_SITE → IN_TRANSIT.
+     */
     public Shipment applyScan(ScanEvent scan) {
         ShipmentStatus next = switch (status) {
             case CREATED -> scan.type() == ScanType.PICKED_UP ? ShipmentStatus.IN_TRANSIT : null;
             case IN_TRANSIT -> switch (scan.type()) {
                 case ARRIVED_AT_SITE -> ShipmentStatus.IN_TRANSIT;
-                case DELIVERED -> ShipmentStatus.DELIVERED;
-                case PICKED_UP -> null;
+                case OUT_FOR_DELIVERY -> ShipmentStatus.OUT_FOR_DELIVERY;
+                default -> null;
             };
+            case OUT_FOR_DELIVERY -> switch (scan.type()) {
+                case DELIVERED -> ShipmentStatus.DELIVERED;
+                case DELIVERY_FAILED -> ShipmentStatus.DELIVERY_FAILED;
+                default -> null;
+            };
+            case DELIVERY_FAILED -> scan.type() == ScanType.ARRIVED_AT_SITE ? ShipmentStatus.IN_TRANSIT : null;
             case DELIVERED -> null;
         };
         if (next == null) {
             throw new InvalidScanException(this, scan.type());
         }
-        return new Shipment(id, reference, origin, destination, next, createdAt);
+        return new Shipment(id, reference, origin, destination, next, createdAt, expectedDeliveryAt);
     }
 
     private static void requireText(String value, String field) {
