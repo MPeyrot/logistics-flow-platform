@@ -1,6 +1,6 @@
 # État — spec #76 : import CSV des scans par lot (ingestion-service, Spring Batch)
 
-STATUT: en cours
+STATUT: terminé
 <!-- en cours | décision attendue | terminé. Lu par orchestrate.sh : garder « STATUT: » en début de ligne. -->
 
 Spec : issue #76. Branche d'intégration : `spec/76-import-csv` (repo principal). Parallèle : 2.
@@ -29,6 +29,7 @@ Une ligne par contexte d'orchestrateur : date, tickets fusionnés, contexte fina
 - 2026-11-07 : #77, #78, #79 fusionnés ; `verify` des trois services vert (73 + 241 + 70 tests) ; contexte ~75k.
 - 2026-11-07 : revue finale, lots B et A fusionnés ; `verify` des trois services vert (82 + 241 + 70 tests) ; contexte ~100k. Spec terminée, rien poussé.
 - 2026-11-07 : seconde revue demandée par Michael (`5163728..HEAD`) : 8 points retenus, lots C et D.
+- 2026-11-07 : lots C et D fusionnés ; `verify` des trois services vert (95 + 241 + 70 tests) ; contexte ~120k. Spec terminée, rien poussé.
 
 ## Fin de spec
 
@@ -39,4 +40,4 @@ Revue finale (opus / medium) depuis `5163728` : faite, 7 points dans `docs/agent
 | B | B1, B2 (structure, multipart) | fusionné | | 25ca805 |
 | A | A1–A5 (lecture CSV, journal) | fusionné | | 29d2bf0 |
 | C | C1–C4 (seconde revue : découpage CSV) | fusionné | | cfb51f6 |
-| D | D1–D5 (seconde revue : rejets, Kafka) | en cours | ticket/76-revue-lot-d | |
+| D | D1–D5 (seconde revue : rejets, Kafka) | fusionné | | 00470e0 |
