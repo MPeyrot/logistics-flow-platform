@@ -39,6 +39,11 @@
   - **Base en ligne : Neon** (offre gratuite, PostgreSQL 17, `aws-eu-central-1`, connexion directe en TLS), pas Cloud SQL (payant même arrêté).
   - **Confluent Basic gardé après l'essai** (premier eCKU gratuit) : **profil de repli sans Kafka abandonné** (#2).
   - Profil **`gcp`** : journaux JSON structurés (champ `severity`, aux valeurs de Cloud Logging : `WARN` devient `WARNING`, `TRACE` `DEBUG`, par un `CloudLoggingSeverityCustomizer` dans chaque service), `costUsd` en champ JSON pour la métrique de #58.
+- Décidé par Michael le 2026-11-07, pour la spec « import CSV des scans » (#76, couvre #5) :
+  - **Import synchrone** par Spring Batch (`POST /api/scans/imports`, SCANNER seulement, chaque ligne du site du jeton) : pas de tâche de fond, `ingestion-service` n'a du CPU que pendant une requête sur Cloud Run.
+  - `ingestion-service` **reste sans base** : dépôt de jobs sans ressource, pas de reprise de job (on réimporte), pas de H2.
+  - **`eventId` déterministe** quand la ligne n'en fournit pas (UUID par nom sur `shipmentReference|type|site|occurredAt`) : un réimport ne crée pas de doublon. Lignes invalides sautées et rapportées ; plafonds 2 Mo et 10 000 lignes, contrôlés avant toute publication.
+  - Dépendances validées : `spring-boot-starter-batch` et `spring-boot-starter-batch-test` (test) dans `ingestion-service`, versions de Spring Boot ; pas de bibliothèque CSV.
 
 ## Ressources GCP (spec #63, #65)
 - `scripts/deploy/infra.sh` (idempotent, ne supprime rien) crée les ressources ; `scripts/deploy/setup-wizard.sh` guide Michael (comptes, facturation, valeurs des secrets) et le lance. Noms dans `scripts/deploy/names.sh`, repris par les workflows via les variables du dépôt (`GCP_PROJECT_ID`, `GCP_PROJECT_NUMBER`, `GCP_REGION`, `GCP_AR_REPOSITORY`, `GCP_WIF_PROVIDER`, `GCP_DEPLOY_SA`, `KAFKA_BOOTSTRAP_SERVERS`, `BOOTSTRAP_ADMIN_USERNAME` ; secret `BOOTSTRAP_ADMIN_PASSWORD` pour la fumée).
