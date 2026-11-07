@@ -6,11 +6,9 @@ import java.nio.charset.CharacterCodingException;
 import java.nio.charset.CodingErrorAction;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
-import org.springframework.batch.infrastructure.item.file.transform.DelimitedLineTokenizer;
 
 /**
  * Fichier décodé (UTF-8 strict, BOM retiré) dont l'en-tête est vérifié. Tout est contrôlé ici, avant le job :
@@ -81,12 +79,7 @@ record CsvFile(String text, List<String> columns) {
     }
 
     private static List<String> columns(String header) {
-        try {
-            DelimitedLineTokenizer tokenizer = new DelimitedLineTokenizer();
-            return Arrays.stream(tokenizer.tokenize(header).getValues()).map(String::trim).toList();
-        } catch (RuntimeException e) {
-            throw new CsvStructureException("The header line is not valid CSV");
-        }
+        return CsvCells.split(header);
     }
 
     private static String decode(byte[] content) {

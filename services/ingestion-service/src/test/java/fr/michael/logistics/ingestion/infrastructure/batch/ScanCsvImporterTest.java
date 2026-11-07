@@ -171,6 +171,22 @@ class ScanCsvImporterTest {
     }
 
     @Test
+    void trimsSpacesAroundUnquotedCellsAndKeepsThoseInsideQuotes() {
+        String ref = "IMP-" + UUID.randomUUID();
+        String csv = HEADER + "\n"
+                + " " + ref + " , PICKED_UP ," + SITE + " , 2026-11-07T08:00:00Z ,  ,\n"
+                + ref + ",DELIVERY_FAILED," + SITE + ",2026-11-07T09:00:00Z,,  \" absent \"  \n";
+
+        ImportReport report = importer.importCsv(bytes(csv), SITE);
+
+        assertThat(report.errors()).isEmpty();
+        assertThat(report.published()).isEqualTo(2);
+        List<JsonNode> messages = read(ref, 2);
+        assertThat(messages.get(0).get("type").asString()).isEqualTo("PICKED_UP");
+        assertThat(messages.get(1).get("reason").asString()).isEqualTo(" absent ");
+    }
+
+    @Test
     void skipsInvalidRowsAndReportsThemWithTheirPhysicalLineNumber() {
         String ref = "IMP-" + UUID.randomUUID();
         String csv = HEADER + "\n"

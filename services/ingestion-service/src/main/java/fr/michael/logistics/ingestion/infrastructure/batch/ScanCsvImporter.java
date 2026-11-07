@@ -31,7 +31,6 @@ import org.springframework.batch.core.step.builder.StepBuilder;
 import org.springframework.batch.infrastructure.item.ItemWriter;
 import org.springframework.batch.infrastructure.item.file.FlatFileItemReader;
 import org.springframework.batch.infrastructure.item.file.LineMapper;
-import org.springframework.batch.infrastructure.item.file.transform.DelimitedLineTokenizer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -144,10 +143,9 @@ public class ScanCsvImporter implements ScanImport {
     }
 
     private Step step(CsvFile file, String site, ImportProgress progress) {
-        DelimitedLineTokenizer tokenizer = new DelimitedLineTokenizer();
-        // sans noms : le nombre de colonnes est contrôlé par le LineMapper, avec un message lisible
+        // le nombre de colonnes est contrôlé par le LineMapper, avec un message lisible
         FlatFileItemReader<ScanRow> reader = new FlatFileItemReader<>(
-                new ByteArrayResource(file.text().getBytes(StandardCharsets.UTF_8)), lineMapper(tokenizer, file));
+                new ByteArrayResource(file.text().getBytes(StandardCharsets.UTF_8)), lineMapper(file));
         reader.setLinesToSkip(1);
         reader.setComments(new String[0]); // une référence peut commencer par '#'
         reader.setRecordSeparatorPolicy(new QuotedRecordSeparatorPolicy());
@@ -169,18 +167,13 @@ public class ScanCsvImporter implements ScanImport {
     }
 
     /** Numéro de la première ligne physique de l'enregistrement, en-tête compris ; une ligne vide donne une sentinelle, le processeur l'écarte. */
-    private static LineMapper<ScanRow> lineMapper(DelimitedLineTokenizer tokenizer, CsvFile file) {
+    private static LineMapper<ScanRow> lineMapper(CsvFile file) {
         return (line, lastLine) -> {
             int lineNumber = lastLine - (int) line.chars().filter(c -> c == '\n').count();
             if (line.isBlank()) {
                 return new ScanRow(lineNumber, Map.of(), null);
             }
-            List<String> cells;
-            try {
-                cells = List.of(tokenizer.tokenize(line).getValues());
-            } catch (RuntimeException e) {
-                return new ScanRow(lineNumber, Map.of(), "line: expected " + file.columns().size() + " columns");
-            }
+            List<String> cells = CsvCells.split(line);
             if (cells.size() != file.columns().size()) {
                 return new ScanRow(lineNumber, Map.of(),
                         "line: expected " + file.columns().size() + " columns, found " + cells.size());
