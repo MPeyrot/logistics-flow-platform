@@ -12,8 +12,8 @@ Ce fichier est relu par chaque orchestrateur neuf : il décrit l'état présent,
 | Issue | Titre court | Bloqué par | Modèle / effort | Statut | Slot / worktree / branche | Commit |
 |---|---|---|---|---|---|---|
 | #77 | recherche : Spring Batch 6 sans base (note) | — | sonnet / medium | fusionné | | 75e94e8 |
-| #78 | job d'import CSV, `publishAll`, rapport | #77 | sonnet / medium | en cours | 1 / (worktree isolé) / ticket/78-job-import-csv | |
-| #79 | route `POST /api/scans/imports`, plafonds, journal, fumée, ferme #5 | #78 | sonnet / medium | à faire | | |
+| #78 | job d'import CSV, `publishAll`, rapport | #77 | sonnet / medium | fusionné | | 960b09f |
+| #79 | route `POST /api/scans/imports`, plafonds, journal, fumée, ferme #5 | #78 | sonnet / medium | en cours | 1 / (worktree isolé) / ticket/79-route-import-csv | |
 
 Statuts : `à faire`, `en cours`, `partiel`, `décision attendue`, `fusionné`.
 
