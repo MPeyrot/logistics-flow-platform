@@ -42,7 +42,7 @@ class SecurityConfig {
                         // forward vers /error (400, 413, 500…) : sans cela, il tombe sur denyAll et devient 403
                         .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
                         .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/scans").hasRole("SCANNER")
+                        .requestMatchers(HttpMethod.POST, "/api/scans", "/api/scans/imports").hasRole("SCANNER")
                         .anyRequest().denyAll())
                 .oauth2ResourceServer(o -> o
                         .jwt(j -> j.jwtAuthenticationConverter(jwtAuthenticationConverter()))

@@ -1,5 +1,6 @@
 package fr.michael.logistics.ingestion.infrastructure.batch;
 
+import fr.michael.logistics.ingestion.application.CsvStructureException;
 import fr.michael.logistics.ingestion.application.ImportBusyException;
 import fr.michael.logistics.ingestion.application.ImportInterruptedException;
 import fr.michael.logistics.ingestion.application.ImportReport;
@@ -11,7 +12,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.time.Duration;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
 import org.springframework.batch.core.BatchStatus;
 import org.springframework.batch.core.job.Job;
 import org.springframework.batch.core.job.JobExecution;
@@ -26,13 +29,17 @@ import org.springframework.batch.infrastructure.item.ItemWriter;
 import org.springframework.batch.infrastructure.item.file.FlatFileItemReader;
 import org.springframework.batch.infrastructure.item.file.LineMapper;
 import org.springframework.batch.infrastructure.item.file.transform.DelimitedLineTokenizer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.stereotype.Component;
 
 /**
  * Import synchrone d'un CSV de scans : un job Spring Batch à une étape, construit à chaque import (il est lié au
  * fichier), lancé dans le thread de l'appelant. Dépôt de jobs sans ressource : pas de base, pas de reprise (on
- * réimporte). Un seul import à la fois par instance : le dépôt ne tient pas deux exécutions simultanées.
+ * réimporte). Un seul import à la fois par instance : le suivant attend son tour jusqu'à {@code ingestion.import.wait}.
  */
 @Component
 public class ScanCsvImporter {
@@ -42,12 +49,25 @@ public class ScanCsvImporter {
     private final JobRepository jobRepository;
     private final JobOperator jobOperator;
     private final ScanPublisher publisher;
-    private final Semaphore oneAtATime = new Semaphore(1);
+    private static final Logger LOG = LoggerFactory.getLogger(ScanCsvImporter.class);
 
-    ScanCsvImporter(JobRepository jobRepository, JobOperator jobOperator, ScanPublisher publisher) {
+    private final Semaphore oneAtATime = new Semaphore(1);
+    private final Duration wait;
+    private final int maxLines;
+
+    @Autowired
+    ScanCsvImporter(JobRepository jobRepository, JobOperator jobOperator, ScanPublisher publisher,
+            @Value("${ingestion.import.wait:30s}") Duration wait,
+            @Value("${ingestion.import.max-lines:10000}") int maxLines) {
         this.jobRepository = jobRepository;
         this.jobOperator = jobOperator;
         this.publisher = publisher;
+        this.wait = wait;
+        this.maxLines = maxLines;
+    }
+
+    ScanCsvImporter(JobRepository jobRepository, JobOperator jobOperator, ScanPublisher publisher) {
+        this(jobRepository, jobOperator, publisher, Duration.ofSeconds(30), 10_000);
     }
 
     /**
@@ -59,9 +79,13 @@ public class ScanCsvImporter {
      */
     public ImportReport importCsv(byte[] content, String site) {
         CsvFile file = CsvFile.parse(content);
-        if (!oneAtATime.tryAcquire()) {
-            throw new ImportBusyException();
+        if (file.dataLines() > maxLines) {
+            throw new CsvStructureException("The file has more than " + maxLines + " data lines");
         }
+        if (!acquire()) {
+            throw new ImportBusyException(wait);
+        }
+        long start = System.nanoTime();
         try {
             ImportProgress progress = new ImportProgress();
             Job job = new JobBuilder("scanCsvImport", jobRepository)
@@ -74,9 +98,27 @@ public class ScanCsvImporter {
             if (execution.getStatus() != BatchStatus.COMPLETED) {
                 throw failure(execution, progress);
             }
-            return progress.report();
+            ImportReport report = progress.report();
+            LOG.atInfo()
+                    .addKeyValue("lines", report.lines())
+                    .addKeyValue("published", report.published())
+                    .addKeyValue("rejected", report.rejected())
+                    .addKeyValue("site", site)
+                    .addKeyValue("durationMs", Duration.ofNanos(System.nanoTime() - start).toMillis())
+                    .log("scan import finished");
+            return report;
         } finally {
             oneAtATime.release();
+        }
+    }
+
+    /** Attend son tour jusqu'à {@code wait} : le dépôt de jobs ne tient pas deux exécutions simultanées. */
+    private boolean acquire() {
+        try {
+            return oneAtATime.tryAcquire(wait.toNanos(), TimeUnit.NANOSECONDS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return false;
         }
     }
 

@@ -1,12 +1,18 @@
 package fr.michael.logistics.ingestion.infrastructure.web;
 
+import fr.michael.logistics.ingestion.application.CsvStructureException;
+import fr.michael.logistics.ingestion.application.ImportBusyException;
+import fr.michael.logistics.ingestion.application.ImportInterruptedException;
 import fr.michael.logistics.ingestion.application.ScanPublicationException;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import tools.jackson.core.JacksonException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.ErrorResponseException;
@@ -19,6 +25,40 @@ class ApiExceptionHandler {
     @ExceptionHandler(ScanPublicationException.class)
     ProblemDetail publicationFailed(ScanPublicationException e) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.SERVICE_UNAVAILABLE, "Scan could not be published, retry later");
+    }
+
+    /** Le fichier CSV est inutilisable ou trop long : rien n'a été publié. */
+    @ExceptionHandler(CsvStructureException.class)
+    ProblemDetail invalidCsv(CsvStructureException e) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, e.getMessage());
+    }
+
+    /** Kafka en panne en cours d'import : {@code published} lignes sont déjà parties (le réimport ne double rien). */
+    @ExceptionHandler(ImportInterruptedException.class)
+    ProblemDetail importInterrupted(ImportInterruptedException e) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.SERVICE_UNAVAILABLE,
+                "Import interrupted: Kafka is unavailable, retry later");
+        problem.setProperty("published", e.published());
+        return problem;
+    }
+
+    @ExceptionHandler(ImportBusyException.class)
+    ResponseEntity<ProblemDetail> importBusy(ImportBusyException e) {
+        long seconds = Math.max(1, e.retryAfter().toSeconds());
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .header(HttpHeaders.RETRY_AFTER, Long.toString(seconds))
+                .body(ProblemDetail.forStatusAndDetail(HttpStatus.TOO_MANY_REQUESTS,
+                        "Another import is running, retry later"));
+    }
+
+    @ExceptionHandler(MissingServletRequestPartException.class)
+    ProblemDetail missingPart(MissingServletRequestPartException e) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, e.getRequestPartName() + ": required part is missing");
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    ProblemDetail tooLarge(MaxUploadSizeExceededException e) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.CONTENT_TOO_LARGE, "The uploaded file is too large");
     }
 
     /** Garde le corps problem+json (le {@code detail} du 403 de site) et les en-têtes de l'exception. */

@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import fr.michael.logistics.ingestion.TestcontainersConfiguration;
 import fr.michael.logistics.ingestion.application.CsvStructureException;
+import fr.michael.logistics.ingestion.application.ImportBusyException;
 import fr.michael.logistics.ingestion.application.ImportInterruptedException;
 import fr.michael.logistics.ingestion.application.ImportReport;
 import fr.michael.logistics.ingestion.application.ScanPublicationException;
@@ -18,6 +19,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.IntStream;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -200,6 +204,59 @@ class ScanCsvImporterTest {
                 .hasRootCauseInstanceOf(ScanPublicationException.class);
         assertThat(publisher.batches).hasSize(2);
         assertThat(publisher.batches.get(0)).hasSize(500);
+    }
+
+    @Test
+    void aSecondSimultaneousImportWaitsItsTurnThenIsRefusedWithRetryAfter() throws Exception {
+        BlockingPublisher publisher = new BlockingPublisher();
+        ScanCsvImporter local = new ScanCsvImporter(jobRepository, jobOperator, publisher, Duration.ofMillis(300), 10_000);
+        String csv = HEADER + "\nW-1,PICKED_UP," + SITE + ",2026-11-07T08:00:00Z,,\n";
+        CompletableFuture<ImportReport> first = CompletableFuture.supplyAsync(() -> local.importCsv(bytes(csv), SITE));
+        assertThat(publisher.entered.await(10, TimeUnit.SECONDS)).isTrue();
+
+        assertThatThrownBy(() -> local.importCsv(bytes(csv), SITE))
+                .isInstanceOfSatisfying(ImportBusyException.class,
+                        e -> assertThat(e.retryAfter()).isEqualTo(Duration.ofMillis(300)));
+
+        publisher.release.countDown();
+        assertThat(first.get(10, TimeUnit.SECONDS).published()).isEqualTo(1);
+    }
+
+    @Test
+    void aSecondSimultaneousImportRunsOnceTheFirstIsDoneWithinTheWait() throws Exception {
+        BlockingPublisher publisher = new BlockingPublisher();
+        ScanCsvImporter local = new ScanCsvImporter(jobRepository, jobOperator, publisher, Duration.ofSeconds(20), 10_000);
+        String csv = HEADER + "\nW-2,PICKED_UP," + SITE + ",2026-11-07T08:00:00Z,,\n";
+        CompletableFuture<ImportReport> first = CompletableFuture.supplyAsync(() -> local.importCsv(bytes(csv), SITE));
+        assertThat(publisher.entered.await(10, TimeUnit.SECONDS)).isTrue();
+        CompletableFuture<ImportReport> second = CompletableFuture.supplyAsync(() -> local.importCsv(bytes(csv), SITE));
+
+        publisher.release.countDown();
+
+        assertThat(first.get(10, TimeUnit.SECONDS).published()).isEqualTo(1);
+        assertThat(second.get(10, TimeUnit.SECONDS).published()).isEqualTo(1);
+    }
+
+    /** Publieur qui bloque le premier lot jusqu'à {@code release}. */
+    static final class BlockingPublisher implements ScanPublisher {
+
+        final CountDownLatch entered = new CountDownLatch(1);
+        final CountDownLatch release = new CountDownLatch(1);
+
+        @Override
+        public void publish(ScanEvent event) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public void publishAll(List<ScanEvent> events) {
+            entered.countDown();
+            try {
+                release.await(10, TimeUnit.SECONDS);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }
     }
 
     /** Publieur de test : accuse les lots jusqu'au {@code failingCall}-ième, qui échoue. */
