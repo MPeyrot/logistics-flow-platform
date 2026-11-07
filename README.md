@@ -123,7 +123,7 @@ curl -H "Authorization: Bearer $SCANNER" -F file=@scans.csv localhost:8081/api/s
 - Sans `eventId` dans la ligne, il est déterministe (UUID calculé sur `shipmentReference|type|site|occurredAt`) : réimporter le même fichier ne crée pas de doublon côté `shipment-service`.
 - 400 `problem+json` et rien de publié : partie `file` absente, erreur de structure (fichier vide, en-tête, colonne inconnue ou manquante, encodage), plus de 10 000 lignes de données. 413 : fichier de plus de 2 Mo. 503 avec `published` : Kafka en panne en cours d'import (réimporter le fichier). 429 + `Retry-After` : un autre import tourne depuis plus de 30 s.
 - Réglages : `ingestion.import.max-lines` (10 000), `ingestion.import.wait` (30 s, attente d'un import en cours), `spring.servlet.multipart.max-file-size` et `max-request-size` (2 MB). Un seul import à la fois par instance.
-- Journal : une ligne INFO `scan import finished` (`lines`, `published`, `rejected`, `site`, `durationMs`), jamais le contenu des lignes.
+- Journal : une ligne `scan import finished` par import lancé (`outcome` = `completed`, `interrupted` pour une publication en panne ou `failed` ; INFO si réussi, WARN sinon ; `lines`, `published`, `rejected`, `site`, `durationMs`), jamais le contenu des lignes. Un import refusé avant de tourner (structure, 429) n'en écrit pas.
 
 Accès aux routes de `shipment-service` (sans jeton : 401 ; rôle non permis : 403) :
 

@@ -33,6 +33,7 @@ import org.springframework.batch.infrastructure.item.file.FlatFileItemReader;
 import org.springframework.batch.infrastructure.item.file.LineMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.event.Level;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ByteArrayResource;
@@ -98,8 +99,9 @@ public class ScanCsvImporter implements ScanImport {
             throw new ImportBusyException(wait);
         }
         long start = System.nanoTime();
+        ImportProgress progress = new ImportProgress();
+        String outcome = "failed";
         try {
-            ImportProgress progress = new ImportProgress();
             Job job = new JobBuilder("scanCsvImport", jobRepository)
                     .start(step(file, site, progress))
                     .build();
@@ -108,20 +110,30 @@ public class ScanCsvImporter implements ScanImport {
                     .toJobParameters();
             JobExecution execution = run(job, parameters);
             if (execution.getStatus() != BatchStatus.COMPLETED) {
-                throw failure(execution, progress);
+                RuntimeException failure = failure(execution, progress);
+                if (failure instanceof ImportInterruptedException) {
+                    outcome = "interrupted";
+                }
+                throw failure;
             }
-            ImportReport report = progress.report();
-            LOG.atInfo()
-                    .addKeyValue("lines", report.lines())
-                    .addKeyValue("published", report.published())
-                    .addKeyValue("rejected", report.rejected())
-                    .addKeyValue("site", site)
-                    .addKeyValue("durationMs", Duration.ofNanos(System.nanoTime() - start).toMillis())
-                    .log("scan import finished");
-            return report;
+            outcome = "completed";
+            return progress.report();
         } finally {
+            logFinished(progress.report(), site, outcome, start);
             oneAtATime.release();
         }
+    }
+
+    /** Une ligne par import lancé, réussi ou non ; jamais le contenu des lignes. */
+    private static void logFinished(ImportReport report, String site, String outcome, long start) {
+        LOG.atLevel("completed".equals(outcome) ? Level.INFO : Level.WARN)
+                .addKeyValue("outcome", outcome)
+                .addKeyValue("lines", report.lines())
+                .addKeyValue("published", report.published())
+                .addKeyValue("rejected", report.rejected())
+                .addKeyValue("site", site)
+                .addKeyValue("durationMs", Duration.ofNanos(System.nanoTime() - start).toMillis())
+                .log("scan import finished");
     }
 
     /** Attend son tour jusqu'à {@code wait} : le dépôt de jobs ne tient pas deux exécutions simultanées. */
