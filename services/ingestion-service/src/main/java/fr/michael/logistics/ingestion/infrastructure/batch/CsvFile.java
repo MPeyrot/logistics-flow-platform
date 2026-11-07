@@ -5,6 +5,7 @@ import java.nio.ByteBuffer;
 import java.nio.charset.CharacterCodingException;
 import java.nio.charset.CodingErrorAction;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -28,7 +29,7 @@ record CsvFile(String text, List<String> columns) {
         if (text.isBlank()) {
             throw new CsvStructureException("The file is empty");
         }
-        String header = text.lines().findFirst().orElse("");
+        String header = records(text).get(0);
         if (header.isBlank()) {
             throw new CsvStructureException("The header line is missing");
         }
@@ -50,9 +51,33 @@ record CsvFile(String text, List<String> columns) {
         return new CsvFile(text, columns);
     }
 
-    /** Lignes de données non vides (hors en-tête). */
+    /** Enregistrements de données non vides (hors en-tête) : un champ entre guillemets sur plusieurs lignes compte un. */
     long dataLines() {
-        return text.lines().skip(1).filter(line -> !line.isBlank()).count();
+        return records(text).stream().skip(1).filter(record -> !record.isBlank()).count();
+    }
+
+    /**
+     * Enregistrements RFC 4180 : lignes physiques recollées (par {@code \n}) tant qu'un guillemet reste ouvert, comme
+     * le fait le lecteur avec {@link QuotedRecordSeparatorPolicy}.
+     */
+    private static List<String> records(String text) {
+        List<String> records = new ArrayList<>();
+        StringBuilder current = null;
+        for (String line : text.lines().toList()) {
+            if (current == null) {
+                current = new StringBuilder(line);
+            } else {
+                current.append('\n').append(line);
+            }
+            if (QuotedRecordSeparatorPolicy.isComplete(current.toString())) {
+                records.add(current.toString());
+                current = null;
+            }
+        }
+        if (current != null) {
+            throw new CsvStructureException("A quoted field is not closed");
+        }
+        return records;
     }
 
     private static List<String> columns(String header) {

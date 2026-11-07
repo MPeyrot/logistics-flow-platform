@@ -150,6 +150,7 @@ public class ScanCsvImporter implements ScanImport {
                 new ByteArrayResource(file.text().getBytes(StandardCharsets.UTF_8)), lineMapper(tokenizer, file));
         reader.setLinesToSkip(1);
         reader.setComments(new String[0]); // une référence peut commencer par '#'
+        reader.setRecordSeparatorPolicy(new QuotedRecordSeparatorPolicy());
         reader.setName("scanCsvReader");
         ItemWriter<ScanEvent> writer = chunk -> {
             List<ScanEvent> events = List.copyOf(chunk.getItems());
@@ -167,9 +168,10 @@ public class ScanCsvImporter implements ScanImport {
                 .build();
     }
 
-    /** Numéro de ligne physique en-tête compris ; une ligne vide donne une sentinelle, le processeur l'écarte. */
+    /** Numéro de la première ligne physique de l'enregistrement, en-tête compris ; une ligne vide donne une sentinelle, le processeur l'écarte. */
     private static LineMapper<ScanRow> lineMapper(DelimitedLineTokenizer tokenizer, CsvFile file) {
-        return (line, lineNumber) -> {
+        return (line, lastLine) -> {
+            int lineNumber = lastLine - (int) line.chars().filter(c -> c == '\n').count();
             if (line.isBlank()) {
                 return new ScanRow(lineNumber, Map.of(), null);
             }

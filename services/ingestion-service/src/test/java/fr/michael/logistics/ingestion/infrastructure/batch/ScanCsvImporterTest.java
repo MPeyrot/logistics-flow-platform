@@ -129,6 +129,48 @@ class ScanCsvImporterTest {
     }
 
     @Test
+    void acceptsAQuotedFieldSpanningLinesAndNumbersErrorsFromTheRecordsFirstLine() {
+        String ref = "IMP-" + UUID.randomUUID();
+        String csv = HEADER + "\r\n"                                                          // 1
+                + ref + ",PICKED_UP," + SITE + ",2026-11-07T08:00:00Z,,\r\n"                    // 2
+                + ref + ",OUT_FOR_DELIVERY," + SITE + ",2026-11-07T08:30:00Z,,\r\n"             // 3
+                + ref + ",DELIVERY_FAILED," + SITE + ",2026-11-07T09:00:00Z,,\"Absent,\r\n"     // 4-5
+                + "porte \"\"close\"\"\"\r\n"
+                + ref + ",TELEPORTED," + SITE + ",2026-11-07T10:00:00Z,,\r\n";                 // 6
+
+        ImportReport report = importer.importCsv(bytes(csv), SITE);
+
+        assertThat(report.lines()).isEqualTo(4);
+        assertThat(report.published()).isEqualTo(3);
+        assertThat(report.errors()).extracting(ImportReport.ImportError::line).containsExactly(6);
+        List<JsonNode> messages = read(ref, 3);
+        assertThat(messages.get(2).get("reason").asString()).isEqualTo("Absent,\nporte \"close\"");
+    }
+
+    @Test
+    void countsRecordsNotPhysicalLinesAgainstTheCap() {
+        ScanCsvImporter local = new ScanCsvImporter(jobRepository, jobOperator,
+                new RecordingPublisher(Integer.MAX_VALUE), Duration.ofSeconds(1), 2);
+        String csv = HEADER + "\n"
+                + "A,DELIVERY_FAILED," + SITE + ",2026-11-07T08:00:00Z,,\"x\ny\ny\"\n"
+                + "B,PICKED_UP," + SITE + ",2026-11-07T08:00:00Z,,\n";
+
+        assertThat(local.importCsv(bytes(csv), SITE).lines()).isEqualTo(2);
+    }
+
+    @Test
+    void rejectsAnUnterminatedQuotedFieldBeforePublishingAnything() {
+        RecordingPublisher publisher = new RecordingPublisher(Integer.MAX_VALUE);
+        ScanCsvImporter local = new ScanCsvImporter(jobRepository, jobOperator, publisher);
+        String csv = HEADER + "\nA,PICKED_UP," + SITE + ",2026-11-07T08:00:00Z,,\"never closed\nB,PICKED_UP\n";
+
+        assertThatThrownBy(() -> local.importCsv(bytes(csv), SITE))
+                .isInstanceOf(CsvStructureException.class)
+                .hasMessage("A quoted field is not closed");
+        assertThat(publisher.batches).isEmpty();
+    }
+
+    @Test
     void skipsInvalidRowsAndReportsThemWithTheirPhysicalLineNumber() {
         String ref = "IMP-" + UUID.randomUUID();
         String csv = HEADER + "\n"
