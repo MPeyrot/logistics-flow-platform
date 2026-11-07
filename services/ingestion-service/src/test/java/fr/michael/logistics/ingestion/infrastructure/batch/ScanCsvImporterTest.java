@@ -216,6 +216,17 @@ class ScanCsvImporterTest {
     }
 
     @Test
+    void aClosedQuotedFieldOfAMillionNewlinesIsReadInBoundedTime() {
+        String csv = HEADER + "\nA,DELIVERY_FAILED," + SITE + ",2026-11-07T08:00:00Z,,\"x" + "\n".repeat(1_000_000) + "\"\n";
+
+        ImportReport report = org.junit.jupiter.api.Assertions.assertTimeoutPreemptively(Duration.ofSeconds(20),
+                () -> importer.importCsv(bytes(csv), SITE));
+
+        assertThat(report.lines()).isEqualTo(1);
+        assertThat(report.published()).isZero();
+    }
+
+    @Test
     void skipsInvalidRowsAndReportsThemWithTheirPhysicalLineNumber() {
         String ref = "IMP-" + UUID.randomUUID();
         String csv = HEADER + "\n"

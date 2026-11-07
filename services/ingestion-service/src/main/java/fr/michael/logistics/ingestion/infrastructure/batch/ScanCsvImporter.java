@@ -11,8 +11,8 @@ import fr.michael.logistics.ingestion.application.ScanPublisher;
 import fr.michael.logistics.ingestion.domain.ScanEvent;
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;
-import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -29,15 +29,13 @@ import org.springframework.batch.core.launch.JobOperator;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.step.Step;
 import org.springframework.batch.core.step.builder.StepBuilder;
+import org.springframework.batch.infrastructure.item.ItemReader;
 import org.springframework.batch.infrastructure.item.ItemWriter;
-import org.springframework.batch.infrastructure.item.file.FlatFileItemReader;
-import org.springframework.batch.infrastructure.item.file.LineMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.event.Level;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.io.ByteArrayResource;
 import org.springframework.stereotype.Component;
 
 /**
@@ -156,13 +154,9 @@ public class ScanCsvImporter implements ScanImport {
     }
 
     private Step step(CsvFile file, String site, ImportProgress progress) {
-        // le nombre de colonnes est contrôlé par le LineMapper, avec un message lisible
-        FlatFileItemReader<ScanRow> reader = new FlatFileItemReader<>(
-                new ByteArrayResource(file.text().getBytes(StandardCharsets.UTF_8)), lineMapper(file));
-        reader.setLinesToSkip(1);
-        reader.setComments(new String[0]); // une référence peut commencer par '#'
-        reader.setRecordSeparatorPolicy(new QuotedRecordSeparatorPolicy());
-        reader.setName("scanCsvReader");
+        // le nombre de colonnes est contrôlé ici, avec un message lisible
+        Iterator<CsvFile.Record> records = file.dataRecords();
+        ItemReader<ScanRow> reader = () -> records.hasNext() ? scanRow(records.next(), file) : null;
         ItemWriter<ScanEvent> writer = chunk -> {
             List<ScanEvent> events = List.copyOf(chunk.getItems());
             publisher.publishAll(events);
@@ -179,24 +173,18 @@ public class ScanCsvImporter implements ScanImport {
                 .build();
     }
 
-    /** Numéro de la première ligne physique de l'enregistrement, en-tête compris ; une ligne vide donne une sentinelle, le processeur l'écarte. */
-    private static LineMapper<ScanRow> lineMapper(CsvFile file) {
-        return (line, lastLine) -> {
-            int lineNumber = lastLine - (int) line.chars().filter(c -> c == '\n').count();
-            if (line.isBlank()) {
-                return new ScanRow(lineNumber, Map.of(), null);
-            }
-            List<String> cells = CsvCells.split(line);
-            if (cells.size() != file.columns().size()) {
-                return new ScanRow(lineNumber, Map.of(),
-                        "line: expected " + file.columns().size() + " columns, found " + cells.size());
-            }
-            Map<String, String> values = new HashMap<>();
-            for (int i = 0; i < cells.size(); i++) {
-                values.put(file.columns().get(i), cells.get(i));
-            }
-            return new ScanRow(lineNumber, values, null);
-        };
+    /** Ligne lue ; le numéro est celui de la première ligne physique de l'enregistrement, en-tête compris. */
+    private static ScanRow scanRow(CsvFile.Record record, CsvFile file) {
+        List<String> cells = CsvCells.split(record.text());
+        if (cells.size() != file.columns().size()) {
+            return new ScanRow(record.line(), Map.of(),
+                    "line: expected " + file.columns().size() + " columns, found " + cells.size());
+        }
+        Map<String, String> values = new HashMap<>();
+        for (int i = 0; i < cells.size(); i++) {
+            values.put(file.columns().get(i), cells.get(i));
+        }
+        return new ScanRow(record.line(), values, null);
     }
 
     private static RuntimeException failure(JobExecution execution, ImportProgress progress) {
