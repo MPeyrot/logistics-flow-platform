@@ -23,7 +23,7 @@ flowchart LR
 
 | Dossier | Rôle |
 | --- | --- |
-| `services/ingestion-service` | Reçoit les scans en HTTP, les valide, les publie sur Kafka (accusé du broker attendu avant le `202`). |
+| `services/ingestion-service` | Reçoit les scans en HTTP, les valide, les publie sur Kafka (accusé du broker attendu avant le `202`). Import CSV synchrone (`POST /api/scans/imports`, voir ci-dessous). |
 | `services/shipment-service` | API des expéditions. Consomme les scans, applique les transitions de statut, garde l'historique. Relaie les bons de livraison à `ai-service` et retrouve l'expédition correspondante. |
 | `services/ai-service` | Extrait les données d'un bon de livraison (PDF ou image) avec l'API Claude : JSON validé, jetons et coût de chaque requête. |
 | `contracts/` | Schéma JSON versionné des messages Kafka. Pas de bibliothèque partagée entre services. |
@@ -109,7 +109,22 @@ curl -H "Authorization: Bearer $OPERATOR" -F file=@bon.pdf localhost:8080/api/de
 #    les plus récemment détectées d'abord ; open invalide : 400.
 curl -H "Authorization: Bearer $OPERATOR" 'localhost:8080/api/anomalies?open=true'
 #    les anomalies ouvertes d'une expédition sont aussi dans openAnomalies de GET /api/shipments
+
+# 9. importer un fichier CSV de scans (SCANNER seulement, chaque ligne du site du compte)
+curl -H "Authorization: Bearer $SCANNER" -F file=@scans.csv localhost:8081/api/scans/imports
 ```
+
+#### Import CSV (ingestion-service)
+
+`POST /api/scans/imports`, `multipart/form-data`, partie `file`, synchrone : la réponse arrive quand tout est publié. SCANNER seulement (sans jeton : 401 ; OPERATOR, ADMIN : 403), et chaque ligne doit être du site du jeton.
+
+- CSV UTF-8 (BOM, CRLF acceptés), guillemets RFC 4180 (un champ entre guillemets peut contenir une virgule, un guillemet doublé ou un saut de ligne ; le plafond et les numéros de ligne des erreurs comptent des enregistrements, la ligne d'une erreur étant la première de l'enregistrement ; un guillemet jamais fermé : 400 ; seul un guillemet qui ouvre une cellule commence un champ entre guillemets, un guillemet au milieu d'une cellule non guillemetée est un caractère ordinaire), une ligne commençant par `#` est une ligne comme une autre, les blancs autour d'une cellule hors guillemets sont rognés (ceux d'une cellule entre guillemets sont gardés), et tout blanc avant un guillemet ouvrant est sauté, en-tête obligatoire, colonnes dans n'importe quel ordre : `shipmentReference`, `type`, `site`, `occurredAt` (obligatoires), `eventId` et `reason` (facultatives). Même validation que `POST /api/scans`.
+- Réponse 200, même si toutes les lignes sont rejetées : `{"lines","published","rejected","errors":[{"line","detail"}]}` (`line` : numéro de ligne du fichier, en-tête = 1 ; 100 erreurs détaillées au plus, `rejected` est le total exact).
+- Sans `eventId` dans la ligne, il est déterministe (UUID calculé sur `shipmentReference|type|site|occurredAt`) : réimporter le même fichier ne crée pas de doublon côté `shipment-service`.
+- 503 sans `published` : instance en arrêt pendant l'attente du tour (rien n'est parti).
+- 400 `problem+json` et rien de publié : partie `file` absente, erreur de structure (fichier vide, en-tête, colonne inconnue ou manquante, encodage), plus de 10 000 lignes de données. 413 : fichier de plus de 2 Mo. 503 avec `published` : Kafka en panne en cours d'import (réimporter le fichier). 429 + `Retry-After` : un autre import tourne depuis plus de 30 s.
+- Réglages : `ingestion.import.max-lines` (10 000), `ingestion.import.wait` (30 s, attente d'un import en cours), `spring.servlet.multipart.max-file-size` et `max-request-size` (2 MB). Un seul import à la fois par instance.
+- Journal : une ligne `scan import finished` par import lancé (`outcome` = `completed`, `interrupted` pour une publication en panne ou `failed` ; INFO si réussi, WARN sinon ; `lines`, `published`, `rejected`, `site`, `durationMs`), jamais le contenu des lignes. Un import refusé avant de tourner (structure, 429) n'en écrit pas.
 
 Accès aux routes de `shipment-service` (sans jeton : 401 ; rôle non permis : 403) :
 

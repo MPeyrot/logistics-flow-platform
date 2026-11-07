@@ -44,6 +44,13 @@ call() {
   fi
 }
 
+# call_upload URL TOKEN FICHIER : envoie FICHIER en multipart (partie « file »), comme call.
+call_upload() {
+  STATUS="$(curl -sS --max-time 60 -o "$BODY_FILE" -w '%{http_code}' -X POST \
+    -H @<(printf 'Authorization: Bearer %s\n' "$2") -F "file=@$3;type=text/csv" "$1")" \
+    || fail "POST $1 injoignable"
+}
+
 # Affiche statut et corps reçus, sans jamais laisser passer un jeton.
 fail_response() {
   echo "ECHEC : $1" >&2
@@ -105,7 +112,18 @@ call POST "$INGESTION_URL/api/scans" "$SCANNER_TOKEN" \
     '{shipmentReference:$r,type:"PICKED_UP",site:$s,occurredAt:$t}')"
 case "$STATUS" in 2??) echo "OK  Scan accepté ($STATUS)" ;; *) fail_response "Scan refusé par ingestion-service" ;; esac
 
-step "6. Attente du passage en IN_TRANSIT (jusqu'à ${SMOKE_TIMEOUT} s, par Kafka)"
+step "6. Import CSV de 2 lignes par ingestion-service (SCANNER) : une valide, une invalide"
+IMPORT_FILE="$(mktemp)"
+printf 'shipmentReference,type,site,occurredAt\n%s,ARRIVED_AT_SITE,%s,%s\n%s,NOT_A_TYPE,%s,%s\n' \
+  "$REFERENCE" "$SITE" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$REFERENCE" "$SITE" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >"$IMPORT_FILE"
+call_upload "$INGESTION_URL/api/scans/imports" "$SCANNER_TOKEN" "$IMPORT_FILE"
+rm -f "$IMPORT_FILE"
+expect 200 "Import CSV accepté"
+[ "$(jq -r '.published' "$BODY_FILE")" = "1" ] || fail_response "published = 1 attendu"
+[ "$(jq -r '.rejected' "$BODY_FILE")" = "1" ] || fail_response "rejected = 1 attendu"
+echo "OK  Import : 1 ligne publiée, 1 rejetée"
+
+step "7. Attente du passage en IN_TRANSIT (jusqu'à ${SMOKE_TIMEOUT} s, par Kafka)"
 deadline=$((SECONDS + SMOKE_TIMEOUT))
 current=""
 while :; do
@@ -119,7 +137,7 @@ while :; do
   sleep "$SMOKE_POLL"
 done
 
-step "7. ai-service : santé et refus sans jeton (aucune extraction réelle)"
+step "8. ai-service : santé et refus sans jeton (aucune extraction réelle)"
 call GET "$AI_URL/actuator/health"
 expect 200 "ai-service /actuator/health répond"
 [ "$(jq -r '.status' "$BODY_FILE")" = "UP" ] || fail_response "ai-service n'est pas UP"

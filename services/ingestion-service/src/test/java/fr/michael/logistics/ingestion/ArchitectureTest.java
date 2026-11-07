@@ -32,6 +32,12 @@ class ArchitectureTest {
             .because("l'application passe par des ports, jamais par un adaptateur");
 
     @ArchTest
+    static final ArchRule batchStaysInItsPackage = noClasses()
+            .that().resideOutsideOfPackage("..ingestion.infrastructure.batch..")
+            .should().dependOnClassesThat().resideInAPackage("org.springframework.batch..")
+            .because("Spring Batch reste dans infrastructure/batch : domain et application l'ignorent");
+
+    @ArchTest
     static final ArchRule applicationIgnoresPersistenceAndWeb = noClasses().that().resideInAPackage(APPLICATION)
             .should().dependOnClassesThat().resideInAnyPackage("jakarta.persistence..", "org.springframework.web..", "org.springframework.kafka..", "org.apache.kafka..", "org.springframework.security..")
             .because("ni JPA, ni HTTP, ni Kafka, ni Spring Security dans les cas d'usage");

@@ -19,7 +19,21 @@ class IngestScanServiceTest {
 
     private final List<ScanEvent> published = new ArrayList<>();
     private final IngestScanService service =
-            new IngestScanService(published::add, Clock.fixed(NOW, ZoneOffset.UTC));
+            new IngestScanService(publisher(), Clock.fixed(NOW, ZoneOffset.UTC));
+
+    private ScanPublisher publisher() {
+        return new ScanPublisher() {
+            @Override
+            public void publish(ScanEvent event) {
+                published.add(event);
+            }
+
+            @Override
+            public void publishAll(List<ScanEvent> events) {
+                published.addAll(events);
+            }
+        };
+    }
 
     @Test
     void generatesEventIdAndTimestampWhenAbsent() {
