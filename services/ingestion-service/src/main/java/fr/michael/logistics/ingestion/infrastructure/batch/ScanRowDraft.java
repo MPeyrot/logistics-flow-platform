@@ -16,9 +16,9 @@ import java.util.UUID;
  */
 record ScanRowDraft(
         UUID eventId,
-        @NotBlank @Size(max = 50) String shipmentReference,
+        @NotBlank @Pattern(regexp = ScanEvent.NOT_BLANK_REGEX, message = "must not be blank") @Size(max = 50) String shipmentReference,
         @NotNull ScanType type,
-        @NotBlank @Size(max = 100) String site,
+        @NotBlank @Pattern(regexp = ScanEvent.NOT_BLANK_REGEX, message = "must not be blank") @Size(max = 100) String site,
         @NotNull Instant occurredAt,
         @Pattern(regexp = ScanEvent.NOT_BLANK_REGEX, message = "must not be blank") String reason) {
 

@@ -86,7 +86,12 @@ class ScanRowProcessor implements ItemProcessor<ScanRow, ScanEvent> {
         UUID id = draft.eventId() != null
                 ? draft.eventId()
                 : DeterministicEventId.of(draft.shipmentReference(), type, draft.site(), occurredAt);
-        return new ScanEvent(id, draft.shipmentReference(), type, draft.site(), occurredAt, draft.reason());
+        try {
+            return new ScanEvent(id, draft.shipmentReference(), type, draft.site(), occurredAt, draft.reason());
+        } catch (IllegalArgumentException e) {
+            // filet : une règle du domaine que la validation ne couvrirait pas rejette la ligne, pas le job
+            throw new RowRejected(row.line(), e.getMessage());
+        }
     }
 
     /** Cellule absente ou vide : {@code null}. */

@@ -3,6 +3,7 @@ package fr.michael.logistics.ingestion.infrastructure.batch;
 import fr.michael.logistics.ingestion.application.CsvStructureException;
 import fr.michael.logistics.ingestion.application.ImportAbortedException;
 import fr.michael.logistics.ingestion.application.ImportBusyException;
+import fr.michael.logistics.ingestion.application.ImportFailedException;
 import fr.michael.logistics.ingestion.application.ImportInterruptedException;
 import fr.michael.logistics.ingestion.application.ImportReport;
 import fr.michael.logistics.ingestion.application.ScanPublicationException;
@@ -196,6 +197,6 @@ public class ScanCsvImporter implements ScanImport {
             }
         }
         Throwable first = execution.getAllFailureExceptions().stream().findFirst().orElse(null);
-        return new IllegalStateException("The import job ended with status " + execution.getStatus(), first);
+        return new ImportFailedException(progress.published(), first);
     }
 }

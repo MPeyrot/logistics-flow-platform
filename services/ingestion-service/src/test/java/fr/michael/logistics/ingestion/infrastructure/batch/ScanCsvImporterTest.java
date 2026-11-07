@@ -7,6 +7,7 @@ import fr.michael.logistics.ingestion.TestcontainersConfiguration;
 import fr.michael.logistics.ingestion.application.CsvStructureException;
 import fr.michael.logistics.ingestion.application.ImportAbortedException;
 import fr.michael.logistics.ingestion.application.ImportBusyException;
+import fr.michael.logistics.ingestion.application.ImportFailedException;
 import fr.michael.logistics.ingestion.application.ImportInterruptedException;
 import fr.michael.logistics.ingestion.application.ImportReport;
 import fr.michael.logistics.ingestion.application.ScanPublicationException;
@@ -329,6 +330,48 @@ class ScanCsvImporterTest {
                 .hasRootCauseInstanceOf(ScanPublicationException.class);
         assertThat(publisher.batches).hasSize(2);
         assertThat(publisher.batches.get(0)).hasSize(500);
+    }
+
+    @Test
+    void aReferenceOrSiteMadeOfNonBreakingSpacesIsARejectedRowNotAFailedJob() {
+        String ref = "IMP-" + UUID.randomUUID();
+        String csv = HEADER + "\n"
+                + "\u00A0\u2003,PICKED_UP," + SITE + ",2026-11-07T08:00:00Z,,\n"
+                + ref + ",PICKED_UP,\u00A0,2026-11-07T08:00:00Z,,\n"
+                + ref + ",PICKED_UP," + SITE + ",2026-11-07T08:00:00Z,,\n";
+
+        ImportReport report = importer.importCsv(bytes(csv), SITE);
+
+        assertThat(report.published()).isEqualTo(1);
+        assertThat(report.errors()).extracting(ImportReport.ImportError::line).containsExactly(2, 3);
+        assertThat(report.errors()).extracting(ImportReport.ImportError::detail).containsExactly(
+                "shipmentReference: must not be blank", "site: must not be blank");
+    }
+
+    @Test
+    void anUnexpectedFailureAfterAPartialPublicationCarriesThePublishedCount() {
+        ScanPublisher failing = new ScanPublisher() {
+            int calls;
+
+            @Override
+            public void publish(ScanEvent event) {
+                throw new UnsupportedOperationException();
+            }
+
+            @Override
+            public void publishAll(List<ScanEvent> events) {
+                if (++calls == 2) {
+                    throw new IllegalStateException("bug");
+                }
+            }
+        };
+        ScanCsvImporter local = new ScanCsvImporter(jobRepository, jobOperator, failing);
+        StringBuilder csv = new StringBuilder(HEADER).append('\n');
+        IntStream.range(0, 1200).forEach(i -> csv.append("R-").append(i).append(",PICKED_UP,").append(SITE)
+                .append(",2026-11-07T08:00:00Z,,\n"));
+
+        assertThatThrownBy(() -> local.importCsv(bytes(csv.toString()), SITE))
+                .isInstanceOfSatisfying(ImportFailedException.class, e -> assertThat(e.published()).isEqualTo(500));
     }
 
     @Test

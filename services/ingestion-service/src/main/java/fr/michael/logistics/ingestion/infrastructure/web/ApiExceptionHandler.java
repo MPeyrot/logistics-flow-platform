@@ -3,6 +3,7 @@ package fr.michael.logistics.ingestion.infrastructure.web;
 import fr.michael.logistics.ingestion.application.CsvStructureException;
 import fr.michael.logistics.ingestion.application.ImportAbortedException;
 import fr.michael.logistics.ingestion.application.ImportBusyException;
+import fr.michael.logistics.ingestion.application.ImportFailedException;
 import fr.michael.logistics.ingestion.application.ImportInterruptedException;
 import fr.michael.logistics.ingestion.application.ScanPublicationException;
 import java.util.Objects;
@@ -16,6 +17,8 @@ import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.multipart.MultipartException;
 import org.springframework.web.multipart.support.MissingServletRequestPartException;
 import org.springframework.http.ProblemDetail;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.ErrorResponseException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -23,6 +26,8 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 @RestControllerAdvice
 class ApiExceptionHandler {
+
+    private static final Logger LOG = LoggerFactory.getLogger(ApiExceptionHandler.class);
 
     @ExceptionHandler(ScanPublicationException.class)
     ProblemDetail publicationFailed(ScanPublicationException e) {
@@ -40,6 +45,16 @@ class ApiExceptionHandler {
     ProblemDetail importInterrupted(ImportInterruptedException e) {
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.SERVICE_UNAVAILABLE,
                 "Import interrupted: Kafka is unavailable, retry later");
+        problem.setProperty("published", e.published());
+        return problem;
+    }
+
+    /** Échec imprévu du job d'import : {@code published} lignes sont déjà parties, le réimport ne double rien. */
+    @ExceptionHandler(ImportFailedException.class)
+    ProblemDetail importFailed(ImportFailedException e) {
+        LOG.error("scan import failed", e);
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.INTERNAL_SERVER_ERROR,
+                "Import failed unexpectedly");
         problem.setProperty("published", e.published());
         return problem;
     }

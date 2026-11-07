@@ -11,6 +11,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import fr.michael.logistics.ingestion.TestcontainersConfiguration;
 import fr.michael.logistics.ingestion.application.ImportBusyException;
+import fr.michael.logistics.ingestion.application.ImportFailedException;
 import fr.michael.logistics.ingestion.application.ImportInterruptedException;
 import fr.michael.logistics.ingestion.application.ScanPublicationException;
 import fr.michael.logistics.ingestion.infrastructure.batch.ScanCsvImporter;
@@ -44,6 +45,17 @@ class ScanImportErrorsTest {
 
     @MockitoBean
     ScanCsvImporter importer;
+
+    @Test
+    void anUnexpectedJobFailureIsAnInternalErrorThatStillCarriesThePublishedCount() throws Exception {
+        when(importer.importCsv(any(), eq("Nantes")))
+                .thenThrow(new ImportFailedException(500, new IllegalStateException("bug")));
+
+        mvc.perform(upload(CSV, TestJwt.scanner("Nantes").build()))
+                .andExpect(status().isInternalServerError())
+                .andExpect(content().contentTypeCompatibleWith("application/problem+json"))
+                .andExpect(jsonPath("$.published").value(500));
+    }
 
     @Test
     void kafkaOutageIsServiceUnavailableWithThePublishedCount() throws Exception {
