@@ -33,3 +33,43 @@ Chemins relatifs à `services/ingestion-service/src/main/java/fr/michael/logisti
 ### A5 (point 6, faible) — interruption pendant l'attente du sémaphore
 - `ScanCsvImporter.java` l. 116-121 : un thread interrompu pendant l'attente devient `ImportBusyException` (429 + `Retry-After`) alors que l'instance s'arrête.
 - Attendu : 503 (`ImportInterruptedException` ou exception dédiée), flag d'interruption rétabli. Test.
+
+# Seconde revue — `5163728..HEAD` (opus / medium, 2026-11-07, après les lots A et B)
+
+Le point 8 de la revue (collision de `DeterministicEventId` par `|`) est écarté : le site vient du jeton, `type` est une énumération, `occurredAt` une date ISO ; deux lignes distinctes ne peuvent pas donner le même texte joint.
+
+## Lot C : découpage du CSV (avant le lot D)
+
+### C1 (point 2, moyen) — coût quadratique d'un guillemet jamais fermé
+- `infrastructure/batch/CsvFile.java` l. 64-74, `infrastructure/batch/QuotedRecordSeparatorPolicy.java` l. 12 : à chaque ligne physique, `records()` refait `current.toString()` et recompte tous les guillemets du tampon ; un `"` suivi d'~1 M de sauts de ligne (2 Mo) coûte un temps quadratique, avant le sémaphore et le plafond de lignes.
+- Attendu : parité des guillemets suivie ligne par ligne, sans recompter le tampon (idem dans la politique du lecteur). Test sur un tel fichier, en temps borné.
+
+### C2 (point 3, moyen) — guillemet au milieu d'une cellule non guillemetée
+- `QuotedRecordSeparatorPolicy.java` l. 11-13, `CsvFile.java` l. 70 : la parité compte tous les `"`, alors que `CsvCells` traite un `"` au milieu d'une cellule non guillemetée comme un caractère ordinaire ; `REF"7,PICKED_UP,…` colle les lignes suivantes (400 « quoted field is not closed » ou lignes fusionnées).
+- Attendu : une seule règle pour `CsvFile`, la politique et `CsvCells` (choix de l'orchestrateur : seuls comptent les guillemets d'une cellule ouverte par `"`, comme RFC 4180 ; un `"` au milieu d'une cellule non guillemetée reste un caractère ordinaire). README à jour. Test.
+
+### C3 (point 7, faible) — blancs avant un guillemet ouvrant
+- `infrastructure/batch/CsvCells.java` l. 21-24 : seul `' '` est sauté avant le guillemet ouvrant, alors que les cellules non guillemetées sont rognées par `strip()` ; `\t"Paris, Nord"` est coupé à la virgule.
+- Attendu : sauter les mêmes blancs que `strip()`. Test.
+
+### C4 (point 9, faible) — fichier découpé et copié plusieurs fois
+- `CsvFile.java` l. 30 et 54, `ScanCsvImporter.java` l. 161 : découpage en enregistrements fait deux fois (`parse`, `dataLines`), puis texte réencodé en octets pour le lecteur (~4 à 5 fois le fichier en mémoire).
+- Attendu : nombre d'enregistrements calculé une fois dans `parse()` ; le lecteur reçoit les octets d'origine sans BOM (ou le texte sans réencodage).
+
+## Lot D : rejet des lignes et publication (après le lot C)
+
+### D1 (point 1, moyen) — référence ou site fait d'espaces insécables
+- `infrastructure/batch/ScanRowProcessor.java` l. 70-89, `ScanCsvImporter.java` l. 210-211 : une `shipmentReference` en U+00A0 (ou U+2000–U+200A, U+FEFF) passe `@NotBlank`, `ScanEvent` lève `IllegalArgumentException`, non sautée : tout le job échoue, 500 sans `published` alors que des lots sont déjà publiés. Plus largement, tout échec du job autre que la publication rend ce 500.
+- Attendu : `shipmentReference` et `site` contrôlés avec le motif de blancs de `ScanEvent` (comme `reason`), et l'`IllegalArgumentException` de `ScanEvent` convertie en ligne rejetée. Un échec imprévu du job après publication partielle rend une erreur qui porte `published`. Test avec une référence en espace insécable.
+
+### D2 (point 4, moyen) — producteur Kafka sans délais bornés
+- `infrastructure/messaging/KafkaScanPublisher.java` l. 50-52 : `send` peut bloquer `max.block.ms` (60 s) et `flush()` `delivery.timeout.ms` (120 s) : le délai d'accusé de 5 s ne sert à rien, Kafka en panne garde le sémaphore plusieurs minutes.
+- Attendu (choix de l'orchestrateur, configurables dans `application.properties`, valent aussi pour `POST /api/scans`) : `max.block.ms` = 5 s, `request.timeout.ms` = 5 s, `delivery.timeout.ms` = 10 s ; ou une échéance globale sans `flush()`. Kafka en panne → 503 en ~10 s au plus par lot. `architecture.md` à jour. Test (Kafka arrêté ou injoignable, durée bornée).
+
+### D3 (point 5, faible) — toute exception présentée comme « Kafka indisponible »
+- `KafkaScanPublisher.java` l. 59 : `catch (… | RuntimeException e)` transforme une erreur de sérialisation ou un bogue en 503.
+- Attendu : seules les erreurs de transport (`KafkaException`, échec d'accusé, délai) deviennent `ScanPublicationException` ; les autres remontent.
+
+### D4 (point 6, faible) — `eventId` en forme courte
+- `ScanRowProcessor.java` l. 65 : `UUID.fromString` accepte `1-1-1-1-1`, refusé par Jackson sur `POST /api/scans`.
+- Attendu : forme canonique de 36 caractères exigée avant `fromString`. Test.
