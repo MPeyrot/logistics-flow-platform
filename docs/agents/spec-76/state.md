@@ -34,5 +34,5 @@ Revue finale (opus / medium) depuis `5163728` : faite, 7 points dans `docs/agent
 
 | Lot | Points | Statut | Branche | Commit |
 |---|---|---|---|---|
-| B | B1, B2 (structure, multipart) | en cours | ticket/76-revue-lot-b | |
-| A | A1–A5 (lecture CSV, journal) | à faire (après B) | | |
+| B | B1, B2 (structure, multipart) | fusionné | | 25ca805 |
+| A | A1–A5 (lecture CSV, journal) | en cours | ticket/76-revue-lot-a | |
