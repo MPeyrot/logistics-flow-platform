@@ -47,3 +47,6 @@ Lu par l'orchestrateur, les implémenteurs et `/preparer-spec` (skills globaux `
 - Seuls (jamais en parallèle d'un autre ticket) : changement d'un contrat de `contracts/` (producteur et consommateur à changer ensemble), migration Flyway.
 - Fichiers partagés (arête de blocage) : `contracts/*.json`, `docker-compose.yml`, `.github/workflows/ci.yml`, les `pom.xml`, `db/migration/` de `shipment-service` (réserver les numéros `V<n>__` d'avance).
 - Interdits propres au projet : jamais d'appel à la vraie API Claude (chaque appel coûte) ; `domain/` n'importe ni Spring, ni JPA, ni Kafka ; aucune bibliothèque partagée entre services.
+
+## Import CSV (ingestion-service, #78)
+- `ScanCsvImporter.importCsv(byte[], site)` (infrastructure/batch) rend un `ImportReport` ou lève `CsvStructureException` (avant toute publication), `ImportBusyException` (429 au ticket suivant), `ImportInterruptedException` (`published()`, 503). Test : un `ScanPublisher` de test qui échoue au n-ième lot, `new ScanCsvImporter(jobRepository, jobOperator, publisher)` (constructeur du paquet). Le `DelimitedLineTokenizer` de Spring Batch 6 complète les cellules manquantes quand ses noms sont posés : ne pas les poser pour compter les colonnes.
