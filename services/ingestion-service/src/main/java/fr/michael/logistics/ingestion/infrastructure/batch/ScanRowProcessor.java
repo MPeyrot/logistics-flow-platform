@@ -34,9 +34,6 @@ class ScanRowProcessor implements ItemProcessor<ScanRow, ScanEvent> {
 
     @Override
     public ScanEvent process(ScanRow row) {
-        if (row.isBlank()) {
-            return null;
-        }
         progress.lineSeen();
         if (row.structureError() != null) {
             throw new RowRejected(row.line(), row.structureError());
