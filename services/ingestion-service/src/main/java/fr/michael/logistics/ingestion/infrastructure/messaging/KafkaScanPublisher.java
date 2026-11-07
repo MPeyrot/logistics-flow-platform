@@ -9,6 +9,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import org.apache.kafka.common.KafkaException;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.support.SendResult;
 import org.springframework.stereotype.Component;
@@ -36,7 +37,7 @@ class KafkaScanPublisher implements ScanPublisher {
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new ScanPublicationException("Interrupted while publishing scan " + event.eventId(), e);
-        } catch (ExecutionException | TimeoutException e) {
+        } catch (ExecutionException | TimeoutException | KafkaException | org.springframework.kafka.KafkaException e) {
             throw new ScanPublicationException("Could not publish scan " + event.eventId(), e);
         }
     }
@@ -56,7 +57,7 @@ class KafkaScanPublisher implements ScanPublisher {
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new ScanPublicationException("Interrupted while publishing " + events.size() + " scans", e);
-        } catch (ExecutionException | TimeoutException | RuntimeException e) {
+        } catch (ExecutionException | TimeoutException | KafkaException | org.springframework.kafka.KafkaException e) {
             throw new ScanPublicationException("Could not publish " + events.size() + " scans", e);
         }
     }
