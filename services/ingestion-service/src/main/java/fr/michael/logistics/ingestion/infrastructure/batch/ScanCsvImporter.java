@@ -149,6 +149,7 @@ public class ScanCsvImporter implements ScanImport {
         FlatFileItemReader<ScanRow> reader = new FlatFileItemReader<>(
                 new ByteArrayResource(file.text().getBytes(StandardCharsets.UTF_8)), lineMapper(tokenizer, file));
         reader.setLinesToSkip(1);
+        reader.setComments(new String[0]); // une référence peut commencer par '#'
         reader.setName("scanCsvReader");
         ItemWriter<ScanEvent> writer = chunk -> {
             List<ScanEvent> events = List.copyOf(chunk.getItems());

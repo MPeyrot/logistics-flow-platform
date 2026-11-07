@@ -117,6 +117,18 @@ class ScanCsvImporterTest {
     }
 
     @Test
+    void aShipmentReferenceStartingWithHashIsARowNotAComment() {
+        String ref = "#IMP-" + UUID.randomUUID();
+        String csv = HEADER + "\n" + ref + ",PICKED_UP," + SITE + ",2026-11-07T08:00:00Z,,\n";
+
+        ImportReport report = importer.importCsv(bytes(csv), SITE);
+
+        assertThat(report.lines()).isEqualTo(1);
+        assertThat(report.published()).isEqualTo(1);
+        assertThat(read(ref, 1)).hasSize(1);
+    }
+
+    @Test
     void skipsInvalidRowsAndReportsThemWithTheirPhysicalLineNumber() {
         String ref = "IMP-" + UUID.randomUUID();
         String csv = HEADER + "\n"
