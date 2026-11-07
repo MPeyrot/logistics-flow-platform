@@ -1,6 +1,7 @@
 package fr.michael.logistics.ingestion.infrastructure.web;
 
 import fr.michael.logistics.ingestion.application.CsvStructureException;
+import fr.michael.logistics.ingestion.application.ImportAbortedException;
 import fr.michael.logistics.ingestion.application.ImportBusyException;
 import fr.michael.logistics.ingestion.application.ImportInterruptedException;
 import fr.michael.logistics.ingestion.application.ScanPublicationException;
@@ -41,6 +42,13 @@ class ApiExceptionHandler {
                 "Import interrupted: Kafka is unavailable, retry later");
         problem.setProperty("published", e.published());
         return problem;
+    }
+
+    /** Arrêt de l'instance pendant l'attente du tour : rien n'est parti, le client peut réessayer. */
+    @ExceptionHandler(ImportAbortedException.class)
+    ProblemDetail importAborted(ImportAbortedException e) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.SERVICE_UNAVAILABLE,
+                "Import aborted: the service is stopping, retry later");
     }
 
     @ExceptionHandler(ImportBusyException.class)

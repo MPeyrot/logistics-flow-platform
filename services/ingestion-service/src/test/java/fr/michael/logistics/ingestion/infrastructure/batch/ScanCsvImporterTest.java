@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import fr.michael.logistics.ingestion.TestcontainersConfiguration;
 import fr.michael.logistics.ingestion.application.CsvStructureException;
+import fr.michael.logistics.ingestion.application.ImportAbortedException;
 import fr.michael.logistics.ingestion.application.ImportBusyException;
 import fr.michael.logistics.ingestion.application.ImportInterruptedException;
 import fr.michael.logistics.ingestion.application.ImportReport;
@@ -320,6 +321,34 @@ class ScanCsvImporterTest {
 
         assertThat(first.get(10, TimeUnit.SECONDS).published()).isEqualTo(1);
         assertThat(second.get(10, TimeUnit.SECONDS).published()).isEqualTo(1);
+    }
+
+    @Test
+    void aThreadInterruptedWhileWaitingForItsTurnIsNotReportedAsBusy() throws Exception {
+        BlockingPublisher publisher = new BlockingPublisher();
+        ScanCsvImporter local = new ScanCsvImporter(jobRepository, jobOperator, publisher, Duration.ofSeconds(20), 10_000);
+        String csv = HEADER + "\nW-3,PICKED_UP," + SITE + ",2026-11-07T08:00:00Z,,\n";
+        CompletableFuture<ImportReport> first = CompletableFuture.supplyAsync(() -> local.importCsv(bytes(csv), SITE));
+        assertThat(publisher.entered.await(10, TimeUnit.SECONDS)).isTrue();
+        CompletableFuture<Boolean> second = new CompletableFuture<>();
+        Thread waiting = new Thread(() -> {
+            try {
+                local.importCsv(bytes(csv), SITE);
+                second.complete(false);
+            } catch (ImportAbortedException e) {
+                second.complete(Thread.currentThread().isInterrupted());
+            } catch (Throwable e) {
+                second.completeExceptionally(e);
+            }
+        });
+        waiting.start();
+        Thread.sleep(300);
+
+        waiting.interrupt();
+
+        assertThat(second.get(10, TimeUnit.SECONDS)).as("flag d'interruption rétabli").isTrue();
+        publisher.release.countDown();
+        assertThat(first.get(10, TimeUnit.SECONDS).published()).isEqualTo(1);
     }
 
     /** Publieur qui bloque le premier lot jusqu'à {@code release}. */

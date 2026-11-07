@@ -8,6 +8,7 @@ public interface ScanImport {
      * @param site site du SCANNER : chaque ligne doit être de ce site
      * @throws CsvStructureException avant toute publication
      * @throws ImportBusyException si un autre import tourne
+     * @throws ImportAbortedException si le thread est interrompu en attendant son tour
      * @throws ImportInterruptedException si une publication échoue (lignes déjà publiées dans l'exception)
      */
     ImportReport importCsv(byte[] content, String site);

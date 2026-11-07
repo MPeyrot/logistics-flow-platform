@@ -1,6 +1,7 @@
 package fr.michael.logistics.ingestion.infrastructure.batch;
 
 import fr.michael.logistics.ingestion.application.CsvStructureException;
+import fr.michael.logistics.ingestion.application.ImportAbortedException;
 import fr.michael.logistics.ingestion.application.ImportBusyException;
 import fr.michael.logistics.ingestion.application.ImportInterruptedException;
 import fr.michael.logistics.ingestion.application.ImportReport;
@@ -142,7 +143,7 @@ public class ScanCsvImporter implements ScanImport {
             return oneAtATime.tryAcquire(wait.toNanos(), TimeUnit.NANOSECONDS);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            return false;
+            throw new ImportAbortedException();
         }
     }
 
