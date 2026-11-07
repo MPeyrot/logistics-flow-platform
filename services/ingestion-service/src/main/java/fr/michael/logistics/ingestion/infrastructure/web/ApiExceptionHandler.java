@@ -12,6 +12,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.multipart.MultipartException;
 import org.springframework.web.multipart.support.MissingServletRequestPartException;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
@@ -54,6 +55,12 @@ class ApiExceptionHandler {
     @ExceptionHandler(MissingServletRequestPartException.class)
     ProblemDetail missingPart(MissingServletRequestPartException e) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, e.getRequestPartName() + ": required part is missing");
+    }
+
+    /** Corps JSON, vide ou multipart illisible : il n'y a pas de partie {@code file}. */
+    @ExceptionHandler(MultipartException.class)
+    ProblemDetail notMultipart(MultipartException e) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, "file: required part is missing");
     }
 
     @ExceptionHandler(MaxUploadSizeExceededException.class)

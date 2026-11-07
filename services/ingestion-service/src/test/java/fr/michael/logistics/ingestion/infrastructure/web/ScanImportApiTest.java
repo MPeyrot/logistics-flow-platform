@@ -1,6 +1,7 @@
 package fr.michael.logistics.ingestion.infrastructure.web;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -80,6 +81,17 @@ class ScanImportApiTest {
     @Test
     void missingFilePartIsABadRequestProblem() throws Exception {
         mvc.perform(multipart("/api/scans/imports")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + TestJwt.scanner("Nantes").build()))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentTypeCompatibleWith("application/problem+json"))
+                .andExpect(jsonPath("$.detail").value("file: required part is missing"));
+    }
+
+    @Test
+    void aRequestThatIsNotMultipartIsABadRequestProblem() throws Exception {
+        mvc.perform(post("/api/scans/imports")
+                        .contentType("application/json")
+                        .content("{}")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + TestJwt.scanner("Nantes").build()))
                 .andExpect(status().isBadRequest())
                 .andExpect(content().contentTypeCompatibleWith("application/problem+json"))
