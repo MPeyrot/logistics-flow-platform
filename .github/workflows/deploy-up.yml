@@ -164,6 +164,26 @@ jobs:
             --set-env-vars="^@^SPRING_PROFILES_ACTIVE=confluent,gcp@SHIPMENT_SERVICE_URL=${shipment_url}" \
             --set-secrets="ANTHROPIC_API_KEY=ANTHROPIC_API_KEY:latest"
 
+      # Au premier déploiement d'un service (après un down), le droit allUsers → run.invoker met jusqu'à
+      # quelques minutes à se propager : le frontal Google répond alors 401/403 en HTML sans joindre le
+      # service. On attend que chaque service réponde 200 sur /actuator/health, ouvert sans jeton.
+      - name: Attendre l'accès public des services
+        run: |
+          set -euo pipefail
+          for service in shipment-service ingestion-service ai-service; do
+            url="$(gcloud run services describe "$service" --project="$PROJECT_ID" --region="$REGION" --format='value(status.url)')"
+            deadline=$((SECONDS + 300))
+            until status="$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 "$url/actuator/health")" && [ "$status" = "200" ]; do
+              if [ "$SECONDS" -ge "$deadline" ]; then
+                echo "::error::$service ne répond pas 200 sur /actuator/health après 5 min (dernier statut : ${status:-aucun})."
+                exit 1
+              fi
+              echo "$service : statut ${status:-aucun}, nouvel essai dans 5 s"
+              sleep 5
+            done
+            echo "$service : accessible"
+          done
+
       # Un échec de la fumée fait échouer le workflow. Aucun appel à Claude.
       - name: Parcours de fumée
         env:
