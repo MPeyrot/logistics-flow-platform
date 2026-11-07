@@ -30,4 +30,9 @@ Une ligne par contexte d'orchestrateur : date, tickets fusionnés, contexte fina
 
 ## Fin de spec
 
-Revue finale (opus / medium) depuis `5163728` : en cours. Points dans `docs/agents/spec-76/revue-finale.md` (à créer).
+Revue finale (opus / medium) depuis `5163728` : faite, 7 points dans `docs/agents/spec-76/revue-finale.md`.
+
+| Lot | Points | Statut | Branche | Commit |
+|---|---|---|---|---|
+| B | B1, B2 (structure, multipart) | en cours | ticket/76-revue-lot-b | |
+| A | A1–A5 (lecture CSV, journal) | à faire (après B) | | |
