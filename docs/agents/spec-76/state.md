@@ -38,5 +38,5 @@ Revue finale (opus / medium) depuis `5163728` : faite, 7 points dans `docs/agent
 |---|---|---|---|---|
 | B | B1, B2 (structure, multipart) | fusionné | | 25ca805 |
 | A | A1–A5 (lecture CSV, journal) | fusionné | | 29d2bf0 |
-| C | C1–C4 (seconde revue : découpage CSV) | en cours | ticket/76-revue-lot-c | |
-| D | D1–D4 (seconde revue : rejets, Kafka) | à faire (après C) | | |
+| C | C1–C4 (seconde revue : découpage CSV) | fusionné | | cfb51f6 |
+| D | D1–D5 (seconde revue : rejets, Kafka) | en cours | ticket/76-revue-lot-d | |

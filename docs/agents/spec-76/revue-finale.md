@@ -73,3 +73,7 @@ Le point 8 de la revue (collision de `DeterministicEventId` par `|`) est écart�
 ### D4 (point 6, faible) — `eventId` en forme courte
 - `ScanRowProcessor.java` l. 65 : `UUID.fromString` accepte `1-1-1-1-1`, refusé par Jackson sur `POST /api/scans`.
 - Attendu : forme canonique de 36 caractères exigée avant `fromString`. Test.
+
+### D5 (relevé au lot C, faible) — code mort de la ligne vide
+- `ScanRow.isBlank()` et la sentinelle de ligne vide ne servent plus : depuis C4, les enregistrements vides sont sautés à la lecture (`CsvFile.dataRecords()`).
+- Attendu : les retirer, avec leurs tests devenus sans objet.
