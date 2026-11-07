@@ -13,7 +13,7 @@ Ce fichier est relu par chaque orchestrateur neuf : il décrit l'état présent,
 |---|---|---|---|---|---|---|
 | #77 | recherche : Spring Batch 6 sans base (note) | — | sonnet / medium | fusionné | | 75e94e8 |
 | #78 | job d'import CSV, `publishAll`, rapport | #77 | sonnet / medium | fusionné | | 960b09f |
-| #79 | route `POST /api/scans/imports`, plafonds, journal, fumée, ferme #5 | #78 | sonnet / medium | en cours | 1 / (worktree isolé) / ticket/79-route-import-csv | |
+| #79 | route `POST /api/scans/imports`, plafonds, journal, fumée, ferme #5 | #78 | sonnet / medium | fusionné | | 25c302e |
 
 Statuts : `à faire`, `en cours`, `partiel`, `décision attendue`, `fusionné`.
 
@@ -26,3 +26,8 @@ Chaîne séquentielle (aucun parallélisme). Fichiers partagés : `ingestion-ser
 ## Lots
 
 Une ligne par contexte d'orchestrateur : date, tickets fusionnés, contexte final.
+- 2026-11-07 : #77, #78, #79 fusionnés ; `verify` des trois services vert (73 + 241 + 70 tests) ; contexte ~75k.
+
+## Fin de spec
+
+Revue finale (opus / medium) depuis `5163728` : en cours. Points dans `docs/agents/spec-76/revue-finale.md` (à créer).
