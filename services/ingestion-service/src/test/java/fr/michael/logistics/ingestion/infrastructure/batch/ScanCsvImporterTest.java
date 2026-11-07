@@ -188,6 +188,20 @@ class ScanCsvImporterTest {
     }
 
     @Test
+    void aQuoteInTheMiddleOfAnUnquotedCellIsAnOrdinaryCharacter() {
+        String ref = "IMP-" + UUID.randomUUID();
+        String csv = HEADER + "\n"
+                + ref + "\"7,PICKED_UP," + SITE + ",2026-11-07T08:00:00Z,,\n"
+                + ref + "\"7,ARRIVED_AT_SITE," + SITE + ",2026-11-07T09:00:00Z,,\n";
+
+        ImportReport report = importer.importCsv(bytes(csv), SITE);
+
+        assertThat(report.errors()).isEmpty();
+        assertThat(report.published()).isEqualTo(2);
+        assertThat(read(ref + "\"7", 2)).hasSize(2);
+    }
+
+    @Test
     void skipsInvalidRowsAndReportsThemWithTheirPhysicalLineNumber() {
         String ref = "IMP-" + UUID.randomUUID();
         String csv = HEADER + "\n"
