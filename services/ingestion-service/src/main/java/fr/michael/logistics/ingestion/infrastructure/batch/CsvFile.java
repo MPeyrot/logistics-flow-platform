@@ -61,13 +61,15 @@ record CsvFile(String text, List<String> columns) {
     private static List<String> records(String text) {
         List<String> records = new ArrayList<>();
         StringBuilder current = null;
+        boolean open = false; // parité des guillemets de current, suivie ligne à ligne
         for (String line : text.lines().toList()) {
             if (current == null) {
                 current = new StringBuilder(line);
             } else {
                 current.append('\n').append(line);
             }
-            if (QuotedRecordSeparatorPolicy.isComplete(current.toString())) {
+            open ^= QuotedRecordSeparatorPolicy.oddQuotes(line);
+            if (!open) {
                 records.add(current.toString());
                 current = null;
             }

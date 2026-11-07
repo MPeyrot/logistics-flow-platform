@@ -8,13 +8,29 @@ import org.springframework.batch.infrastructure.item.file.separator.RecordSepara
  */
 final class QuotedRecordSeparatorPolicy implements RecordSeparatorPolicy {
 
-    static boolean isComplete(String record) {
-        return record.chars().filter(c -> c == '"').count() % 2 == 0;
+    /** Le lecteur rappelle avec le même début plus une ligne : seule la partie nouvelle est analysée. */
+    private boolean open;
+    private int scanned;
+
+    static boolean oddQuotes(CharSequence text) {
+        boolean odd = false;
+        for (int i = 0; i < text.length(); i++) {
+            if (text.charAt(i) == '"') {
+                odd = !odd;
+            }
+        }
+        return odd;
     }
 
     @Override
     public boolean isEndOfRecord(String record) {
-        return isComplete(record);
+        if (record.length() < scanned) { // nouvel enregistrement
+            open = false;
+            scanned = 0;
+        }
+        open ^= oddQuotes(record.substring(scanned));
+        scanned = open ? record.length() : 0;
+        return !open;
     }
 
     @Override
@@ -25,6 +41,6 @@ final class QuotedRecordSeparatorPolicy implements RecordSeparatorPolicy {
     /** Le lecteur recolle la ligne suivante sans séparateur : le saut de ligne du champ est rétabli ici. */
     @Override
     public String preProcess(String record) {
-        return isComplete(record) ? record : record + "\n";
+        return open ? record + "\n" : record;
     }
 }
