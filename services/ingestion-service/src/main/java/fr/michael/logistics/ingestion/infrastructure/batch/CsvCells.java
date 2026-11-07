@@ -18,7 +18,7 @@ final class CsvCells {
         int i = 0;
         while (true) {
             int start = i;
-            while (start < record.length() && record.charAt(start) == ' ') {
+            while (start < record.length() && Character.isWhitespace(record.charAt(start))) {
                 start++;
             }
             if (start < record.length() && record.charAt(start) == '"') {

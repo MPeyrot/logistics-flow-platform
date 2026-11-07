@@ -202,6 +202,20 @@ class ScanCsvImporterTest {
     }
 
     @Test
+    void anyWhitespaceBeforeAnOpeningQuoteIsSkippedLikeInUnquotedCells() {
+        String ref = "IMP-" + UUID.randomUUID();
+        String csv = HEADER + "\n"
+                + ref + ",PICKED_UP," + SITE + ",2026-11-07T08:00:00Z,,\n"
+                + ref + ",OUT_FOR_DELIVERY," + SITE + ",2026-11-07T08:30:00Z,,\n"
+                + ref + ",DELIVERY_FAILED," + SITE + ",2026-11-07T09:00:00Z,,\t\"Absent, voisin\"\n";
+
+        ImportReport report = importer.importCsv(bytes(csv), SITE);
+
+        assertThat(report.errors()).isEmpty();
+        assertThat(read(ref, 3).get(2).get("reason").asString()).isEqualTo("Absent, voisin");
+    }
+
+    @Test
     void skipsInvalidRowsAndReportsThemWithTheirPhysicalLineNumber() {
         String ref = "IMP-" + UUID.randomUUID();
         String csv = HEADER + "\n"
