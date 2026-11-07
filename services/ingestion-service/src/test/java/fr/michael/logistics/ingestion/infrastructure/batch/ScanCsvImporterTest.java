@@ -349,6 +349,17 @@ class ScanCsvImporterTest {
     }
 
     @Test
+    void anEventIdInShortUuidFormIsRejectedLikeOnThePostScansRoute() {
+        String csv = HEADER + "\nA," + "PICKED_UP," + SITE + ",2026-11-07T08:00:00Z,1-1-1-1-1,\n";
+
+        ImportReport report = importer.importCsv(bytes(csv), SITE);
+
+        assertThat(report.published()).isZero();
+        assertThat(report.errors()).extracting(ImportReport.ImportError::detail)
+                .containsExactly("eventId: Invalid value for eventId");
+    }
+
+    @Test
     void anUnexpectedFailureAfterAPartialPublicationCarriesThePublishedCount() {
         ScanPublisher failing = new ScanPublisher() {
             int calls;

@@ -20,6 +20,8 @@ import org.springframework.batch.infrastructure.item.ItemProcessor;
  */
 class ScanRowProcessor implements ItemProcessor<ScanRow, ScanEvent> {
 
+    private static final int UUID_LENGTH = 36;
+
     private final String site;
     private final ImportProgress progress;
     private final Validator validator;
@@ -62,6 +64,10 @@ class ScanRowProcessor implements ItemProcessor<ScanRow, ScanEvent> {
         String eventIdText = text(row, "eventId");
         if (eventIdText != null) {
             try {
+                // forme canonique seulement : UUID.fromString accepte « 1-1-1-1-1 », que Jackson refuse
+                if (eventIdText.length() != UUID_LENGTH) {
+                    throw new IllegalArgumentException("not a canonical UUID");
+                }
                 eventId = UUID.fromString(eventIdText);
             } catch (IllegalArgumentException e) {
                 errors.add("eventId: Invalid value for eventId");
