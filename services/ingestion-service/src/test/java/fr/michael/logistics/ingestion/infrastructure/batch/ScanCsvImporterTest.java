@@ -148,6 +148,21 @@ class ScanCsvImporterTest {
     }
 
     @Test
+    void validatesEachRowWithTheSameConstraintsAsThePostScansRoute() {
+        String csv = HEADER + "\n"
+                + "A".repeat(51) + ",PICKED_UP," + SITE + ",2026-11-07T08:00:00Z,,\n"
+                + "A,DELIVERY_FAILED," + SITE + ",2026-11-07T08:00:00Z,, \n"
+                + "A,DELIVERY_FAILED," + SITE + ",2026-11-07T08:00:00Z,," + "x".repeat(201) + "\n";
+
+        ImportReport report = importer.importCsv(bytes(csv), SITE);
+
+        assertThat(report.errors()).extracting(ImportReport.ImportError::detail).containsExactly(
+                "shipmentReference: size must be between 0 and 50",
+                "reason: must not be blank",
+                "reasonShortEnough: must not exceed 200 characters");
+    }
+
+    @Test
     void keepsTheExactRejectedTotalBeyondOneHundredDetailedErrors() {
         StringBuilder csv = new StringBuilder(HEADER).append('\n');
         for (int i = 0; i < 150; i++) {

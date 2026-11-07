@@ -5,8 +5,11 @@ import fr.michael.logistics.ingestion.application.ImportBusyException;
 import fr.michael.logistics.ingestion.application.ImportInterruptedException;
 import fr.michael.logistics.ingestion.application.ImportReport;
 import fr.michael.logistics.ingestion.application.ScanPublicationException;
+import fr.michael.logistics.ingestion.application.ScanImport;
 import fr.michael.logistics.ingestion.application.ScanPublisher;
 import fr.michael.logistics.ingestion.domain.ScanEvent;
+import jakarta.validation.Validation;
+import jakarta.validation.Validator;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
@@ -42,13 +45,14 @@ import org.springframework.stereotype.Component;
  * réimporte). Un seul import à la fois par instance : le suivant attend son tour jusqu'à {@code ingestion.import.wait}.
  */
 @Component
-public class ScanCsvImporter {
+public class ScanCsvImporter implements ScanImport {
 
     static final int CHUNK_SIZE = 500;
 
     private final JobRepository jobRepository;
     private final JobOperator jobOperator;
     private final ScanPublisher publisher;
+    private final Validator validator;
     private static final Logger LOG = LoggerFactory.getLogger(ScanCsvImporter.class);
 
     private final Semaphore oneAtATime = new Semaphore(1);
@@ -56,18 +60,26 @@ public class ScanCsvImporter {
     private final int maxLines;
 
     @Autowired
-    ScanCsvImporter(JobRepository jobRepository, JobOperator jobOperator, ScanPublisher publisher,
+    ScanCsvImporter(JobRepository jobRepository, JobOperator jobOperator, ScanPublisher publisher, Validator validator,
             @Value("${ingestion.import.wait:30s}") Duration wait,
             @Value("${ingestion.import.max-lines:10000}") int maxLines) {
         this.jobRepository = jobRepository;
         this.jobOperator = jobOperator;
         this.publisher = publisher;
+        this.validator = validator;
         this.wait = wait;
         this.maxLines = maxLines;
     }
 
+    ScanCsvImporter(JobRepository jobRepository, JobOperator jobOperator, ScanPublisher publisher, Duration wait,
+            int maxLines) {
+        this(jobRepository, jobOperator, publisher, Validation.buildDefaultValidatorFactory().getValidator(), wait,
+                maxLines);
+    }
+
     ScanCsvImporter(JobRepository jobRepository, JobOperator jobOperator, ScanPublisher publisher) {
-        this(jobRepository, jobOperator, publisher, Duration.ofSeconds(30), 10_000);
+        this(jobRepository, jobOperator, publisher, Validation.buildDefaultValidatorFactory().getValidator(),
+                Duration.ofSeconds(30), 10_000);
     }
 
     /**
@@ -77,6 +89,7 @@ public class ScanCsvImporter {
      * @throws ImportBusyException si un autre import tourne
      * @throws ImportInterruptedException si une publication échoue (lignes déjà publiées dans l'exception)
      */
+    @Override
     public ImportReport importCsv(byte[] content, String site) {
         CsvFile file = CsvFile.parse(content);
         if (file.dataLines() > maxLines) {
@@ -145,7 +158,7 @@ public class ScanCsvImporter {
         return new StepBuilder("publishScans", jobRepository)
                 .<ScanRow, ScanEvent>chunk(CHUNK_SIZE)
                 .reader(reader)
-                .processor(new ScanRowProcessor(site, progress))
+                .processor(new ScanRowProcessor(site, progress, validator))
                 .writer(writer)
                 .faultTolerant()
                 .skipPolicy((throwable, count) -> throwable instanceof RowRejected)

@@ -1,7 +1,7 @@
 package fr.michael.logistics.ingestion.infrastructure.web;
 
 import fr.michael.logistics.ingestion.application.ImportReport;
-import fr.michael.logistics.ingestion.infrastructure.batch.ScanCsvImporter;
+import fr.michael.logistics.ingestion.application.ImportScansService;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -16,9 +16,9 @@ import org.springframework.web.multipart.MultipartFile;
 @RequestMapping("/api/scans/imports")
 class ScanImportController {
 
-    private final ScanCsvImporter importer;
+    private final ImportScansService importer;
 
-    ScanImportController(ScanCsvImporter importer) {
+    ScanImportController(ImportScansService importer) {
         this.importer = importer;
     }
 
@@ -26,7 +26,7 @@ class ScanImportController {
     @PostMapping
     ImportReport importScans(@RequestParam("file") MultipartFile file, @AuthenticationPrincipal Jwt token) {
         try {
-            return importer.importCsv(file.getBytes(), token.getClaimAsString("site"));
+            return importer.importScans(file.getBytes(), token.getClaimAsString("site"));
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
