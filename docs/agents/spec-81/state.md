@@ -14,8 +14,8 @@ Ce fichier est relu par chaque orchestrateur neuf : il décrit l'état présent,
 | #82 | shipment-service : détail d'une expédition, liste des comptes | — | sonnet / medium | fusionné | | 6d48c14 |
 | #83 | front : amorçage, dépendances, outillage, CI, doc | — | sonnet / medium | fusionné | | 4418264 |
 | #84 | front : authentification, erreurs HTTP, navigation par rôle | #83 | sonnet / medium | fusionné | | 44e1318 |
-| #85 | front : expéditions (liste, détail, création) | #84 | sonnet / medium | en cours | 1 / .claude/worktrees/agent-acbbd02a56dc5b720 / ticket/85-expeditions | |
-| #86 | front : bons de livraison et anomalies | #85 | sonnet / medium | à faire | | |
+| #85 | front : expéditions (liste, détail, création) | #84 | sonnet / medium | fusionné | | bca4f30 |
+| #86 | front : bons de livraison et anomalies | #85 | sonnet / medium | en cours | 1 / .claude/worktrees/agent-a159a3f244a250525 / ticket/86-bons-anomalies | |
 | #87 | front : comptes et DLT (ADMIN) | #84 | sonnet / medium | à faire | | |
 | #88 | front : scan et import CSV (SCANNER) | #84 | sonnet / medium | à faire | | |
 | #89 | front : image nginx, CSP, vérifiée en CI | #84 | sonnet / medium | en cours | 2 / .claude/worktrees/agent-a7c4183804e778222 / ticket/89-image-nginx | |
