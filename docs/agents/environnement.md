@@ -50,3 +50,14 @@ Lu par l'orchestrateur, les implémenteurs et `/preparer-spec` (skills globaux `
 
 ## Import CSV (ingestion-service, #78)
 - `ScanCsvImporter.importCsv(byte[], site)` (infrastructure/batch) rend un `ImportReport` ou lève `CsvStructureException` (avant toute publication), `ImportBusyException(retryAfter)` (429, attente `ingestion.import.wait`), `ImportInterruptedException` (`published()`, 503). Le contrôleur passe par `ImportScansService` (application) et le port `ScanImport`, que `ScanCsvImporter` implémente ; les lignes sont validées par Bean Validation (`ScanRowDraft`, à garder alignée sur `ScanRequest`). Route et erreurs (#79) : `ScanImportController`, `ApiExceptionHandler` ; tests `ScanImportApiTest` (MockMvc, `upload(csv, token)` réutilisable), `ScanImportErrorsTest` (`@MockitoBean ScanCsvImporter`), `ScanImportLimitTest` (413, vrai serveur), `ScanImportGcpLoggingTest`. Test : un `ScanPublisher` de test qui échoue au n-ième lot, `new ScanCsvImporter(jobRepository, jobOperator, publisher)` (constructeur du paquet). Le `DelimitedLineTokenizer` de Spring Batch 6 complète les cellules manquantes quand ses noms sont posés : ne pas les poser pour compter les colonnes.
+
+## Front (frontend/, #83)
+- Angular 22, zoneless, Vitest (lanceur de la CLI), angular-eslint, Playwright (Chromium). Node de `frontend/.nvmrc` (24) : la CLI exige >= 24.15 (ou 22.22.3, 26) ; si `node -v` est plus ancien, `nvm install 24` et mettre `~/.nvm/versions/node/<version>/bin` en tête du `PATH`. Pas de `source` dans un worktree isolé.
+- Commandes (dans `frontend/`) : `npm ci` à la préparation du worktree ; `npm run lint`, `npm test` (une passe), `npm run build`, `npm run e2e`. `npx playwright install chromium` une fois sur la machine.
+- Vérifications d'un ticket front : lint, test, build, puis seulement ses fichiers e2e (`npm run e2e -- e2e/<fichier>.spec.ts`). La suite e2e complète est celle de l'orchestrateur.
+- `E2E_PORT` = 4300 + slot en worktree (4200 par défaut hors worktree) ; `playwright.config.ts` lance `ng serve` dessus. Deux projets : `desktop` et `mobile` (360 px).
+- Simuler l'API en e2e : `e2e/mock-api.ts` (`mockApi(page, motif, {status, body, headers}, méthode?)`, `mockProblem(page, motif, statut, detail, {headers})` pour du `problem+json`, `Retry-After` compris). Les e2e ne parlent à aucun service.
+- Libellés français : `src/app/core/labels.ts` (statuts, types de scan, types d'anomalie, rôles ; `Record` sur l'union complète).
+- Polices importées depuis npm (`angular.json` > `styles`) : aucune requête vers Google Fonts. `inlineCritical` coupé en production.
+- Fichiers partagés (arête de blocage) : `frontend/package.json`, `package-lock.json`, `src/app/app.routes.ts`, `proxy.conf.json`, configuration nginx, `deploy-up.yml`, `deploy-down.yml`, `infra.sh`, `names.sh`, `smoke.sh`.
+- Tickets front : `sonnet / medium`.

@@ -13,3 +13,8 @@ docs/agents/*/STOP
 
 # Worktrees des agents Claude Code (isolation worktree)
 .claude/worktrees/
+
+# Front (Angular, Playwright)
+dist/
+playwright-report/
+test-results/

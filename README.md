@@ -210,6 +210,23 @@ Démo à la demande sur Google Cloud Run (`europe-west1`), base Neon, Kafka sur 
 
 Coûts : ~0 $ démo arrêtée (offres gratuites de Neon, Confluent Basic et Artifact Registry ; quelques centimes de Secret Manager). Démo en marche, `shipment-service` reste actif (détection des anomalies, consommateur Kafka) : quelques dollars par jour. Lancer **down** une fois la démo finie.
 
+## Front
+
+Angular (zoneless, Material) dans `frontend/`. Node : version de `frontend/.nvmrc` (24, LTS ; la CLI Angular exige au moins 24.15).
+
+```sh
+cd frontend
+npm ci
+npm start          # http://localhost:4200, /api/scans -> :8081, /api et /.well-known -> :8080 (proxy.conf.json)
+npm run lint
+npm test           # Vitest, une passe
+npm run build
+npx playwright install chromium   # une fois par machine
+npm run e2e        # Playwright, ng serve sur E2E_PORT (4200 par défaut), API simulée
+```
+
+Lancer d'abord les services (voir « Lancer en local ») pour que le proxy ait quelqu'un à qui parler.
+
 ## Tests
 
 ```sh
