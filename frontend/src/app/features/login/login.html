@@ -1,0 +1,23 @@
+<main class="login">
+  <h2>Connexion</h2>
+  @if (expired && !error()) {
+    <p class="notice" role="status">Session expirée</p>
+  }
+  <form [formGroup]="form" (ngSubmit)="submit()">
+    <mat-form-field>
+      <mat-label>Identifiant</mat-label>
+      <input matInput formControlName="username" autocomplete="username" />
+    </mat-form-field>
+    <mat-form-field>
+      <mat-label>Mot de passe</mat-label>
+      <input matInput type="password" formControlName="password" autocomplete="current-password" />
+    </mat-form-field>
+    @if (error()) {
+      <p class="error" role="alert">{{ error() }}</p>
+    }
+    <app-retry-countdown [seconds]="waitSeconds()" (finished)="waitSeconds.set(0)" />
+    <button matButton="filled" type="submit" [disabled]="form.invalid || sending() || waitSeconds() > 0">
+      Se connecter
+    </button>
+  </form>
+</main>

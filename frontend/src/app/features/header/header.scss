@@ -1,0 +1,44 @@
+.bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 1rem;
+  padding: 0.5rem 1rem;
+  background: var(--mat-sys-surface-container);
+}
+
+h1 {
+  margin: 0;
+  font: var(--mat-sys-title-large);
+}
+
+.user {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 0.75rem;
+  margin-left: auto;
+}
+
+.role,
+.site {
+  color: var(--mat-sys-on-surface-variant);
+}
+
+nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1rem;
+  flex-basis: 100%;
+}
+
+nav a {
+  padding: 0.5rem 0;
+  color: var(--mat-sys-primary);
+  text-decoration: none;
+}
+
+nav a.active {
+  font-weight: 500;
+  border-bottom: 2px solid var(--mat-sys-primary);
+}
