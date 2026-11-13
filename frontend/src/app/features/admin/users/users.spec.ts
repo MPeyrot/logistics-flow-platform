@@ -1,6 +1,6 @@
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
-import { TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatDialog } from '@angular/material/dialog';
 import { of } from 'rxjs';
 import { EXPIRES_AT_KEY, TOKEN_KEY } from '../../../core/auth/auth.service';
@@ -86,5 +86,28 @@ describe('Users', () => {
     (fixture.componentInstance as unknown as { toggle(u: UserAccount): void }).toggle(USERS[2]);
     expect(open).not.toHaveBeenCalled();
     expect(http.expectOne('/api/users/old').request.body).toEqual({ active: true });
+  });
+
+  function clickToggle(fixture: ComponentFixture<Users>, row: number): HTMLButtonElement {
+    const el = fixture.nativeElement as HTMLElement;
+    const button = el.querySelectorAll('tbody tr')[row].querySelector<HTMLButtonElement>('button[role=switch]')!;
+    button.click();
+    fixture.detectChanges();
+    return button;
+  }
+
+  it('remet l’interrupteur sur « actif » quand la confirmation est refusée', () => {
+    const { fixture } = setup(false);
+    const button = clickToggle(fixture, 1);
+    fixture.detectChanges();
+    expect(button.getAttribute('aria-checked')).toBe('true');
+  });
+
+  it('remet l’interrupteur sur « actif » quand le PATCH échoue', () => {
+    const { fixture, http } = setup();
+    const button = clickToggle(fixture, 1);
+    http.expectOne('/api/users/lea').flush({}, { status: 409, statusText: 'Conflict' });
+    fixture.detectChanges();
+    expect(button.getAttribute('aria-checked')).toBe('true');
   });
 });

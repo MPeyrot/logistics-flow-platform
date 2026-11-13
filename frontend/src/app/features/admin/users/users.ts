@@ -61,9 +61,9 @@ export class Users {
   }
 
   /** Désactiver demande confirmation ; réactiver non. */
-  protected toggle(user: UserAccount): void {
+  protected toggle(user: UserAccount, toggle?: MatSlideToggle): void {
     if (!user.active) {
-      this.setActive(user, true);
+      this.setActive(user, true, toggle);
       return;
     }
     this.dialog
@@ -77,17 +77,23 @@ export class Users {
       .afterClosed()
       .subscribe((confirmed) => {
         if (confirmed) {
-          this.setActive(user, false);
+          this.setActive(user, false, toggle);
+        } else if (toggle) {
+          toggle.checked = user.active;
         }
       });
   }
 
-  private setActive(user: UserAccount, active: boolean): void {
+  private setActive(user: UserAccount, active: boolean, toggle?: MatSlideToggle): void {
     this.service.setActive(user.id, active).subscribe({
       next: (updated) =>
         this.users.update((list) => list.map((u) => (u.id === updated.id ? updated : u))),
       // L'interrupteur revient à l'état du serveur ; le message commun s'affiche.
-      error: () => this.users.update((list) => [...list]),
+      error: () => {
+        if (toggle) {
+          toggle.checked = user.active;
+        }
+      },
     });
   }
 }

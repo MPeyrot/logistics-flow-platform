@@ -20,6 +20,13 @@ export interface Session {
   site: string | null;
 }
 
+/** Le serveur a répondu 200 avec un jeton inutilisable. */
+export class UnreadableTokenError extends Error {
+  constructor() {
+    super('Unreadable token');
+  }
+}
+
 interface TokenResponse {
   accessToken: string;
   tokenType: string;
@@ -50,6 +57,11 @@ export class AuthService {
           localStorage.setItem(TOKEN_KEY, res.accessToken);
           localStorage.setItem(EXPIRES_AT_KEY, res.expiresAt);
           this.restore();
+          if (!this.state()) {
+            // 200 avec un jeton que nous ne savons pas lire : pas de session à moitié posée.
+            this.clear();
+            throw new UnreadableTokenError();
+          }
         }),
       );
   }

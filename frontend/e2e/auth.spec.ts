@@ -59,10 +59,18 @@ test.describe('connexion et redirection par rôle', () => {
     await expect(page).toHaveURL(/\/anomalies$/);
   });
 
+  test('un returnUrl d’un autre rôle est ignoré : le compte arrive sur sa page', async ({ page }) => {
+    await mockLogin(page, { sub: 'alice', roles: ['SCANNER'], site: 'PAR-01' });
+    await page.goto('/login?returnUrl=%2Fadmin%2Fusers&expired=1');
+    await fillAndSubmit(page);
+    await expect(page).toHaveURL(/\/scan$/);
+  });
+
   test('une URL d’un autre rôle mène à « Accès refusé »', async ({ page }) => {
     await mockLogin(page, { sub: 'alice', roles: ['SCANNER'], site: 'PAR-01' });
     await page.goto('/login');
     await fillAndSubmit(page);
+    await expect(page).toHaveURL(/\/scan$/);
     await page.goto('/admin/users');
     await expect(page.getByRole('heading', { name: 'Accès refusé' })).toBeVisible();
   });

@@ -133,3 +133,42 @@ test('« tout rejouer » suivi jusqu’à la fin malgré un rechargement', async
   await expect(page.getByText('Terminé : 3 rejoués, 3 publiés, 0 en échec.')).toBeVisible();
   expect(await page.evaluate(() => localStorage.getItem('dlt.replayAllId'))).toBeNull();
 });
+
+async function usersWithLea(page: Page, patchStatus?: number) {
+  await signIn(page);
+  const users = [account({ username: 'admin', role: 'ADMIN' }), account({ username: 'lea' })];
+  await page.route('**/api/users', (route) =>
+    route.fulfill({ contentType: 'application/json', body: JSON.stringify(users) }),
+  );
+  await page.route('**/api/users/lea', (route) =>
+    route.fulfill(
+      patchStatus
+        ? {
+            status: patchStatus,
+            contentType: 'application/problem+json',
+            body: JSON.stringify({ detail: 'Conflit' }),
+          }
+        : { contentType: 'application/json', body: JSON.stringify(users[1]) },
+    ),
+  );
+  await page.goto('/admin/users');
+  const toggle = page.getByRole('switch', { name: 'Actif' });
+  await expect(toggle).toBeChecked();
+  await toggle.click();
+  await page.getByRole('dialog').waitFor();
+  return toggle;
+}
+
+test('annuler la désactivation remet l’interrupteur sur « actif »', async ({ page }) => {
+  const toggle = await usersWithLea(page);
+  await page.getByRole('dialog').getByRole('button', { name: 'Annuler' }).click();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(toggle).toBeChecked();
+});
+
+test('un 409 sur la désactivation remet l’interrupteur sur « actif »', async ({ page }) => {
+  const toggle = await usersWithLea(page, 409);
+  await page.getByRole('dialog').getByRole('button', { name: 'Désactiver' }).click();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(toggle).toBeChecked();
+});

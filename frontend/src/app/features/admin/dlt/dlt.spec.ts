@@ -106,4 +106,21 @@ describe('Dlt', () => {
       vi.useRealTimers();
     }
   });
+
+  it('ne lit la liste qu’une fois quand le « tout rejouer » repris est déjà terminé', () => {
+    vi.useFakeTimers();
+    try {
+      localStorage.setItem(REPLAY_ID_KEY, 'job-2');
+      const { fixture, http } = setup();
+      http.expectOne(LIST).flush([letter({})]);
+      vi.advanceTimersByTime(0);
+      http
+        .expectOne(`${LIST}/replay/job-2`)
+        .flush({ id: 'job-2', finished: true, replayed: 4, published: 4, failed: 0, error: null });
+      fixture.detectChanges();
+      http.expectNone(LIST);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });

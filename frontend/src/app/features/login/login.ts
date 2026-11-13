@@ -5,8 +5,8 @@ import { MatButton } from '@angular/material/button';
 import { MatFormField, MatLabel } from '@angular/material/form-field';
 import { MatInput } from '@angular/material/input';
 import { ActivatedRoute, Router } from '@angular/router';
-import { AuthService } from '../../core/auth/auth.service';
-import { homeUrl } from '../../core/auth/guards';
+import { AuthService, UnreadableTokenError } from '../../core/auth/auth.service';
+import { canAccess, homeUrl } from '../../core/auth/guards';
 import { describeError, retryAfterSeconds } from '../../core/http/error-messages';
 import { RetryCountdown } from '../../shared/retry-countdown';
 
@@ -46,8 +46,14 @@ export class Login {
     this.auth.login(username, password).subscribe({
       next: () => {
         const session = this.auth.session();
+        if (!session) {
+          return;
+        }
         const returnUrl = safeReturnUrl(this.route.snapshot.queryParamMap.get('returnUrl'));
-        void this.router.navigateByUrl(returnUrl ?? (session ? homeUrl(session) : '/login'));
+        // Un `returnUrl` d'un autre rôle (session précédente expirée) mènerait à « Accès refusé ».
+        const target =
+          returnUrl && canAccess(this.router, session, returnUrl) ? returnUrl : homeUrl(session);
+        void this.router.navigateByUrl(target);
       },
       error: (err: unknown) => {
         this.sending.set(false);
@@ -58,6 +64,9 @@ export class Login {
   }
 
   private messageFor(err: unknown): string {
+    if (err instanceof UnreadableTokenError) {
+      return 'Réponse de connexion illisible. Réessayez.';
+    }
     if (!(err instanceof HttpErrorResponse)) {
       return 'Une erreur est survenue.';
     }

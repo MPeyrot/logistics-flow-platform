@@ -50,11 +50,16 @@ export class Dlt {
   constructor() {
     this.refresh();
     this.tracker.resume();
-    // Un « tout rejouer » fini : la liste change (messages rejoués).
+    // Un « tout rejouer » qui passe de « en cours » à « terminé » : la liste change (messages
+    // rejoués). Un rejeu repris déjà terminé ne change rien : la liste vient d'être lue.
+    let wasRunning = false;
     effect(() => {
-      if (this.tracker.progress()?.finished) {
+      const progress = this.tracker.progress();
+      const finished = progress?.finished === true;
+      if (finished && wasRunning) {
         untracked(() => this.refresh());
       }
+      wasRunning = progress !== null && !finished;
     });
   }
 
