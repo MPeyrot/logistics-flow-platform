@@ -1,0 +1,8 @@
+{
+  "disabledRules": [
+    {
+      "id": "hygiene/missing-license",
+      "reason": "Pas de licence, choix de Michael le 2026-11-13 : code public mais tous droits réservés."
+    }
+  ]
+}
