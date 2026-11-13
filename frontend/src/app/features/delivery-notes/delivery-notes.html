@@ -1,0 +1,71 @@
+<main class="page">
+  <h2>Bons de livraison</h2>
+
+  <div
+    class="drop"
+    [class.dragging]="dragging()"
+    (dragover)="onDragOver($event)"
+    (dragleave)="dragging.set(false)"
+    (drop)="onDrop($event)"
+  >
+    <p>Glissez un bon ici (PDF, PNG, JPEG, GIF ou WebP, 10 Mo au plus) ou</p>
+    <input
+      #picker
+      type="file"
+      hidden
+      aria-label="Fichier du bon"
+      accept=".pdf,.png,.jpg,.jpeg,.gif,.webp"
+      (change)="onPick($event)"
+    />
+    <button matButton="filled" type="button" [disabled]="busy()" (click)="picker.click()">
+      Choisir un fichier
+    </button>
+    @if (loading()) {
+      <p role="status">Lecture en cours…</p>
+    }
+  </div>
+
+  @if (error()) {
+    <p class="error" role="alert">{{ error() }}</p>
+  }
+  @if (retryAfter() !== null) {
+    <app-retry-countdown [seconds]="retryAfter()!" (finished)="retryAfter.set(null)" />
+  }
+
+  @if (reading(); as r) {
+    <section aria-label="Résultat de la lecture">
+      <h3>Bon lu</h3>
+      <dl class="fields">
+        <dt>Référence</dt>
+        <dd>{{ r.deliveryNote.reference }}</dd>
+        <dt>Date de livraison</dt>
+        <dd>{{ r.deliveryNote.deliveryDate ?? '—' }}</dd>
+        <dt>Expéditeur</dt>
+        <dd>{{ r.deliveryNote.senderName ?? '—' }}</dd>
+        <dt>Destinataire</dt>
+        <dd>{{ r.deliveryNote.recipientName ?? '—' }}</dd>
+        <dt>Adresse du destinataire</dt>
+        <dd>{{ r.deliveryNote.recipientAddress ?? '—' }}</dd>
+        <dt>Nombre de colis</dt>
+        <dd>{{ r.deliveryNote.packageCount ?? '—' }}</dd>
+        <dt>Poids total (kg)</dt>
+        <dd>{{ r.deliveryNote.totalWeightKg ?? '—' }}</dd>
+        <dt>Coût de la lecture</dt>
+        <dd>{{ formatCost(r.costUsd) }}</dd>
+      </dl>
+
+      @if (r.shipment; as s) {
+        <div class="card" role="group" aria-label="Expédition trouvée">
+          <h4>
+            <a [routerLink]="['/shipments', s.reference]">{{ s.reference }}</a>
+          </h4>
+          <p>{{ s.origin }} → {{ s.destination }}</p>
+          <p>{{ statusLabels[s.status] }} · livraison prévue {{ formatDate(s.expectedDeliveryAt) }}</p>
+        </div>
+      } @else {
+        <p>Aucune expédition pour cette référence</p>
+        <button matButton="filled" type="button" (click)="createShipment()">Créer l’expédition</button>
+      }
+    </section>
+  }
+</main>

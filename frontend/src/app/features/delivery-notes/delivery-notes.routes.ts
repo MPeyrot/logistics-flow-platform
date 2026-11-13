@@ -4,6 +4,6 @@ export const DELIVERY_NOTES_ROUTES: Routes = [
   {
     path: '',
     data: { title: 'Bons de livraison' },
-    loadComponent: () => import('../../shared/placeholder-page').then((m) => m.PlaceholderPage),
+    loadComponent: () => import('./delivery-notes').then((m) => m.DeliveryNotes),
   },
 ];
