@@ -1,6 +1,6 @@
 # État — spec #81 : interface web Angular (trois rôles, même origine par proxy)
 
-STATUT: en cours
+STATUT: terminé
 <!-- en cours | décision attendue | terminé. Lu par orchestrate.sh : garder « STATUT: » en début de ligne. -->
 
 Budget (Michael, 2026-11-13) : nouveaux tickets ou lots jusqu'à 180k de contexte (pas 150k) ; passage de main à 190k.
@@ -37,8 +37,9 @@ Hors tickets : #91 (setup-node épinglé par SHA, décision de Michael) fusionn�
 
 ## Fin de spec
 
-Tous les tickets fusionnés ; suite complète verte le 2026-11-13 (verify des trois services, e2e front 60). Revue finale en deux passes (opus) : 15 points, décisions de Michael et lots A à E dans `revue-finale.md` (statut de chaque lot là-bas). Corrections : un implémenteur par lot, l'un après l'autre (sonnet / medium).
+Terminée le 2026-11-13. Revue finale en deux passes (opus) : 15 points, lots A à E fusionnés (`revue-finale.md`). Suite finale verte : verify des trois services, front (lint, 138 tests, build), e2e 66, e2e de l'image 8. Reste à Michael : fusion dans `main` (rien n'est poussé), puis #93.
 
 ## Lots
 
 Une ligne par contexte d'orchestrateur : date, tickets fusionnés, contexte final.
+- 2026-11-13 : #82 à #90, #91, lots A à E de la revue fusionnés ; contexte final ~155k.
