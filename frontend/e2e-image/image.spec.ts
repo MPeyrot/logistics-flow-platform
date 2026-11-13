@@ -28,6 +28,22 @@ test('l’en-tête CSP exacte et les en-têtes de sécurité accompagnent la pag
   expect(h['cache-control']).toBe('no-cache');
 });
 
+// Chaque `location` inclut le snippet elle-même (nginx ne transmet pas les `add_header` du `server`) :
+// une location qui l'oublierait perdrait la CSP.
+test('chaque location, proxys compris, porte la CSP exacte', async ({ request }) => {
+  for (const path of [
+    '/',
+    '/index.html',
+    '/route-inconnue',
+    '/api/scans',
+    '/api/shipments',
+    '/.well-known/jwks.json',
+  ]) {
+    const res = await request.get(path);
+    expect(res.headers()['content-security-policy'], path).toBe(CSP);
+  }
+});
+
 test('les fichiers hachés sont mis en cache sans limite, avec les en-têtes de sécurité', async ({
   request,
 }) => {

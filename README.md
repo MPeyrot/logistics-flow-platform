@@ -219,7 +219,7 @@ Angular (zoneless, Material) dans `frontend/`. Node : version de `frontend/.nvmr
 ```sh
 cd frontend
 npm ci
-npm start          # http://localhost:4200, /api/scans -> :8081, /api et /.well-known -> :8080 (proxy.conf.json)
+npm start          # http://localhost:4200, /api/scans et /api/scans/… -> :8081, /api et /.well-known -> :8080 (proxy.conf.json)
 npm run lint
 npm test           # Vitest, une passe
 npm run build
