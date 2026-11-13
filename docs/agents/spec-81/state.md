@@ -35,7 +35,7 @@ Hors tickets : #91 (setup-node épinglé par SHA, décision de Michael) fusionn�
 
 ## Fin de spec
 
-Tous les tickets fusionnés. Revue finale (opus, code-review medium depuis 220499d) lancée le 2026-11-13 ; points à écrire dans `revue-finale.md`, puis lots de correction.
+Tous les tickets fusionnés ; suite complète verte le 2026-11-13 (verify des trois services, e2e front 60). Revue finale en deux passes (opus) : 15 points, décisions de Michael et lots A à E dans `revue-finale.md` (statut de chaque lot là-bas). Corrections : un implémenteur par lot, l'un après l'autre (sonnet / medium).
 
 ## Lots
 
