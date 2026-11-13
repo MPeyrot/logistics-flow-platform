@@ -1,20 +1,50 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
 .login {
-  max-width: 24rem;
-  margin: 2rem auto;
-  padding: 0 1rem;
+  flex: 1;
+  display: grid;
+  place-items: center;
+  padding: 2rem 1rem 4rem;
+  background:
+    radial-gradient(60rem 30rem at 50% -10%, color-mix(in oklch, var(--mat-sys-primary) 14%, transparent), transparent),
+    transparent;
+}
+
+.panel {
+  box-sizing: border-box;
+  width: min(100%, 26rem);
+  margin: 0;
+  padding: 2rem;
+}
+
+.lead {
+  margin: 0.35rem 0 1.5rem;
+  color: var(--mat-sys-on-surface-variant);
 }
 
 form {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.25rem;
+
+  button {
+    height: 2.75rem;
+    margin-top: 0.5rem;
+  }
 }
 
 .error {
-  color: var(--mat-sys-error);
   margin: 0;
 }
 
 .notice {
+  margin: 0 0 1rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.6rem;
+  background: var(--mat-sys-surface-container-high);
   color: var(--mat-sys-on-surface-variant);
 }

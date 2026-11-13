@@ -1,19 +1,20 @@
 <main class="page">
-  <a routerLink="/shipments">← Expéditions</a>
+  <a class="back" routerLink="/shipments">← Expéditions</a>
 
   @if (error()) {
     <p class="error" role="alert">{{ error() }}</p>
   }
 
   @if (shipment(); as s) {
-    <h2>{{ s.reference }}</h2>
-    <dl class="header">
+    <div class="head">
+      <h2>{{ s.reference }}</h2>
+      <span class="badge" [attr.data-status]="s.status">{{ statusLabels[s.status] }}</span>
+    </div>
+    <dl class="defs panel">
       <dt>Origine</dt>
       <dd>{{ s.origin }}</dd>
       <dt>Destination</dt>
       <dd>{{ s.destination }}</dd>
-      <dt>Statut</dt>
-      <dd>{{ statusLabels[s.status] }}</dd>
       <dt>Livraison prévue</dt>
       <dd>{{ formatDate(s.expectedDeliveryAt) }}</dd>
       <dt>Créée le</dt>

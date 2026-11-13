@@ -1,9 +1,18 @@
-.message {
+.shell {
+  min-height: 100%;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  padding: 0.5rem 1rem;
-  background: var(--mat-sys-error-container);
-  color: var(--mat-sys-on-error-container);
+  flex-direction: column;
+}
+
+.content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+@media (min-width: 60rem) {
+  .shell.with-side {
+    flex-direction: row;
+  }
 }

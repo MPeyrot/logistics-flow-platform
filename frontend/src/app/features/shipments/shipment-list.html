@@ -39,10 +39,10 @@
                     {{ c.label }}
                     @switch (ariaSort(c.column)) {
                       @case ('ascending') {
-                        <span aria-hidden="true">▲</span>
+                        <span class="material-symbols-outlined" aria-hidden="true">arrow_upward</span>
                       }
                       @case ('descending') {
-                        <span aria-hidden="true">▼</span>
+                        <span class="material-symbols-outlined" aria-hidden="true">arrow_downward</span>
                       }
                     }
                   </button>
@@ -56,7 +56,7 @@
                 <td><a [routerLink]="['/shipments', s.reference]">{{ s.reference }}</a></td>
                 <td>{{ s.origin }}</td>
                 <td>{{ s.destination }}</td>
-                <td>{{ statusLabels[s.status] }}</td>
+                <td><span class="badge" [attr.data-status]="s.status">{{ statusLabels[s.status] }}</span></td>
                 <td>{{ formatDate(s.expectedDeliveryAt) }}</td>
                 <td>
                   @for (a of s.openAnomalies; track a.type) {

@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { MatIconButton } from '@angular/material/button';
 import { NavigationStart, Router, RouterOutlet } from '@angular/router';
 import { filter } from 'rxjs';
+import { AuthService } from './core/auth/auth.service';
 import { MessageService } from './core/messages/message.service';
 import { Header } from './features/header/header';
 
@@ -14,6 +15,7 @@ import { Header } from './features/header/header';
 })
 export class App {
   protected readonly messages = inject(MessageService);
+  protected readonly auth = inject(AuthService);
 
   constructor() {
     // Un message d'erreur ne survit pas à un changement de page.
