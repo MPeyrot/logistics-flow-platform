@@ -18,9 +18,9 @@ describe('checkFile', () => {
     expect(checkFile(file('bon'))).toContain('Format non accepté');
   });
 
-  it('accepte exactement 10 Mo et refuse au-delà', () => {
-    expect(MAX_FILE_BYTES).toBe(10 * 1024 * 1024);
-    expect(checkFile(file('bon.pdf', 10 * 1024 * 1024))).toBeNull();
-    expect(checkFile(file('bon.pdf', 10 * 1024 * 1024 + 1))).toBe('Fichier trop volumineux : 10 Mo au plus.');
+  it('garde une marge de 16 Kio sous le plafond de 10 Mo de la requête multipart', () => {
+    expect(MAX_FILE_BYTES).toBe(10 * 1024 * 1024 - 16 * 1024);
+    expect(checkFile(file('bon.pdf', MAX_FILE_BYTES))).toBeNull();
+    expect(checkFile(file('bon.pdf', MAX_FILE_BYTES + 1))).toBe('Fichier trop volumineux : 10 Mo au plus.');
   });
 });

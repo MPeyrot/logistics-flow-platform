@@ -23,7 +23,11 @@ describe('rapport d’import', () => {
     expect(checkCsv(new File(['a'], 'scans.csv'))).toBeNull();
     expect(checkCsv(new File(['a'], 'SCANS.CSV'))).toBeNull();
     expect(checkCsv(new File(['a'], 'scans.txt'))).toMatch(/\.csv/);
-    expect(checkCsv(new File([new Uint8Array(2 * 1024 * 1024 + 1)], 'a.csv'))).toMatch(/2 Mo/);
-    expect(checkCsv(new File([new Uint8Array(2 * 1024 * 1024)], 'a.csv'))).toBeNull();
+  });
+
+  it('garde une marge de 16 Kio sous le plafond de 2 Mo de la requête multipart', () => {
+    const limit = 2 * 1024 * 1024 - 16 * 1024;
+    expect(checkCsv(new File([new Uint8Array(limit)], 'a.csv'))).toBeNull();
+    expect(checkCsv(new File([new Uint8Array(limit + 1)], 'a.csv'))).toMatch(/2 Mo/);
   });
 });

@@ -1,4 +1,5 @@
-export const MAX_FILE_BYTES = 10 * 1024 * 1024;
+// Le serveur plafonne toute la requête multipart (10 Mo) : le fichier seul garde une marge pour son enveloppe.
+export const MAX_FILE_BYTES = 10 * 1024 * 1024 - 16 * 1024;
 
 const EXTENSIONS = ['pdf', 'png', 'jpg', 'jpeg', 'gif', 'webp'];
 

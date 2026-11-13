@@ -1,4 +1,5 @@
-export const MAX_CSV_BYTES = 2 * 1024 * 1024;
+// Le serveur plafonne toute la requête multipart (2 Mo) : le fichier seul garde une marge pour son enveloppe.
+export const MAX_CSV_BYTES = 2 * 1024 * 1024 - 16 * 1024;
 
 export const TEMPLATE_CSV = 'shipmentReference,type,site,occurredAt,eventId,reason\n';
 

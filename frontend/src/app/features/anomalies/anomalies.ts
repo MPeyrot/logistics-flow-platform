@@ -3,7 +3,7 @@ import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/cor
 import { MatButton } from '@angular/material/button';
 import { MatTab, MatTabGroup } from '@angular/material/tabs';
 import { RouterLink } from '@angular/router';
-import { Observable } from 'rxjs';
+import { Observable, type Subscription } from 'rxjs';
 import { ANOMALY_TYPE_LABELS, type AnomalyType } from '../../core/labels';
 import { formatDateTime } from '../shipments/format-date';
 
@@ -31,6 +31,7 @@ export class Anomalies {
   protected readonly rows = signal<AnomalyRow[]>([]);
   protected readonly loading = signal(false);
   protected readonly loaded = signal(false);
+  private pending?: Subscription;
 
   constructor() {
     this.refresh();
@@ -46,9 +47,11 @@ export class Anomalies {
   }
 
   protected refresh(): void {
+    // La requête de l'onglet quitté est annulée : sa réponse tardive ne doit rien afficher.
+    this.pending?.unsubscribe();
     this.loading.set(true);
     this.loaded.set(false);
-    this.fetch(!this.closed).subscribe({
+    this.pending = this.fetch(!this.closed).subscribe({
       next: (rows) => {
         this.rows.set(rows);
         this.loaded.set(true);

@@ -13,7 +13,8 @@ function download(name: string, content: string): void {
   link.href = url;
   link.download = name;
   link.click();
-  URL.revokeObjectURL(url);
+  // Firefox et Safari lisent l'URL après le clic : la révoquer aussitôt vide le téléchargement.
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 /** Texte d'une erreur de l'import ; le 503 dit combien de scans sont déjà partis. */
