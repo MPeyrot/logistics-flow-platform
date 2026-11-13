@@ -76,3 +76,8 @@ Lu par l'orchestrateur, les implémenteurs et `/preparer-spec` (skills globaux `
 
 ## Scan et import CSV (frontend/, #88)
 - `features/scan/` : `ScanService` (`send`, `importCsv`, tous deux avec `HANDLES_ERRORS`), règles du motif (`scan-rules.ts`, points de code, `\S` ECMAScript), `EventIdKeeper` (`event-id.ts` : `idFor(saisie)` garde l'id tant que la saisie ne change pas, `accepted()` le remet à zéro), `import-report.ts` (modèle CSV, `checkCsv`, `errorsCsv` qui neutralise les formules). `occurredAt` est omis sans saisie différée (le serveur met l'heure de réception). Le 503 de l'import porte `published` dans le corps. e2e `e2e/scan.spec.ts` : session SCANNER avec `site` dans le jeton ; une route `page.route('**/api/scans', …)` à gestionnaire propre permet de compter les envois et de lire `postDataJSON()`.
+
+## Écrans d'administration (frontend/src/app/features/admin, #87)
+- `admin/confirm-dialog.ts` : `ConfirmDialog` générique (`MAT_DIALOG_DATA` = `{title, message, confirm}`, se ferme avec `true`), réutilisable ; dans un test, remplacer `MatDialog` par `{ open: () => ({ afterClosed: () => of(true) }) }`.
+- `ReplayTracker` (fourni par `Dlt`) garde l'identifiant du « tout rejouer » dans `localStorage` (`dlt.replayAllId`), interroge `GET …/replay/{id}` chaque seconde, l'efface à `finished` ou sur 404. Mot de passe d'un compte : 12 caractères au moins (`UserAccount.PASSWORD_MIN_LENGTH`) ; le backend refuse un site hors SCANNER, le front n'en envoie pas.
+- Heredocs et `cd` composés : le garde-fou d'un worktree isolé les refuse parfois ; préférer `Write` pour créer un fichier.

@@ -4,6 +4,6 @@ export const ADMIN_DLT_ROUTES: Routes = [
   {
     path: '',
     data: { title: 'Messages en échec' },
-    loadComponent: () => import('../../../shared/placeholder-page').then((m) => m.PlaceholderPage),
+    loadComponent: () => import('./dlt').then((m) => m.Dlt),
   },
 ];

@@ -1,0 +1,93 @@
+<main class="page">
+  <div class="title">
+    <h2>Messages en échec</h2>
+    <span class="spacer"></span>
+    <button matButton type="button" (click)="refresh()" [disabled]="loading()">Actualiser</button>
+    <button matButton="filled" type="button" (click)="replayAll()" [disabled]="running()">
+      Tout rejouer
+    </button>
+  </div>
+
+  @if (tracker.progress(); as p) {
+    <section class="progress" aria-live="polite">
+      <mat-progress-bar
+        mode="determinate"
+        [value]="percent(p.published, p.replayed, p.finished)"
+        aria-label="Avancement du rejeu"
+      />
+      <p>
+        {{ p.finished ? 'Terminé' : 'En cours' }} : {{ p.replayed }} rejoués,
+        {{ p.published }} publiés, {{ p.failed }} en échec.
+      </p>
+      @if (p.error) {
+        <p class="error" role="alert">{{ p.error }}</p>
+      }
+    </section>
+  }
+
+  @if (loaded()) {
+    @if (letters().length === 0) {
+      <p class="empty">Aucun message en échec.</p>
+    } @else {
+      <div class="scroll">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Date</th>
+              <th scope="col">Partition / offset</th>
+              <th scope="col">Clé</th>
+              <th scope="col">Erreur</th>
+              <th scope="col">Rejoué</th>
+              <th scope="col"><span class="visually-hidden">Actions</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (l of letters(); track key(l)) {
+              <tr>
+                <td>{{ formatDate(l.timestamp) }}</td>
+                <td>{{ l.partition }} / {{ l.offset }}</td>
+                <td>{{ l.key ?? '—' }}</td>
+                <td>
+                  <strong>{{ shortClass(l.exceptionClass) }}</strong>
+                  @if (l.exceptionMessage) {
+                    <div class="message">{{ l.exceptionMessage }}</div>
+                  }
+                </td>
+                <td>
+                  @if (l.replayed) {
+                    Oui{{ l.replayedAt ? ' (' + formatDate(l.replayedAt) + ')' : '' }}
+                  } @else {
+                    Non
+                  }
+                  @if (notes()[key(l)]; as note) {
+                    <div class="note" role="status">{{ note }}</div>
+                  }
+                </td>
+                <td class="actions">
+                  <button
+                    matButton
+                    type="button"
+                    (click)="toggleExpanded(l)"
+                    [attr.aria-expanded]="isExpanded(l)"
+                  >
+                    {{ isExpanded(l) ? 'Masquer' : 'Valeur' }}
+                  </button>
+                  <button matButton type="button" (click)="replay(l)" [disabled]="l.replayed">
+                    Rejouer
+                  </button>
+                </td>
+              </tr>
+              @if (isExpanded(l)) {
+                <tr class="value-row">
+                  <td colspan="6">
+                    <pre>{{ pretty(l.value) }}</pre>
+                  </td>
+                </tr>
+              }
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  }
+</main>
