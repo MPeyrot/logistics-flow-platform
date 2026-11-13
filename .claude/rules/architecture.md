@@ -53,6 +53,7 @@
   - **Jeton dans `localStorage`** (survit à la fermeture de l'onglet jusqu'à expiration), minuteur sur `expiresAt`, déconnexion synchronisée entre onglets ; claims lus sans vérification, pour l'affichage seulement. CSP stricte servie par nginx, polices hébergées avec le front (pas de Google Fonts).
   - **Image du front par Dockerfile** multi-étapes (`node` puis `nginxinc/nginx-unprivileged`, épinglées par digest) : écart assumé à Paketo, qui vaut pour les services Spring. `frontend` : min 0, max 1, 256 Mio, compte `frontend-run` sans secret ; déployé et supprimé avec les services.
   - Dépendances validées : Angular (dernière majeure stable) et Angular Material/CDK, Vitest, Playwright (Chromium), angular-eslint, `@fontsource/roboto`, `material-symbols`. Interface en français, sans i18n.
+- Décidé par Michael le 2026-11-13 (#91) : `actions/setup-node` validée, épinglée par SHA de commit (version en commentaire), comme `google-github-actions/auth` et `setup-gcloud`.
 
 ## Ressources GCP (spec #63, #65)
 - `scripts/deploy/infra.sh` (idempotent, ne supprime rien) crée les ressources ; `scripts/deploy/setup-wizard.sh` guide Michael (comptes, facturation, valeurs des secrets) et le lance. Noms dans `scripts/deploy/names.sh`, repris par les workflows via les variables du dépôt (`GCP_PROJECT_ID`, `GCP_PROJECT_NUMBER`, `GCP_REGION`, `GCP_AR_REPOSITORY`, `GCP_WIF_PROVIDER`, `GCP_DEPLOY_SA`, `KAFKA_BOOTSTRAP_SERVERS`, `BOOTSTRAP_ADMIN_USERNAME` ; secret `BOOTSTRAP_ADMIN_PASSWORD` pour la fumée).
