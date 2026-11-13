@@ -1,0 +1,76 @@
+<main class="page">
+  <h2>Import CSV</h2>
+  <p><a routerLink="/scan">Retour au scan</a></p>
+
+  <p>
+    Colonnes : <code>shipmentReference</code>, <code>type</code>, <code>site</code>,
+    <code>occurredAt</code>, et facultatives <code>eventId</code>, <code>reason</code>. Fichier
+    .csv de 2 Mo et 10 000 lignes au plus.
+  </p>
+
+  <div class="actions">
+    <button matButton="outlined" type="button" (click)="downloadTemplate()">Télécharger un modèle</button>
+    <input
+      #picker
+      type="file"
+      hidden
+      aria-label="Fichier CSV"
+      accept=".csv,text/csv"
+      (change)="onPick($event)"
+    />
+    <button matButton="filled" type="button" [disabled]="busy()" (click)="picker.click()">
+      Choisir un fichier
+    </button>
+  </div>
+
+  @if (loading()) {
+    <p role="status">Import en cours…</p>
+  }
+  @if (error()) {
+    <p class="error" role="alert">{{ error() }}</p>
+  }
+  @if (retryAfter() !== null) {
+    <app-retry-countdown [seconds]="retryAfter()!" (finished)="retryAfter.set(null)" />
+  }
+
+  @if (report(); as r) {
+    <section aria-label="Rapport d’import">
+      <h3>Rapport</h3>
+      <dl class="fields">
+        <dt>Lignes</dt>
+        <dd>{{ r.lines }}</dd>
+        <dt>Publiées</dt>
+        <dd>{{ r.published }}</dd>
+        <dt>Rejetées</dt>
+        <dd>{{ r.rejected }}</dd>
+      </dl>
+
+      @if (r.errors.length > 0) {
+        @if (r.rejected > r.errors.length) {
+          <p>{{ r.errors.length }} premières erreurs sur {{ r.rejected }}</p>
+        }
+        <div class="report">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Ligne</th>
+                <th scope="col">Erreur</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (e of r.errors; track e.line) {
+                <tr>
+                  <td>{{ e.line }}</td>
+                  <td>{{ e.detail }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        <div class="actions">
+          <button matButton="outlined" type="button" (click)="downloadReport()">Télécharger le rapport</button>
+        </div>
+      }
+    </section>
+  }
+</main>

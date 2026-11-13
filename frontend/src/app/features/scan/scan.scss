@@ -1,0 +1,64 @@
+.page {
+  padding: 1rem;
+  max-width: 40rem;
+  margin: 0 auto;
+}
+
+.fields {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.error {
+  color: var(--mat-sys-error);
+}
+
+.success {
+  color: var(--mat-sys-primary);
+  font-weight: 500;
+}
+
+.over {
+  color: var(--mat-sys-error);
+}
+
+.deferred {
+  margin-bottom: 1rem;
+
+  summary {
+    cursor: pointer;
+    padding: 0.5rem 0;
+  }
+}
+
+.recent {
+  padding-left: 1.25rem;
+
+  li {
+    margin: 0.25rem 0;
+  }
+}
+
+.report {
+  overflow-x: auto;
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+
+  th,
+  td {
+    text-align: left;
+    padding: 0.25rem 0.5rem;
+    border-bottom: 1px solid var(--mat-sys-outline-variant);
+  }
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0.5rem 0 1rem;
+}
