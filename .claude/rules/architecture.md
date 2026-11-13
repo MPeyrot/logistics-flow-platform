@@ -48,6 +48,11 @@
 - Décidé par Michael le 2026-11-13, avant la spec « interface graphique » :
   - **Front en Angular** (TypeScript), à la place de Vue 3.
   - Le front appelle **directement `shipment-service` et `ingestion-service`** (scan et import CSV du SCANNER), avec le même JWT ; `ai-service` reste joint seulement par `shipment-service`.
+- Décidé par Michael le 2026-11-13, pour la spec « interface web Angular » (#81) :
+  - **Même origine, pas de CORS** : le navigateur ne parle qu'à l'origine du front. En local `ng serve` + `frontend/proxy.conf.json` ; sur Cloud Run un service `frontend` (nginx non root) sert le front et renvoie `/api/scans…` vers `ingestion-service`, le reste de `/api/…` et `/.well-known/` vers `shipment-service`. Le front n'emploie que des chemins relatifs.
+  - **Jeton dans `localStorage`** (survit à la fermeture de l'onglet jusqu'à expiration), minuteur sur `expiresAt`, déconnexion synchronisée entre onglets ; claims lus sans vérification, pour l'affichage seulement. CSP stricte servie par nginx, polices hébergées avec le front (pas de Google Fonts).
+  - **Image du front par Dockerfile** multi-étapes (`node` puis `nginxinc/nginx-unprivileged`, épinglées par digest) : écart assumé à Paketo, qui vaut pour les services Spring. `frontend` : min 0, max 1, 256 Mio, compte `frontend-run` sans secret ; déployé et supprimé avec les services.
+  - Dépendances validées : Angular (dernière majeure stable) et Angular Material/CDK, Vitest, Playwright (Chromium), angular-eslint, `@fontsource/roboto`, `material-symbols`. Interface en français, sans i18n.
 
 ## Ressources GCP (spec #63, #65)
 - `scripts/deploy/infra.sh` (idempotent, ne supprime rien) crée les ressources ; `scripts/deploy/setup-wizard.sh` guide Michael (comptes, facturation, valeurs des secrets) et le lance. Noms dans `scripts/deploy/names.sh`, repris par les workflows via les variables du dépôt (`GCP_PROJECT_ID`, `GCP_PROJECT_NUMBER`, `GCP_REGION`, `GCP_AR_REPOSITORY`, `GCP_WIF_PROVIDER`, `GCP_DEPLOY_SA`, `KAFKA_BOOTSTRAP_SERVERS`, `BOOTSTRAP_ADMIN_USERNAME` ; secret `BOOTSTRAP_ADMIN_PASSWORD` pour la fumée).
