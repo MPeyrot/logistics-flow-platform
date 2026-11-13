@@ -9,13 +9,16 @@ GITHUB_REPO="MPeyrot/logistics-flow-platform"
 
 # Services Cloud Run (même nom que le dossier services/<nom>)
 SERVICES="shipment-service ingestion-service ai-service"
+# Front (#90) : nginx qui sert l'interface et renvoie /api vers les services ci-dessus. Image par Dockerfile
+# (frontend/Dockerfile), sans secret : il n'a donc pas de ligne dans service_secrets.
+FRONTEND_SERVICE="frontend"
 
-# Artifact Registry : europe-west1-docker.pkg.dev/<projet>/logistics/<service>:<sha>
+# Artifact Registry : europe-west1-docker.pkg.dev/<projet>/logistics/<service>:<sha> (le front aussi : .../frontend:<sha>)
 AR_REPOSITORY="logistics"
 AR_KEEP_IMAGES=2
 
 # Comptes de service : un d'exécution par service, un de déploiement pour GitHub Actions
-runtime_sa_name() { printf '%s-run' "$1"; }   # shipment-service-run, ingestion-service-run, ai-service-run
+runtime_sa_name() { printf '%s-run' "$1"; }   # shipment-service-run, ingestion-service-run, ai-service-run, frontend-run
 DEPLOY_SA_NAME="github-deployer"
 
 # Workload Identity Federation (GitHub OIDC)

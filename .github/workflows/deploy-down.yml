@@ -1,6 +1,6 @@
 name: Deploy down
 
-# Arrête la démo : supprime les trois services Cloud Run. Ne touche ni aux secrets, ni aux images
+# Arrête la démo : supprime les quatre services Cloud Run (dont le front). Ne touche ni aux secrets, ni aux images
 # d'Artifact Registry, ni à Neon, ni à Confluent. Sans erreur si un service n'existe pas.
 on:
   workflow_dispatch:
@@ -35,7 +35,7 @@ jobs:
             echo "::error::Variables du dépôt GCP_PROJECT_ID et GCP_REGION manquantes."
             exit 1
           fi
-          for service in ingestion-service ai-service shipment-service; do
+          for service in frontend ingestion-service ai-service shipment-service; do
             existing="$(gcloud run services list --project="$PROJECT_ID" --region="$REGION" --filter="metadata.name=$service" --format='value(metadata.name)')"
             if [ -n "$existing" ]; then
               gcloud run services delete "$service" --project="$PROJECT_ID" --region="$REGION" --quiet

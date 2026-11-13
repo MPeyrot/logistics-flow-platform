@@ -1,7 +1,7 @@
 name: Deploy up
 
 # Démo à la demande sur Cloud Run (spec #63) : lancé à la main par Michael, jamais automatiquement.
-# Déploie un commit de main dont la CI est verte, puis lance le parcours de fumée.
+# Déploie un commit de main dont la CI est verte (services, puis front), puis lance le parcours de fumée.
 # Les noms et identifiants viennent des variables du dépôt posées par scripts/deploy/setup-wizard.sh.
 on:
   workflow_dispatch:
@@ -97,6 +97,16 @@ jobs:
             docker push "$image"
           done
 
+      # Le front est la seule image par Dockerfile (nginx non root) : écart assumé à Paketo.
+      - name: Construire et pousser l'image du front
+        env:
+          SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          image="${REGION}-docker.pkg.dev/${PROJECT_ID}/${AR_REPOSITORY}/frontend:${SHA}"
+          docker build -t "$image" frontend
+          docker push "$image"
+
       - name: Déployer shipment-service
         env:
           SHA: ${{ github.sha }}
@@ -164,6 +174,25 @@ jobs:
             --set-env-vars="^@^SPRING_PROFILES_ACTIVE=confluent,gcp@SHIPMENT_SERVICE_URL=${shipment_url}" \
             --set-secrets="ANTHROPIC_API_KEY=ANTHROPIC_API_KEY:latest"
 
+      # Le front renvoie /api vers les deux services : il se déploie après eux, avec leurs URL.
+      # Pas de sonde de démarrage : nginx démarre sans attendre les services (502 sur leurs routes seulement).
+      - name: Déployer frontend
+        env:
+          SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          url_of() { gcloud run services describe "$1" --project="$PROJECT_ID" --region="$REGION" --format='value(status.url)'; }
+          shipment_url="$(url_of shipment-service)"
+          ingestion_url="$(url_of ingestion-service)"
+          gcloud run deploy frontend \
+            --project="$PROJECT_ID" --region="$REGION" \
+            --image="${REGION}-docker.pkg.dev/${PROJECT_ID}/${AR_REPOSITORY}/frontend:${SHA}" \
+            --service-account="frontend-run@${PROJECT_ID}.iam.gserviceaccount.com" \
+            --min-instances=0 --max-instances=1 --cpu-throttling \
+            --cpu=1 --memory=256Mi --port=8080 --timeout=300 \
+            --allow-unauthenticated \
+            --set-env-vars="SHIPMENT_SERVICE_URL=${shipment_url},INGESTION_SERVICE_URL=${ingestion_url}"
+
       # Au premier déploiement d'un service (après un down), le droit allUsers → run.invoker met jusqu'à
       # quelques minutes à se propager : le frontal Google répond alors 401/403 en HTML sans joindre le
       # service. On attend que chaque service réponde 200 sur /actuator/health, ouvert sans jeton.
@@ -184,6 +213,22 @@ jobs:
             echo "$service : accessible"
           done
 
+      # Même attente pour le front (droit public propagé), sur sa page d'accueil.
+      - name: Attendre l'accès public du front
+        run: |
+          set -euo pipefail
+          url="$(gcloud run services describe frontend --project="$PROJECT_ID" --region="$REGION" --format='value(status.url)')"
+          deadline=$((SECONDS + 300))
+          until status="$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 "$url/")" && [ "$status" = "200" ]; do
+            if [ "$SECONDS" -ge "$deadline" ]; then
+              echo "::error::frontend ne répond pas 200 sur / après 5 min (dernier statut : ${status:-aucun})."
+              exit 1
+            fi
+            echo "frontend : statut ${status:-aucun}, nouvel essai dans 5 s"
+            sleep 5
+          done
+          echo "frontend : accessible"
+
       # Un échec de la fumée fait échouer le workflow. Aucun appel à Claude.
       - name: Parcours de fumée
         env:
@@ -195,10 +240,13 @@ jobs:
           SHIPMENT_URL="$(url_of shipment-service)"
           INGESTION_URL="$(url_of ingestion-service)"
           AI_URL="$(url_of ai-service)"
-          export SHIPMENT_URL INGESTION_URL AI_URL
+          FRONTEND_URL="$(url_of frontend)"
+          export SHIPMENT_URL INGESTION_URL AI_URL FRONTEND_URL
           scripts/deploy/smoke.sh
           {
             echo "### Démo en ligne"
+            echo "**URL de la démo : $FRONTEND_URL**"
+            echo "- frontend : $FRONTEND_URL"
             echo "- shipment-service : $SHIPMENT_URL"
             echo "- ingestion-service : $INGESTION_URL"
             echo "- ai-service : $AI_URL"
