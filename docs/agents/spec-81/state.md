@@ -33,6 +33,10 @@ Hors tickets : #91 (setup-node épinglé par SHA, décision de Michael) fusionn�
 
 (rien)
 
+## Fin de spec
+
+Tous les tickets fusionnés. Revue finale (opus, code-review medium depuis 220499d) lancée le 2026-11-13 ; points à écrire dans `revue-finale.md`, puis lots de correction.
+
 ## Lots
 
 Une ligne par contexte d'orchestrateur : date, tickets fusionnés, contexte final.
