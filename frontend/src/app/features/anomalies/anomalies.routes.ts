@@ -4,6 +4,6 @@ export const ANOMALIES_ROUTES: Routes = [
   {
     path: '',
     data: { title: 'Anomalies' },
-    loadComponent: () => import('../../shared/placeholder-page').then((m) => m.PlaceholderPage),
+    loadComponent: () => import('./anomalies').then((m) => m.Anomalies),
   },
 ];
