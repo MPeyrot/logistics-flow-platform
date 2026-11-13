@@ -17,6 +17,8 @@ interface SpringDataUserAccountRepository extends JpaRepository<UserAccountJpaEn
 
     boolean existsByRole(Role role);
 
+    List<UserAccountJpaEntity> findAllByOrderByUsernameAsc();
+
     /** SELECT … FOR UPDATE : une transaction concurrente attend, puis relit les lignes. */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     List<UserAccountJpaEntity> findByRoleAndActiveTrue(Role role);

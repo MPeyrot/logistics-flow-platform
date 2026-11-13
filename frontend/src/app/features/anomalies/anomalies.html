@@ -1,0 +1,45 @@
+<main class="page">
+  <div class="title">
+    <h2>Anomalies</h2>
+    <span class="spacer"></span>
+    <button matButton type="button" (click)="refresh()" [disabled]="loading()">Actualiser</button>
+  </div>
+
+  <mat-tab-group [selectedIndex]="tab()" (selectedIndexChange)="select($event)" animationDuration="0ms">
+    <mat-tab label="Ouvertes" />
+    <mat-tab label="Closes" />
+  </mat-tab-group>
+
+  @if (loaded()) {
+    @if (rows().length === 0) {
+      <p class="empty">Aucune anomalie.</p>
+    } @else {
+      <div class="scroll">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Type</th>
+              <th scope="col">Expédition</th>
+              <th scope="col">Détectée le</th>
+              @if (closed) {
+                <th scope="col">Close le</th>
+              }
+            </tr>
+          </thead>
+          <tbody>
+            @for (a of rows(); track a.id) {
+              <tr>
+                <td>{{ typeLabels[a.type] }}</td>
+                <td><a [routerLink]="['/shipments', a.shipmentReference]">{{ a.shipmentReference }}</a></td>
+                <td>{{ formatDate(a.detectedAt) }}</td>
+                @if (closed) {
+                  <td>{{ formatDate(a.resolvedAt) }}</td>
+                }
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  }
+</main>

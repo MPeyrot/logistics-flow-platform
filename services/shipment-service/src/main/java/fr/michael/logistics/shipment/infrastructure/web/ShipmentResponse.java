@@ -28,7 +28,7 @@ record ShipmentResponse(
         return from(entry.shipment(), entry.openAnomalies());
     }
 
-    private static ShipmentResponse from(Shipment shipment, List<Anomaly> openAnomalies) {
+    static ShipmentResponse from(Shipment shipment, List<Anomaly> openAnomalies) {
         return new ShipmentResponse(
                 shipment.id(),
                 shipment.reference(),

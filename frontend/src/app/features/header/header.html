@@ -1,0 +1,20 @@
+<header class="bar">
+  <h1>Logistics Flow</h1>
+  @if (auth.session(); as session) {
+    <div class="user" data-testid="user">
+      <span class="name">{{ session.username }}</span>
+      <span class="role">{{ roleLabel() }}</span>
+      @if (session.site) {
+        <span class="site">Site {{ session.site }}</span>
+      }
+      <button matButton type="button" (click)="auth.logout()">Se déconnecter</button>
+    </div>
+    <nav aria-label="Menu principal">
+      @for (item of menu(); track item.path) {
+        <a [routerLink]="item.path" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">{{
+          item.label
+        }}</a>
+      }
+    </nav>
+  }
+</header>

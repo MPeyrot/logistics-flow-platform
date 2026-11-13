@@ -4,6 +4,7 @@ import fr.michael.logistics.shipment.application.DuplicateUsernameException;
 import fr.michael.logistics.shipment.application.UserAccountRepository;
 import fr.michael.logistics.shipment.domain.Role;
 import fr.michael.logistics.shipment.domain.UserAccount;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -60,5 +61,10 @@ class JpaUserAccountRepository implements UserAccountRepository {
     @Override
     public int countActiveAdminsLocking() {
         return jpa.findByRoleAndActiveTrue(Role.ADMIN).size();
+    }
+
+    @Override
+    public List<UserAccount> findAllOrderedByUsername() {
+        return jpa.findAllByOrderByUsernameAsc().stream().map(UserAccountJpaEntity::toDomain).toList();
     }
 }

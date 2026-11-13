@@ -1,0 +1,8 @@
+<app-header />
+@if (messages.current(); as message) {
+  <div class="message" role="alert">
+    <span>{{ message }}</span>
+    <button matIconButton type="button" aria-label="Fermer le message" (click)="messages.clear()">×</button>
+  </div>
+}
+<router-outlet />

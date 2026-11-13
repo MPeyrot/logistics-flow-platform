@@ -199,16 +199,35 @@ Démo à la demande sur Google Cloud Run (`europe-west1`), base Neon, Kafka sur 
 
 - Artifact Registry `logistics` (les 2 dernières images par service) ;
 - secrets dans Secret Manager, lus masqués au clavier, jamais écrits sur disque ;
-- un compte d'exécution par service, avec accès à ses seuls secrets ;
+- un compte d'exécution par service (front compris, `frontend-run`, sans aucun secret), avec accès à ses seuls secrets ;
 - un compte de déploiement joint par Workload Identity Federation, limité à la branche `main` de ce dépôt : GitHub Actions s'authentifie sans clé JSON ;
 - une métrique basée sur les journaux pour le coût des appels à Claude.
 
 **Up et down**, deux workflows GitHub Actions lancés à la main :
 
-- **Deploy up** (`deploy-up.yml`) : refuse un commit hors de `main` ou dont la CI n'est pas verte, construit les images (`spring-boot:build-image`, sans Dockerfile), déploie `shipment-service` puis les deux autres, attend qu'ils répondent et lance un parcours de fumée (`scripts/deploy/smoke.sh`, sans appel à Claude).
-- **Deploy down** (`deploy-down.yml`) : supprime les trois services Cloud Run ; secrets, images, base et Kafka restent.
+- **Deploy up** (`deploy-up.yml`) : refuse un commit hors de `main` ou dont la CI n'est pas verte, construit les images (`spring-boot:build-image` pour les services, `frontend/Dockerfile` pour le front), déploie `shipment-service`, puis les deux autres, puis `frontend`, attend qu'ils répondent et lance un parcours de fumée (`scripts/deploy/smoke.sh`, sans appel à Claude, y compris à travers le front). **L'URL de la démo** est celle du front, affichée dans le résumé du workflow ; les services ne s'ouvrent pas directement dans le navigateur.
+- **Deploy down** (`deploy-down.yml`) : supprime les quatre services Cloud Run (front compris) ; secrets, images, base et Kafka restent.
 
 Coûts : ~0 $ démo arrêtée (offres gratuites de Neon, Confluent Basic et Artifact Registry ; quelques centimes de Secret Manager). Démo en marche, `shipment-service` reste actif (détection des anomalies, consommateur Kafka) : quelques dollars par jour. Lancer **down** une fois la démo finie.
+
+**Comptes de la démo** : la base ne contient que l'ADMIN d'amorçage (identifiant `BOOTSTRAP_ADMIN_USERNAME`, mot de passe `BOOTSTRAP_ADMIN_PASSWORD`). Se connecter avec lui sur l'URL de la démo, puis créer les comptes OPERATOR et SCANNER (un SCANNER est rattaché à un site) depuis l'écran des comptes.
+
+## Front
+
+Angular (zoneless, Material) dans `frontend/`. Node : version de `frontend/.nvmrc` (24, LTS ; la CLI Angular exige au moins 24.15).
+
+```sh
+cd frontend
+npm ci
+npm start          # http://localhost:4200, /api/scans et /api/scans/… -> :8081, /api et /.well-known -> :8080 (proxy.conf.json)
+npm run lint
+npm test           # Vitest, une passe
+npm run build
+npx playwright install chromium   # une fois par machine
+npm run e2e        # Playwright, ng serve sur E2E_PORT (4200 par défaut), API simulée
+```
+
+Lancer d'abord les services (voir « Lancer en local ») pour que le proxy ait quelqu'un à qui parler.
 
 ## Tests
 

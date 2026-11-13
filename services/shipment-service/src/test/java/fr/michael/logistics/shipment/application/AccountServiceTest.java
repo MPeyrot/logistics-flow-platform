@@ -150,5 +150,10 @@ class AccountServiceTest {
         public int countActiveAdminsLocking() {
             return (int) accounts.stream().filter(a -> a.role() == Role.ADMIN && a.active()).count();
         }
+
+        @Override
+        public List<UserAccount> findAllOrderedByUsername() {
+            return accounts.stream().sorted(java.util.Comparator.comparing(UserAccount::username)).toList();
+        }
     }
 }

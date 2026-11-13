@@ -1,0 +1,50 @@
+<main class="page">
+  <div class="title">
+    <h2>Comptes</h2>
+    <span class="spacer"></span>
+    <button matButton type="button" (click)="refresh()" [disabled]="loading()">Actualiser</button>
+    <button matButton="filled" type="button" (click)="openCreate()">Créer un compte</button>
+  </div>
+
+  @if (loaded()) {
+    @if (users().length === 0) {
+      <p class="empty">Aucun compte.</p>
+    } @else {
+      <div class="scroll">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Identifiant</th>
+              <th scope="col">Rôle</th>
+              <th scope="col">Site</th>
+              <th scope="col">État</th>
+              <th scope="col">Créé le</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (u of users(); track u.id) {
+              <tr>
+                <td>{{ u.username }}</td>
+                <td>{{ roleLabels[u.role] }}</td>
+                <td>{{ u.site ?? '—' }}</td>
+                <td>
+                  @if (isSelf(u)) {
+                    Actif
+                  } @else {
+                    <mat-slide-toggle
+                      [checked]="u.active"
+                      (change)="toggle(u, $event.source)"
+                      [attr.aria-label]="'Compte ' + u.username"
+                      >{{ u.active ? 'Actif' : 'Inactif' }}</mat-slide-toggle
+                    >
+                  }
+                </td>
+                <td>{{ formatDate(u.createdAt) }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  }
+</main>

@@ -4,6 +4,7 @@ import fr.michael.logistics.shipment.application.AccountNotFoundException;
 import fr.michael.logistics.shipment.application.DeadLetterAlreadyReplayedException;
 import fr.michael.logistics.shipment.application.DeadLetterNotFoundException;
 import fr.michael.logistics.shipment.application.ReplayAllJobNotFoundException;
+import fr.michael.logistics.shipment.application.ShipmentNotFoundException;
 import fr.michael.logistics.shipment.application.DuplicateReferenceException;
 import fr.michael.logistics.shipment.application.LastActiveAdminException;
 import fr.michael.logistics.shipment.application.LoginBlockedException;
@@ -49,6 +50,11 @@ class ApiExceptionHandler {
 
     @ExceptionHandler(AccountNotFoundException.class)
     ProblemDetail accountNotFound(AccountNotFoundException e) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, e.getMessage());
+    }
+
+    @ExceptionHandler(ShipmentNotFoundException.class)
+    ProblemDetail shipmentNotFound(ShipmentNotFoundException e) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, e.getMessage());
     }
 

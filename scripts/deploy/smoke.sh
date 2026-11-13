@@ -4,16 +4,18 @@
 # Variables d'environnement (obligatoires) :
 #   SHIPMENT_URL, INGESTION_URL, AI_URL   URL de base des trois services (sans « / » final)
 #   ADMIN_USERNAME, ADMIN_PASSWORD        ADMIN amorcé de shipment-service
+#   FRONTEND_URL                          URL du front (nginx), sans « / » final : dernière étape, à travers lui
 # Facultatives : SMOKE_TIMEOUT (secondes d'attente du scan, 90 par défaut), SMOKE_POLL (intervalle, 3).
 # Besoin : curl, jq. Les données créées restent dans la base (accepté). Ni jeton ni mot de passe affichés.
 set -euo pipefail
 
-for v in SHIPMENT_URL INGESTION_URL AI_URL ADMIN_USERNAME ADMIN_PASSWORD; do
+for v in SHIPMENT_URL INGESTION_URL AI_URL FRONTEND_URL ADMIN_USERNAME ADMIN_PASSWORD; do
   if [ -z "${!v:-}" ]; then echo "Variable manquante : $v" >&2; exit 2; fi
 done
 SMOKE_TIMEOUT="${SMOKE_TIMEOUT:-90}"
 SMOKE_POLL="${SMOKE_POLL:-3}"
 SHIPMENT_URL="${SHIPMENT_URL%/}"; INGESTION_URL="${INGESTION_URL%/}"; AI_URL="${AI_URL%/}"
+FRONTEND_URL="${FRONTEND_URL%/}"
 
 BODY_FILE="$(mktemp)"
 trap 'rm -f "$BODY_FILE"' EXIT
@@ -144,5 +146,26 @@ expect 200 "ai-service /actuator/health répond"
 echo "OK  ai-service est UP"
 call POST "$AI_URL/api/delivery-notes/extract"
 expect 401 "POST /api/delivery-notes/extract sans jeton est refusé"
+
+step "9. Front : pages, en-tête de sécurité, connexion et refus sans jeton, à travers nginx"
+HEADERS_FILE="$(mktemp)"
+trap 'rm -f "$BODY_FILE" "$HEADERS_FILE"' EXIT
+call_front_page() { # call_front_page CHEMIN : comme call GET, et garde les en-têtes de réponse
+  STATUS="$(curl -sS --max-time 60 -D "$HEADERS_FILE" -o "$BODY_FILE" -w '%{http_code}' "$FRONTEND_URL$1")" \
+    || fail "GET $FRONTEND_URL$1 injoignable"
+}
+for path in / /shipments; do
+  call_front_page "$path"
+  expect 200 "Front GET $path"
+  grep -qi '^content-type:.*text/html' "$HEADERS_FILE" || fail_response "Front GET $path : Content-Type text/html attendu"
+  grep -qi '<html' "$BODY_FILE" || fail_response "Front GET $path : le corps n'est pas du HTML"
+done
+grep -qi '^content-security-policy:' "$HEADERS_FILE" || fail_response "Front : en-tête Content-Security-Policy absent"
+echo "OK  Content-Security-Policy présent"
+call POST "$FRONTEND_URL/api/auth/token" "" "$(U="$ADMIN_USERNAME" P="$ADMIN_PASSWORD" jq -nc '{username:env.U,password:env.P}')"
+expect 200 "Connexion de l'ADMIN par le front (/api/auth/token)"
+jq -e '.accessToken' "$BODY_FILE" >/dev/null || fail_response "Front : pas de jeton dans la réponse"
+call POST "$FRONTEND_URL/api/scans"
+expect 401 "POST /api/scans sans jeton par le front (ingestion-service) est refusé"
 
 printf '\nFumée réussie : la plateforme marche de bout en bout.\n'

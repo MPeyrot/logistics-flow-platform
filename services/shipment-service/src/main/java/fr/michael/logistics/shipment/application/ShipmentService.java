@@ -16,11 +16,14 @@ public class ShipmentService {
 
     private final ShipmentRepository repository;
     private final AnomalyRepository anomalies;
+    private final ShipmentHistory history;
     private final Clock clock;
 
-    public ShipmentService(ShipmentRepository repository, AnomalyRepository anomalies, Clock clock) {
+    public ShipmentService(ShipmentRepository repository, AnomalyRepository anomalies, ShipmentHistory history,
+            Clock clock) {
         this.repository = repository;
         this.anomalies = anomalies;
+        this.history = history;
         this.clock = clock;
     }
 
@@ -30,6 +33,13 @@ public class ShipmentService {
             throw new DuplicateReferenceException(reference);
         }
         return repository.save(Shipment.create(reference, origin, destination, expectedDeliveryAt, clock.instant()));
+    }
+
+    @Transactional(readOnly = true)
+    public ShipmentDetail get(String reference) {
+        Shipment shipment = repository.findByReference(reference)
+                .orElseThrow(() -> new ShipmentNotFoundException(reference));
+        return new ShipmentDetail(shipment, history.scans(shipment.id()), history.anomalies(shipment.id()));
     }
 
     @Transactional(readOnly = true)

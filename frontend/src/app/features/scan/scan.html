@@ -1,0 +1,80 @@
+<main class="page">
+  <h2>Scan</h2>
+  <p><a routerLink="/scan/import">Importer un fichier CSV</a></p>
+
+  @if (site === null) {
+    <p class="error" role="alert">Votre compte n’est rattaché à aucun site : impossible de scanner.</p>
+  } @else {
+    <p class="site">Site : <strong>{{ site }}</strong></p>
+  }
+
+  <form [formGroup]="form" (ngSubmit)="submit()" class="fields">
+    <mat-form-field>
+      <mat-label>Référence de l’expédition</mat-label>
+      <input
+        matInput
+        #reference
+        formControlName="reference"
+        maxlength="50"
+        autocomplete="off"
+        autocapitalize="characters"
+      />
+    </mat-form-field>
+
+    <mat-form-field>
+      <mat-label>Type de scan</mat-label>
+      <select matNativeControl formControlName="type">
+        @for (t of types; track t) {
+          <option [value]="t">{{ typeLabels[t] }}</option>
+        }
+      </select>
+    </mat-form-field>
+
+    @if (showReason()) {
+      <mat-form-field>
+        <mat-label>Motif (facultatif)</mat-label>
+        <textarea matInput formControlName="reason" rows="2"></textarea>
+        <mat-hint align="end" [class.over]="reasonCount() > reasonMax">
+          {{ reasonCount() }} / {{ reasonMax }}
+        </mat-hint>
+      </mat-form-field>
+      @if (reasonProblem(); as problem) {
+        <p class="error" role="alert">{{ problem }}</p>
+      }
+    }
+
+    <details class="deferred">
+      <summary>Saisie différée</summary>
+      <p>Par défaut, le scan est daté de l’envoi.</p>
+      <mat-form-field>
+        <mat-label>Date et heure du scan</mat-label>
+        <input matInput type="datetime-local" formControlName="occurredAt" />
+      </mat-form-field>
+    </details>
+
+    <button matButton="filled" type="submit" [disabled]="!canSend()">Envoyer</button>
+  </form>
+
+  @if (success()) {
+    <p class="success" role="status">Scan envoyé</p>
+  }
+  @if (error()) {
+    <p class="error" role="alert">{{ error() }}</p>
+  }
+  @if (retryAfter() !== null) {
+    <app-retry-countdown [seconds]="retryAfter()!" (finished)="retryAfter.set(null)" />
+  }
+
+  @if (recent().length > 0) {
+    <section aria-label="Derniers scans">
+      <h3>Derniers scans</h3>
+      <ul class="recent">
+        @for (s of recent(); track $index) {
+          <li>
+            <strong>{{ s.reference }}</strong> · {{ typeLabels[s.type] }} · {{ formatDate(s.sentAt) }}
+          </li>
+        }
+      </ul>
+    </section>
+  }
+</main>

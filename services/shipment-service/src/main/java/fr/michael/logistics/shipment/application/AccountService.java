@@ -3,6 +3,7 @@ package fr.michael.logistics.shipment.application;
 import fr.michael.logistics.shipment.domain.Role;
 import fr.michael.logistics.shipment.domain.UserAccount;
 import java.time.Clock;
+import java.util.List;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,6 +30,11 @@ public class AccountService {
         this.repository = repository;
         this.passwordHasher = passwordHasher;
         this.clock = clock;
+    }
+
+    @Transactional(readOnly = true)
+    public List<UserAccount> list() {
+        return repository.findAllOrderedByUsername();
     }
 
     @Transactional
