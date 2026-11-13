@@ -11,9 +11,9 @@ Ce fichier est relu par chaque orchestrateur neuf : il décrit l'état présent,
 
 | Issue | Titre court | Bloqué par | Modèle / effort | Statut | Slot / worktree / branche | Commit |
 |---|---|---|---|---|---|---|
-| #82 | shipment-service : détail d'une expédition, liste des comptes | — | sonnet / medium | à faire | | |
-| #83 | front : amorçage, dépendances, outillage, CI, doc | — | sonnet / medium | à faire | | |
-| #84 | front : authentification, erreurs HTTP, navigation par rôle | #83 | sonnet / medium | à faire | | |
+| #82 | shipment-service : détail d'une expédition, liste des comptes | — | sonnet / medium | en cours | 1 / .claude/worktrees/agent-aa2f76e74593213de / ticket/82-detail-expedition-comptes | |
+| #83 | front : amorçage, dépendances, outillage, CI, doc | — | sonnet / medium | fusionné | | 4418264 |
+| #84 | front : authentification, erreurs HTTP, navigation par rôle | #83 | sonnet / medium | en cours | 2 / .claude/worktrees/agent-a2b6f5dc5c624b0bf / ticket/84-auth-navigation | |
 | #85 | front : expéditions (liste, détail, création) | #84 | sonnet / medium | à faire | | |
 | #86 | front : bons de livraison et anomalies | #85 | sonnet / medium | à faire | | |
 | #87 | front : comptes et DLT (ADMIN) | #84 | sonnet / medium | à faire | | |
