@@ -135,6 +135,11 @@ class ConcurrentBootstrapAdminTest {
         public int countActiveAdminsLocking() {
             return delegate.countActiveAdminsLocking();
         }
+
+        @Override
+        public List<UserAccount> findAllOrderedByUsername() {
+            return delegate.findAllOrderedByUsername();
+        }
     }
 
     private static final class PlainHasher implements PasswordHasher {

@@ -1,5 +1,6 @@
 package fr.michael.logistics.shipment.infrastructure.persistence;
 
+import fr.michael.logistics.shipment.application.ScanRecord;
 import fr.michael.logistics.shipment.domain.ScanEvent;
 import fr.michael.logistics.shipment.domain.ScanType;
 import jakarta.persistence.Column;
@@ -39,6 +40,10 @@ class ScanEventJpaEntity {
     private Instant receivedAt;
 
     protected ScanEventJpaEntity() {
+    }
+
+    ScanRecord toRecord() {
+        return new ScanRecord(eventId, type, site, occurredAt, receivedAt, reason);
     }
 
     static ScanEventJpaEntity from(UUID shipmentId, ScanEvent event, Instant receivedAt) {

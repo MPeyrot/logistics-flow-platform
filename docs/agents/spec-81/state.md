@@ -11,7 +11,7 @@ Ce fichier est relu par chaque orchestrateur neuf : il décrit l'état présent,
 
 | Issue | Titre court | Bloqué par | Modèle / effort | Statut | Slot / worktree / branche | Commit |
 |---|---|---|---|---|---|---|
-| #82 | shipment-service : détail d'une expédition, liste des comptes | — | sonnet / medium | en cours | 1 / .claude/worktrees/agent-aa2f76e74593213de / ticket/82-detail-expedition-comptes | |
+| #82 | shipment-service : détail d'une expédition, liste des comptes | — | sonnet / medium | fusionné | | 6d48c14 |
 | #83 | front : amorçage, dépendances, outillage, CI, doc | — | sonnet / medium | fusionné | | 4418264 |
 | #84 | front : authentification, erreurs HTTP, navigation par rôle | #83 | sonnet / medium | en cours | 2 / .claude/worktrees/agent-a2b6f5dc5c624b0bf / ticket/84-auth-navigation | |
 | #85 | front : expéditions (liste, détail, création) | #84 | sonnet / medium | à faire | | |
@@ -26,6 +26,8 @@ Statuts : `à faire`, `en cours`, `partiel`, `décision attendue`, `fusionné`.
 Parallélisme : #82 et #83 d'abord ; après #84, #85, #87, #88 et #89 sont indépendants (chaque écran n'édite que son dossier et son `<fonctionnalité>.routes.ts`). Fichiers partagés : `frontend/package.json` et lock (#83 seul ; les autres n'ajoutent aucune dépendance), `app.routes.ts` (#84 seul), `ci.yml` (#83, #89), `environnement.md` (#83, #89), `architecture.md` (#82, #90), README (#83, #90), scripts et workflows de déploiement (#90). Aucun contrat ni migration modifiés.
 
 Après la fusion de #90 : ouvrir une issue `point-ouvert` + `action Michael` (lancer `deploy-up` pour vérifier le front en ligne, puis `deploy-down`).
+
+Hors tickets : #91 (setup-node épinglé par SHA, décision de Michael) fusionné en a2a89a7.
 
 ## En attente de Michael
 

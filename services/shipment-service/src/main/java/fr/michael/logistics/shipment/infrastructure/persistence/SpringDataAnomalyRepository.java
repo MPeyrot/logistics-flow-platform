@@ -33,6 +33,8 @@ interface SpringDataAnomalyRepository extends JpaRepository<AnomalyJpaEntity, UU
 
     List<AnomalyJpaEntity> findByResolvedAtIsNull();
 
+    List<AnomalyJpaEntity> findByShipmentIdOrderByDetectedAtAsc(UUID shipmentId);
+
     List<AnomalyJpaEntity> findByShipmentIdAndResolvedAtIsNull(UUID shipmentId);
 
     @Query("""

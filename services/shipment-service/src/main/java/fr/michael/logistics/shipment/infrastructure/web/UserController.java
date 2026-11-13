@@ -5,8 +5,10 @@ import fr.michael.logistics.shipment.domain.UserAccount;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import java.net.URI;
+import java.util.List;
 import java.util.UUID;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -15,7 +17,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
-/** Comptes : création, désactivation et réactivation, réservées à l'ADMIN (SecurityConfig). Pas de liste. */
+/** Comptes : liste (triée par identifiant), création, désactivation et réactivation, réservées à l'ADMIN (SecurityConfig). */
 @RestController
 @RequestMapping("/api/users")
 class UserController {
@@ -24,6 +26,11 @@ class UserController {
 
     UserController(AccountService accounts) {
         this.accounts = accounts;
+    }
+
+    @GetMapping
+    List<UserResponse> list() {
+        return accounts.list().stream().map(UserResponse::from).toList();
     }
 
     @PostMapping

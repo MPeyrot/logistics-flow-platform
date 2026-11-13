@@ -100,5 +100,10 @@ class AuthenticationServiceTest {
         public int countActiveAdminsLocking() {
             return 0;
         }
+
+        @Override
+        public java.util.List<UserAccount> findAllOrderedByUsername() {
+            return java.util.List.of();
+        }
     }
 }
