@@ -1,6 +1,7 @@
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
+import type { FormGroup } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { provideRouter, Router } from '@angular/router';
 import { CreateShipmentDialog, toLocalInput, type ShipmentPrefill } from './create-shipment-dialog';
@@ -62,6 +63,32 @@ describe('CreateShipmentDialog', () => {
     req.flush({ reference: 'BL-42' });
     expect(close).toHaveBeenCalled();
     expect(navigate).toHaveBeenCalledWith(['/shipments', 'BL-42']);
+  });
+
+  it('refuse une référence hors [A-Za-z0-9._-] avec un message, sans envoyer', () => {
+    const { fixture, http } = setup({
+      reference: 'LOT/42',
+      origin: 'Paris',
+      destination: 'Lyon',
+      expectedDeliveryAt: new Date(2026, 10, 20, 18, 0),
+    });
+    const form = (fixture.componentInstance as unknown as { form: FormGroup }).form;
+    form.controls['reference'].markAsTouched();
+    fixture.detectChanges();
+    expect(form.invalid).toBe(true);
+    expect(fixture.nativeElement.textContent).toContain('lettres, chiffres, point, tiret et tiret bas');
+    (fixture.componentInstance as unknown as { submit(): void }).submit();
+    http.expectNone('/api/shipments');
+  });
+
+  it('accepte une référence de lettres, chiffres, point, tiret et tiret bas', () => {
+    const { fixture } = setup({
+      reference: 'Lot_4.2-B',
+      origin: 'Paris',
+      destination: 'Lyon',
+      expectedDeliveryAt: new Date(2026, 10, 20, 18, 0),
+    });
+    expect((fixture.componentInstance as unknown as { form: FormGroup }).form.valid).toBe(true);
   });
 
   it('affiche le detail du backend et reste ouvert en cas d’erreur', () => {

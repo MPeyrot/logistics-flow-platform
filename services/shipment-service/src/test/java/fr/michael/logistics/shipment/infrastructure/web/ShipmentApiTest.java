@@ -87,6 +87,24 @@ class ShipmentApiTest {
     }
 
     @Test
+    void referenceWithCharactersOutsideThePatternGets400Problem() throws Exception {
+        for (String reference : new String[] {"LOT/42", "LOT 42", "LOT?42", "LOT#42", "LOT%42", "é42"}) {
+            badRequestProblem(create("""
+                    {"reference":"%s","origin":"Nantes","destination":"Lyon","expectedDeliveryAt":"%s"}"""
+                    .formatted(reference, DUE)))
+                    .andExpect(jsonPath("$.detail").value(org.hamcrest.Matchers.startsWith("reference:")));
+        }
+    }
+
+    @Test
+    void acceptsReferenceWithLettersDigitsDotUnderscoreAndDash() throws Exception {
+        create("""
+                {"reference":"Lot_4.2-B","origin":"Nantes","destination":"Lyon","expectedDeliveryAt":"%s"}"""
+                .formatted(DUE))
+                .andExpect(status().isCreated());
+    }
+
+    @Test
     void missingExpectedDeliveryDateGets400Problem() throws Exception {
         badRequestProblem(create("""
                 {"reference":"API-NO-DUE","origin":"Nantes","destination":"Lyon"}"""))

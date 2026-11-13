@@ -10,7 +10,7 @@ import {
   MatDialogRef,
   MatDialogTitle,
 } from '@angular/material/dialog';
-import { MatFormField, MatLabel } from '@angular/material/form-field';
+import { MatError, MatFormField, MatLabel } from '@angular/material/form-field';
 import { MatInput } from '@angular/material/input';
 import { Router } from '@angular/router';
 import { describeError } from '../../core/http/error-messages';
@@ -23,6 +23,9 @@ export interface ShipmentPrefill {
   destination?: string;
   expectedDeliveryAt?: Date;
 }
+
+/** Même règle que `CreateShipmentRequest` côté serveur : la référence sert de segment d'URL. */
+export const REFERENCE_PATTERN = /^[A-Za-z0-9._-]+$/;
 
 const pad = (n: number) => String(n).padStart(2, '0');
 
@@ -45,6 +48,7 @@ export function toLocalInput(date: Date): string {
     MatDialogClose,
     MatFormField,
     MatLabel,
+    MatError,
     MatInput,
     MatButton,
   ],
@@ -55,6 +59,9 @@ export function toLocalInput(date: Date): string {
         <mat-form-field>
           <mat-label>Référence</mat-label>
           <input matInput formControlName="reference" maxlength="50" />
+          @if (form.controls.reference.touched && form.controls.reference.hasError('pattern')) {
+            <mat-error>Uniquement des lettres, chiffres, point, tiret et tiret bas.</mat-error>
+          }
         </mat-form-field>
         <mat-form-field>
           <mat-label>Origine</mat-label>
@@ -97,7 +104,7 @@ export class CreateShipmentDialog {
   private readonly prefill = inject<ShipmentPrefill | null>(MAT_DIALOG_DATA, { optional: true });
 
   protected readonly form = inject(FormBuilder).nonNullable.group({
-    reference: [this.prefill?.reference ?? '', Validators.required],
+    reference: [this.prefill?.reference ?? '', [Validators.required, Validators.pattern(REFERENCE_PATTERN)]],
     origin: [this.prefill?.origin ?? '', Validators.required],
     destination: [this.prefill?.destination ?? '', Validators.required],
     expectedDeliveryAt: [
