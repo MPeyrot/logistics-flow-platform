@@ -3,6 +3,8 @@
 STATUT: en cours
 <!-- en cours | décision attendue | terminé. Lu par orchestrate.sh : garder « STATUT: » en début de ligne. -->
 
+Budget (Michael, 2026-11-13) : nouveaux tickets ou lots jusqu'à 180k de contexte (pas 150k) ; passage de main à 190k.
+
 Spec : issue #81. Branche d'intégration : `spec/81-interface-web` (repo principal). Parallèle : 2.
 
 Ce fichier est relu par chaque orchestrateur neuf : il décrit l'état présent, pas l'histoire (l'histoire est dans `git log`). Moins de 6 ko.
