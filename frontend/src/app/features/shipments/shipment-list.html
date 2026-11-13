@@ -1,0 +1,73 @@
+<main class="page">
+  <div class="title">
+    <h2>Expéditions</h2>
+    <span class="spacer"></span>
+    <button matButton type="button" (click)="refresh()" [disabled]="loading()">Actualiser</button>
+    <button matButton="filled" type="button" (click)="openCreate()">Créer une expédition</button>
+  </div>
+
+  <div class="filters">
+    <mat-form-field>
+      <mat-label>Rechercher une référence</mat-label>
+      <input matInput [ngModel]="search()" (ngModelChange)="search.set($event)" />
+    </mat-form-field>
+    <mat-form-field>
+      <mat-label>Statut</mat-label>
+      <select matNativeControl [ngModel]="status()" (ngModelChange)="status.set($event)">
+        <option value="">Tous</option>
+        @for (s of statuses; track s) {
+          <option [value]="s">{{ statusLabels[s] }}</option>
+        }
+      </select>
+    </mat-form-field>
+    <mat-checkbox [checked]="withAnomaly()" (change)="withAnomaly.set($event.checked)">
+      Avec anomalie ouverte
+    </mat-checkbox>
+  </div>
+
+  @if (loaded()) {
+    @if (rows().length === 0) {
+      <p class="empty">Aucune expédition.</p>
+    } @else {
+      <div class="scroll">
+        <table>
+          <thead>
+            <tr>
+              @for (c of columns; track c.column) {
+                <th scope="col" [attr.aria-sort]="ariaSort(c.column)">
+                  <button type="button" class="sort" (click)="toggleSort(c.column)">
+                    {{ c.label }}
+                    @switch (ariaSort(c.column)) {
+                      @case ('ascending') {
+                        <span aria-hidden="true">▲</span>
+                      }
+                      @case ('descending') {
+                        <span aria-hidden="true">▼</span>
+                      }
+                    }
+                  </button>
+                </th>
+              }
+            </tr>
+          </thead>
+          <tbody>
+            @for (s of rows(); track s.id) {
+              <tr>
+                <td><a [routerLink]="['/shipments', s.reference]">{{ s.reference }}</a></td>
+                <td>{{ s.origin }}</td>
+                <td>{{ s.destination }}</td>
+                <td>{{ statusLabels[s.status] }}</td>
+                <td>{{ formatDate(s.expectedDeliveryAt) }}</td>
+                <td>
+                  @for (a of s.openAnomalies; track a.type) {
+                    <span class="chip" [class.late]="a.type === 'LATE'">{{ anomalyLabels[a.type] }}</span>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  }
+</main>
