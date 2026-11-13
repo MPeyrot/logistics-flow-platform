@@ -18,8 +18,8 @@ Ce fichier est relu par chaque orchestrateur neuf : il décrit l'état présent,
 | #86 | front : bons de livraison et anomalies | #85 | sonnet / medium | en cours | 1 / .claude/worktrees/agent-a159a3f244a250525 / ticket/86-bons-anomalies | |
 | #87 | front : comptes et DLT (ADMIN) | #84 | sonnet / medium | à faire | | |
 | #88 | front : scan et import CSV (SCANNER) | #84 | sonnet / medium | à faire | | |
-| #89 | front : image nginx, CSP, vérifiée en CI | #84 | sonnet / medium | en cours | 2 / .claude/worktrees/agent-a7c4183804e778222 / ticket/89-image-nginx | |
-| #90 | déploiement : front sur Cloud Run, fumée | #89, #82 | sonnet / medium | à faire | | |
+| #89 | front : image nginx, CSP, vérifiée en CI | #84 | sonnet / medium | fusionné | | 0a646ab |
+| #90 | déploiement : front sur Cloud Run, fumée | #89, #82 | sonnet / medium | en cours | 2 / .claude/worktrees/agent-a4829bf9531d3518a / ticket/90-deploiement-front | |
 
 Statuts : `à faire`, `en cours`, `partiel`, `décision attendue`, `fusionné`.
 
