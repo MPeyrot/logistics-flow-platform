@@ -1,0 +1,61 @@
+<main class="page">
+  <a routerLink="/shipments">← Expéditions</a>
+
+  @if (error()) {
+    <p class="error" role="alert">{{ error() }}</p>
+  }
+
+  @if (shipment(); as s) {
+    <h2>{{ s.reference }}</h2>
+    <dl class="header">
+      <dt>Origine</dt>
+      <dd>{{ s.origin }}</dd>
+      <dt>Destination</dt>
+      <dd>{{ s.destination }}</dd>
+      <dt>Statut</dt>
+      <dd>{{ statusLabels[s.status] }}</dd>
+      <dt>Livraison prévue</dt>
+      <dd>{{ formatDate(s.expectedDeliveryAt) }}</dd>
+      <dt>Créée le</dt>
+      <dd>{{ formatDate(s.createdAt) }}</dd>
+    </dl>
+
+    <h3>Scans</h3>
+    @if (s.scans.length === 0) {
+      <p class="empty">Aucun scan.</p>
+    } @else {
+      <ol class="timeline" aria-label="Frise des scans">
+        @for (scan of s.scans; track scan.eventId) {
+          <li>
+            <strong>{{ scanLabels[scan.type] }}</strong> — {{ scan.site }}
+            <div class="meta">
+              Date métier : {{ formatDate(scan.occurredAt) }} · Reçu le : {{ formatDate(scan.receivedAt) }}
+            </div>
+            @if (scan.reason) {
+              <div class="meta">Motif : {{ scan.reason }}</div>
+            }
+          </li>
+        }
+      </ol>
+    }
+
+    <h3>Anomalies</h3>
+    @if (s.anomalies.length === 0) {
+      <p class="empty">Aucune anomalie.</p>
+    } @else {
+      <ul class="anomalies">
+        @for (a of s.anomalies; track a.id) {
+          <li>
+            <span class="chip" [class.late]="a.type === 'LATE'">{{ anomalyLabels[a.type] }}</span>
+            détectée le {{ formatDate(a.detectedAt) }} ·
+            @if (a.resolvedAt) {
+              close le {{ formatDate(a.resolvedAt) }}
+            } @else {
+              <strong>ouverte</strong>
+            }
+          </li>
+        }
+      </ul>
+    }
+  }
+</main>

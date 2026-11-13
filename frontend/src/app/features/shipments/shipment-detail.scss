@@ -1,0 +1,49 @@
+.page {
+  padding: 1rem;
+}
+
+.error {
+  color: var(--mat-sys-error);
+}
+
+.header {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.25rem 1rem;
+
+  dt {
+    color: var(--mat-sys-on-surface-variant);
+  }
+
+  dd {
+    margin: 0;
+  }
+}
+
+.timeline,
+.anomalies {
+  padding-left: 1.25rem;
+
+  li {
+    margin-bottom: 0.75rem;
+  }
+}
+
+.meta,
+.empty {
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.chip {
+  display: inline-block;
+  padding: 0.125rem 0.5rem;
+  border-radius: 1rem;
+  font: var(--mat-sys-label-medium);
+  background: var(--mat-sys-secondary-container);
+  color: var(--mat-sys-on-secondary-container);
+
+  &.late {
+    background: var(--mat-sys-error-container);
+    color: var(--mat-sys-on-error-container);
+  }
+}
