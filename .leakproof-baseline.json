@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "findings": [
+    {
+      "fingerprint": "3aa2d3b48b65ff25",
+      "ruleId": "secret/credentials-in-url",
+      "path": "scripts/deploy/setup-wizard.sh",
+      "reason": "Pas un secret : expression régulière et message d'aide qui décrivent le format attendu d'une URL PostgreSQL, pour découper la chaîne de connexion Neon saisie au clavier."
+    },
+    {
+      "fingerprint": "ecabdf98b70f2247",
+      "ruleId": "secret/private-key-block",
+      "path": "scripts/deploy/setup-wizard.sh",
+      "reason": "Pas un secret : le script vérifie que la clé générée par generate-jwt-key.sh commence bien par le marqueur PEM avant de l'envoyer à Secret Manager ; la clé n'est jamais écrite dans le dépôt."
+    },
+    {
+      "fingerprint": "b29b913c3853a7f3",
+      "ruleId": "secret/private-key-block",
+      "path": "services/shipment-service/src/main/java/fr/michael/logistics/shipment/infrastructure/security/SigningKeyConfig.java",
+      "reason": "Pas un secret : marqueurs PEM retirés à la lecture de JWT_PRIVATE_KEY (variable d'environnement) et cités dans le message d'erreur d'une clé invalide."
+    },
+    {
+      "fingerprint": "e6c849cb116311a2",
+      "ruleId": "secret/private-key-block",
+      "path": "services/shipment-service/src/main/java/fr/michael/logistics/shipment/infrastructure/security/SigningKeyConfig.java",
+      "reason": "Pas un secret : marqueurs PEM retirés à la lecture de JWT_PRIVATE_KEY (variable d'environnement) et cités dans le message d'erreur d'une clé invalide."
+    },
+    {
+      "fingerprint": "773961e14857008d",
+      "ruleId": "secret/private-key-block",
+      "path": "services/shipment-service/src/test/java/fr/michael/logistics/shipment/TestSecurityConfiguration.java",
+      "reason": "Pas un secret : clé RSA générée en mémoire à chaque lancement des tests, mise au format PEM par concaténation des marqueurs."
+    },
+    {
+      "fingerprint": "39cbb5b7d469a834",
+      "ruleId": "secret/private-key-block",
+      "path": "services/shipment-service/src/test/java/fr/michael/logistics/shipment/infrastructure/security/SigningKeyConfigTest.java",
+      "reason": "Pas un secret : bloc PEM volontairement invalide (contenu « garbage ») pour tester le refus d'une clé illisible."
+    }
+  ]
+}
