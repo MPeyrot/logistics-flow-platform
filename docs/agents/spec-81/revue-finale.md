@@ -38,7 +38,7 @@ Un implémenteur par lot, l'un après l'autre, sur la branche d'intégration à 
 | Lot | Points | Fichiers | Statut | Commit |
 |---|---|---|---|---|
 | A | R1, R2, R4, R5 | `architecture.md`, `frontend/nginx/security-headers.conf`, e2e de l'image | fusionné | 9fd19df |
-| B | R3, R6 | `frontend/proxy.conf.json`, `frontend/nginx/default.conf.template`, doc du découpage | à faire | |
+| B | R3, R6 | `frontend/proxy.conf.json`, `frontend/nginx/default.conf.template`, doc du découpage | fusionné | 64a20a1 |
 | C | R7, R15 | shipment-service (création), `features/shipments/` | à faire | |
 | D | R8, R10, R11, R14 | `features/admin/`, `features/login/`, `core/auth/` | à faire | |
 | E | R9, R12, R13 | `features/anomalies/`, `features/scan/`, `features/delivery-notes/` | à faire | |
