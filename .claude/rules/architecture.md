@@ -3,11 +3,11 @@
 ## Décisions
 - **Microservices** Spring Boot (Java 21, Maven) dans un **monorepo**.
 - **Hexagonale** dans chaque service : `domain/` (aucune dépendance Spring), `application/` (cas d'usage, ports), `infrastructure/` (REST, JPA/Hibernate, Kafka, client Claude).
-- **Front** : Vue 3 + TypeScript + Pinia + Vite.
+- **Front** : Angular + TypeScript (Vue 3 abandonné le 2026-11-13).
 - **Déploiement** : Docker Compose en local, GCP Cloud Run ensuite. CI : GitHub Actions.
 - Décidé par Michael le 2026-10-31 :
   - **Authentification** : `shipment-service` émet les JWT, les autres services les valident.
-  - Le **front** appelle seulement `shipment-service`, qui appelle `ai-service`.
+  - Le **front** appelle `shipment-service`, qui appelle `ai-service` (revu le 2026-11-13 : le front appelle aussi `ingestion-service`, voir plus bas).
   - **Messages Kafka** : JSON, schémas versionnés dans `contracts/`.
   - **Kafka** en local (Docker Compose) et en ligne : Kafka managé auquel les services Cloud Run se connectent (offre à choisir, issue #2).
   - **Modèle métier** : Site, Expédition, ÉvénementDeScan, Anomalie ; Compte (2026-11-03, rôles ADMIN, OPERATOR, SCANNER ; un SCANNER est rattaché à un site).
@@ -45,6 +45,9 @@
   - **`eventId` déterministe** quand la ligne n'en fournit pas (UUID par nom sur `shipmentReference|type|site|occurredAt`) : un réimport ne crée pas de doublon. Lignes invalides sautées et rapportées ; plafonds 2 Mo et 10 000 lignes, contrôlés avant toute publication.
   - Dépendances validées : `spring-boot-starter-batch` et `spring-boot-starter-batch-test` (test) dans `ingestion-service`, versions de Spring Boot ; pas de bibliothèque CSV.
   - **Imports simultanés** : un seul à la fois par instance (le dépôt de jobs sans base ne garde que la dernière exécution, note de #77). Le second **attend son tour jusqu'à 30 s** (configurable), puis 429 + `Retry-After`.
+- Décidé par Michael le 2026-11-13, avant la spec « interface graphique » :
+  - **Front en Angular** (TypeScript), à la place de Vue 3.
+  - Le front appelle **directement `shipment-service` et `ingestion-service`** (scan et import CSV du SCANNER), avec le même JWT ; `ai-service` reste joint seulement par `shipment-service`.
 
 ## Ressources GCP (spec #63, #65)
 - `scripts/deploy/infra.sh` (idempotent, ne supprime rien) crée les ressources ; `scripts/deploy/setup-wizard.sh` guide Michael (comptes, facturation, valeurs des secrets) et le lance. Noms dans `scripts/deploy/names.sh`, repris par les workflows via les variables du dépôt (`GCP_PROJECT_ID`, `GCP_PROJECT_NUMBER`, `GCP_REGION`, `GCP_AR_REPOSITORY`, `GCP_WIF_PROVIDER`, `GCP_DEPLOY_SA`, `KAFKA_BOOTSTRAP_SERVERS`, `BOOTSTRAP_ADMIN_USERNAME` ; secret `BOOTSTRAP_ADMIN_PASSWORD` pour la fumée).
@@ -62,7 +65,7 @@ javaProject/
     ingestion-service/   point d'entrée des scans (HTTP, puis import Spring Batch) : valide et publie sur Kafka
     ai-service/          appel API Claude (extraction bon de livraison, explication d'anomalies) ; sans base de données
   contracts/             schémas JSON des messages Kafka (versionnés)
-  frontend/              Vue 3 + TS
+  frontend/              Angular + TS
   docker-compose.yml
   .github/workflows/
 ```
