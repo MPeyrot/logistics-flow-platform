@@ -80,8 +80,8 @@ else
     --location="$REGION" --description="Images des services de la démo" >/dev/null
   made "dépôt $AR_REPOSITORY"
 fi
-# Chaque image de service est un paquet : on garde ses $AR_KEEP_IMAGES dernières versions, le reste
-# est supprimé (règle « Keep » prioritaire sur « Delete »). Réappliquée à chaque passage, même contenu.
+# Chaque image est un paquet (les trois services et le front) : on garde ses $AR_KEEP_IMAGES dernières
+# versions, le reste est supprimé (règle « Keep » prioritaire sur « Delete »). Réappliquée à chaque passage, même contenu.
 cat > "$tmp/cleanup.json" <<JSON
 [
   {"name": "garder-les-dernieres", "action": {"type": "Keep"},
@@ -115,6 +115,12 @@ for service in $SERVICES; do
   ok "$sa : logging.logWriter, secretAccessor sur $(service_secrets "$service" | wc -w | tr -d ' ') secret(s)"
 done
 
+# Front (#90) : logging.logWriter seulement, aucun secret (rien à lire dans Secret Manager).
+front_sa="$(runtime_sa_name "$FRONTEND_SERVICE")"
+ensure_sa "$front_sa" "Exécution de $FRONTEND_SERVICE (Cloud Run)"
+project_binding "serviceAccount:$(sa_email "$front_sa")" roles/logging.logWriter
+ok "$front_sa : logging.logWriter, aucun secret"
+
 # ── Compte de déploiement ─────────────────────────────────────────────────
 log "Compte de déploiement (GitHub Actions)"
 ensure_sa "$DEPLOY_SA_NAME" "Déploiement depuis GitHub Actions"
@@ -122,11 +128,11 @@ deployer="serviceAccount:$(sa_email "$DEPLOY_SA_NAME")"
 project_binding "$deployer" roles/run.admin
 retry gcloud artifacts repositories add-iam-policy-binding "$AR_REPOSITORY" --location="$REGION" \
   --member="$deployer" --role=roles/artifactregistry.writer
-for service in $SERVICES; do
+for service in $SERVICES $FRONTEND_SERVICE; do
   retry gcloud iam service-accounts add-iam-policy-binding "$(sa_email "$(runtime_sa_name "$service")")" \
     --member="$deployer" --role=roles/iam.serviceAccountUser
 done
-ok "$DEPLOY_SA_NAME : run.admin, artifactregistry.writer sur $AR_REPOSITORY, serviceAccountUser sur les 3 comptes d'exécution"
+ok "$DEPLOY_SA_NAME : run.admin, artifactregistry.writer sur $AR_REPOSITORY, serviceAccountUser sur les 4 comptes d'exécution"
 
 # ── Workload Identity Federation ──────────────────────────────────────────
 log "Workload Identity Federation"
