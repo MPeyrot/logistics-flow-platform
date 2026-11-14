@@ -40,5 +40,5 @@ Sha de départ de la revue : `f7d3d26` (merge-base `main`). Revue finale (opus /
 | Lot | Points | Statut | Commit |
 |---|---|---|---|
 | A | 1–4 (tableau de bord, fausse API) | fusionné | 298df1b |
-| B | 5–8 (détail et liste des expéditions) | en cours (slot 1, ticket/revue-96-lot-b) | |
-| C | 9–10 (coquille, amorçage) | à faire | |
+| B | 5–8 (détail et liste des expéditions) | fusionné | 3a65da0 |
+| C | 9–10 (coquille, amorçage) | en cours (slot 1, ticket/revue-96-lot-c) | |
