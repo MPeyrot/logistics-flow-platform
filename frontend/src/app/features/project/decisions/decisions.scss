@@ -1,0 +1,63 @@
+h2 {
+  margin: 2rem 0 0.75rem;
+  font: var(--mat-sys-headline-medium);
+  letter-spacing: -0.02em;
+}
+
+.lead {
+  max-width: 42rem;
+  margin: 0 0 1.25rem;
+}
+
+.list {
+  display: grid;
+  gap: 1rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.decision {
+  padding: 1rem 1.25rem;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 12px;
+  background: var(--mat-sys-surface-container-low);
+  overflow-wrap: anywhere;
+
+  h3 {
+    margin: 0 0 0.25rem;
+    font: var(--mat-sys-title-medium);
+  }
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1rem;
+  margin: 0 0 0.75rem;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+dl {
+  margin: 0;
+}
+
+dt {
+  margin-top: 0.5rem;
+  font: var(--mat-sys-label-large);
+  color: var(--mat-sys-on-surface-variant);
+}
+
+dd {
+  max-width: 46rem;
+  margin: 0.125rem 0 0;
+}
+
+code {
+  font-size: 0.9em;
+  overflow-wrap: anywhere;
+}
+
+.journal {
+  margin: 1.5rem 0 0;
+}
