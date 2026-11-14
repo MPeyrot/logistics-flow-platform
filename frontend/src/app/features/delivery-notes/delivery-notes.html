@@ -52,6 +52,8 @@
         <dd>{{ r.deliveryNote.totalWeightKg ?? '—' }}</dd>
         <dt>Coût de la lecture</dt>
         <dd>{{ formatCost(r.costUsd) }}</dd>
+        <dt>Jetons</dt>
+        <dd>{{ r.usage.inputTokens }} en entrée · {{ r.usage.outputTokens }} en sortie</dd>
       </dl>
 
       @if (r.shipment; as s) {
@@ -60,11 +62,16 @@
             <a [routerLink]="['/shipments', s.reference]">{{ s.reference }}</a>
           </h4>
           <p>{{ s.origin }} → {{ s.destination }}</p>
-          <p><span class="badge" [attr.data-status]="s.status">{{ statusLabels[s.status] }}</span> · livraison prévue {{ formatDate(s.expectedDeliveryAt) }}</p>
+          <p>
+            <span class="badge" [attr.data-status]="s.status">{{ statusLabels[s.status] }}</span> ·
+            livraison prévue {{ formatDate(s.expectedDeliveryAt) }}
+          </p>
         </div>
       } @else {
         <p>Aucune expédition pour cette référence</p>
-        <button matButton="filled" type="button" (click)="createShipment()">Créer l’expédition</button>
+        <button matButton="filled" type="button" (click)="createShipment()">
+          Créer l’expédition
+        </button>
       }
     </section>
   }

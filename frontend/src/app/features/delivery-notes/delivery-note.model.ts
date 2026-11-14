@@ -10,8 +10,16 @@ export interface DeliveryNote {
   totalWeightKg: number | null;
 }
 
+export interface TokenUsage {
+  inputTokens: number;
+  outputTokens: number;
+  cacheWriteTokens: number;
+  cacheReadTokens: number;
+}
+
 export interface DeliveryNoteReading {
   deliveryNote: DeliveryNote;
+  usage: TokenUsage;
   costUsd: number;
   shipment: Shipment | null;
 }

@@ -21,21 +21,58 @@
       <dd>{{ formatDate(s.createdAt) }}</dd>
     </dl>
 
-    <h3>Scans</h3>
-    @if (s.scans.length === 0) {
+    <app-shipment-scan-actions
+      [shipment]="s"
+      [waiting]="waiting()"
+      (accepted)="onAccepted($event)"
+    />
+    @if (waiting()) {
+      <p role="status">Scan envoyé, mise à jour du statut en cours…</p>
+    }
+    @if (stale()) {
+      <p class="error" role="alert">
+        Scan accepté, mais le statut n’a pas encore changé. Rechargez la page dans un instant.
+      </p>
+    }
+
+    <h3>Frise</h3>
+    @if (timeline().length === 0) {
       <p class="empty">Aucun scan.</p>
     } @else {
-      <ol class="timeline" aria-label="Frise des scans">
-        @for (scan of s.scans; track scan.eventId) {
-          <li>
-            <strong>{{ scanLabels[scan.type] }}</strong> — {{ scan.site }}
-            <div class="meta">
-              Date métier : {{ formatDate(scan.occurredAt) }} · Reçu le : {{ formatDate(scan.receivedAt) }}
-            </div>
-            @if (scan.reason) {
-              <div class="meta">Motif : {{ scan.reason }}</div>
+      <ol class="timeline" aria-label="Frise des scans et des anomalies">
+        @for (e of timeline(); track e.kind + e.key) {
+          @switch (e.kind) {
+            @case ('scan') {
+              <li>
+                <strong>{{ scanLabels[e.scan.type] }}</strong> — {{ e.scan.site }}
+                <div class="meta">
+                  Date métier : {{ formatDate(e.scan.occurredAt) }} · Reçu le :
+                  {{ formatDate(e.scan.receivedAt) }}
+                </div>
+                @if (e.scan.reason) {
+                  <div class="meta">Motif : {{ e.scan.reason }}</div>
+                }
+              </li>
             }
-          </li>
+            @case ('anomaly-opened') {
+              <li class="anomaly">
+                <span class="chip" [class.late]="e.anomaly.type === 'LATE'">{{
+                  anomalyLabels[e.anomaly.type]
+                }}</span>
+                anomalie ouverte
+                <div class="meta">{{ formatDate(e.at) }}</div>
+              </li>
+            }
+            @case ('anomaly-closed') {
+              <li class="anomaly closed">
+                <span class="chip" [class.late]="e.anomaly.type === 'LATE'">{{
+                  anomalyLabels[e.anomaly.type]
+                }}</span>
+                anomalie close
+                <div class="meta">{{ formatDate(e.at) }}</div>
+              </li>
+            }
+          }
         }
       </ol>
     }
