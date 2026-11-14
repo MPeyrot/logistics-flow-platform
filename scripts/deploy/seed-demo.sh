@@ -6,7 +6,9 @@
 #   SHIPMENT_URL, INGESTION_URL           URL de base des services (sans « / » final)
 #   ADMIN_USERNAME, ADMIN_PASSWORD        ADMIN amorcé de shipment-service
 # Besoin : curl, jq. Ni jeton ni mot de passe affichés. Aucun appel à Claude.
-# Rejouable : une référence déjà créée (409, même jour) est sautée, ses scans ne sont pas renvoyés.
+# Rejouable : sur une référence déjà créée (409, même jour), seuls les scans absents du détail de l'expédition
+# sont envoyés (un premier passage interrompu se répare). Chaque scan a un eventId déterministe (référence et rang) :
+# un scan parti mais pas encore consommé est renvoyé sans doublon.
 # Pas de STALLED amorçable : il se compte depuis la réception du dernier scan, donc depuis l'amorçage.
 # LATE apparaît à la prochaine passe de détection (15 min après le démarrage de shipment-service, puis toutes les 15 min).
 set -euo pipefail
@@ -79,11 +81,26 @@ SHIPMENTS='01|Paris|Lyon|Marseille|delivered|-60
 19|Marseille|Nice|Lyon|created|48
 20|Lille|Amiens|Paris|transit|50'
 
-# scan REF TYPE SITE HEURES [MOTIF] : envoie un scan daté de HEURES (négatif) par ingestion-service.
+# UUID déterministe (32 premiers caractères du MD5 de $1, mis en forme 8-4-4-4-12), portable GNU et BSD.
+uuid_of() {
+  local h
+  h="$(printf '%s' "$1" | { md5sum 2>/dev/null || md5 -r; } | cut -c1-32)"
+  printf '%s-%s-%s-%s-%s' "${h:0:8}" "${h:8:4}" "${h:12:4}" "${h:16:4}" "${h:20:12}"
+}
+
+# Les scans d'une expédition partent dans l'ordre ; SCAN_RANK compte les scans du parcours, SCANS_PRESENT ceux
+# que shipment-service a déjà enregistrés (les premiers : l'ordre est gardé par expédition).
+SCAN_RANK=0
+SCANS_PRESENT=0
+
+# scan REF TYPE SITE HEURES [MOTIF] : envoie un scan daté de HEURES (négatif) par ingestion-service,
+# sauf s'il figure déjà dans l'expédition.
 scan() {
   local json
-  json="$(jq -nc --arg r "$1" --arg t "$2" --arg s "$3" --arg o "$(hours_from_now "$4")" --arg m "${5:-}" \
-    '{shipmentReference:$r,type:$t,site:$s,occurredAt:$o} + (if $m == "" then {} else {reason:$m} end)')"
+  SCAN_RANK=$((SCAN_RANK + 1))
+  if [ "$SCAN_RANK" -le "$SCANS_PRESENT" ]; then return; fi
+  json="$(jq -nc --arg i "$(uuid_of "$1|$SCAN_RANK")" --arg r "$1" --arg t "$2" --arg s "$3" --arg o "$(hours_from_now "$4")" --arg m "${5:-}" \
+    '{eventId:$i,shipmentReference:$r,type:$t,site:$s,occurredAt:$o} + (if $m == "" then {} else {reason:$m} end)')"
   call POST "$INGESTION_URL/api/scans" "$ADMIN_TOKEN" "$json"
   case "$STATUS" in 2??) ;; *) fail_response "Scan $2 de $1 refusé par ingestion-service" ;; esac
 }
@@ -104,13 +121,18 @@ while IFS='|' read -r n origin hub dest course due; do
   call POST "$SHIPMENT_URL/api/shipments" "$ADMIN_TOKEN" \
     "$(jq -nc --arg r "$ref" --arg o "$origin" --arg d "$dest" --arg e "$(hours_from_now "$due")" \
       '{reference:$r,origin:$o,destination:$d,expectedDeliveryAt:$e}')"
+  SCAN_RANK=0
+  SCANS_PRESENT=0
   if [ "$STATUS" = "409" ]; then
-    echo "--  $ref existe déjà : sautée"
+    call GET "$SHIPMENT_URL/api/shipments/$ref" "$ADMIN_TOKEN"
+    [ "$STATUS" = "200" ] || fail_response "Lecture de $ref refusée"
+    SCANS_PRESENT="$(jq -er '.scans | length' "$BODY_FILE")" || fail "Détail de $ref illisible"
+    echo "--  $ref existe déjà ($SCANS_PRESENT scan(s) enregistré(s)) : scans manquants renvoyés"
     skipped=$((skipped + 1))
-    continue
+  else
+    [ "$STATUS" = "201" ] || fail_response "Création de $ref refusée"
+    created=$((created + 1))
   fi
-  [ "$STATUS" = "201" ] || fail_response "Création de $ref refusée"
-  created=$((created + 1))
   case "$course" in
     created) ;;
     transit)
@@ -143,4 +165,4 @@ while IFS='|' read -r n origin hub dest course due; do
   echo "OK  $ref $origin -> $dest ($course)"
 done <<<"$SHIPMENTS"
 
-printf '\nAmorçage terminé : %d créée(s), %d sautée(s).\n' "$created" "$skipped"
+printf '\nAmorçage terminé : %d créée(s), %d déjà existante(s).\n' "$created" "$skipped"
