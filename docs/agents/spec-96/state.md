@@ -11,13 +11,13 @@ Ce fichier est relu par chaque orchestrateur neuf : il décrit l'état présent,
 
 | Issue | Titre court | Bloqué par | Modèle / effort | Statut | Slot / worktree / branche | Commit |
 |---|---|---|---|---|---|---|
-| #98 | Back-end : scan ADMIN/OPERATOR, `usage` | — | opus / high | en cours | 1 / (worktree isolé) / ticket/98-scan-bureau-usage | |
+| #98 | Back-end : scan ADMIN/OPERATOR, `usage` | — | opus / high | fusionné | | 706e150 |
 | #99 | Tableau de bord `/dashboard` | — | sonnet / medium | fusionné | | e9d8e23 |
 | #100 | Coquille `/projet` et diagramme des statuts | #99 | sonnet / medium | fusionné | | fffbbd5 |
-| #101 | Boutons de scan du détail, frise, `usage` affiché | #98, #100 | sonnet / medium | à faire | | |
+| #101 | Boutons de scan du détail, frise, `usage` affiché | #98, #100 | sonnet / medium | en cours | 1 / (worktree isolé) / ticket/101-scan-detail | |
 | #102 | `/projet/architecture` et CSP de l'image | #100 | sonnet / medium | à faire | | |
-| #103 | Chiffres du projet (`project-stats.json`) | #100 | sonnet / medium | en cours | 2 / (worktree isolé) / ticket/103-chiffres-projet | |
-| #104 | Données de démo et fumée réaliste | #98, #103 | sonnet / medium | à faire | | |
+| #103 | Chiffres du projet (`project-stats.json`) | #100 | sonnet / medium | fusionné | | 9b8132b |
+| #104 | Données de démo et fumée réaliste | #98, #103 | sonnet / medium | en cours | 2 / (worktree isolé) / ticket/104-donnees-demo | |
 | #105 | `/projet/decisions` | #100 | sonnet / medium | à faire | | |
 | #106 | Captures et `/projet/ecrans` | #99, #101, #104 | sonnet / medium | à faire | | |
 
