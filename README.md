@@ -4,7 +4,7 @@
 
 Suivi de flux logistiques : des scanners envoient des événements (colis pris en charge, arrivé sur un site, en livraison, livré), la plateforme met à jour l'état des expéditions de façon asynchrone, détecte les retards et lit les bons de livraison avec l'API Claude.
 
-**Projet personnel**, pour s'exercer à une stack Java d'entreprise : Spring Boot, Kafka, PostgreSQL, architecture hexagonale, tests d'intégration avec de vrais conteneurs. Ce n'est pas un système en production.
+**Projet personnel**, conçu et développé seul pour démontrer une stack Java d'entreprise : Spring Boot, Kafka, PostgreSQL, architecture hexagonale, tests d'intégration avec de vrais conteneurs. Ce n'est pas un logiciel en production.
 
 ## Architecture
 
