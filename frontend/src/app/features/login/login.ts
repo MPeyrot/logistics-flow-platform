@@ -4,7 +4,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButton } from '@angular/material/button';
 import { MatFormField, MatLabel } from '@angular/material/form-field';
 import { MatInput } from '@angular/material/input';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AuthService, UnreadableTokenError } from '../../core/auth/auth.service';
 import { canAccess, homeUrl } from '../../core/auth/guards';
 import { describeError, retryAfterSeconds } from '../../core/http/error-messages';
@@ -18,7 +18,7 @@ function safeReturnUrl(url: string | null): string | null {
 @Component({
   selector: 'app-login',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, MatFormField, MatLabel, MatInput, MatButton, RetryCountdown],
+  imports: [ReactiveFormsModule, MatFormField, MatLabel, MatInput, MatButton, RetryCountdown, RouterLink],
   styleUrl: './login.scss',
   templateUrl: './login.html',
 })

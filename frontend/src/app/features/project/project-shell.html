@@ -1,0 +1,24 @@
+<header class="bar">
+  <a class="brand" routerLink="/projet">
+    <span class="mark material-symbols-outlined" aria-hidden="true">route</span>
+    <h1>Logistics Flow</h1>
+  </a>
+  <nav aria-label="Pages du projet">
+    @for (page of pages; track page.path) {
+      <a [routerLink]="page.path" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">{{
+        page.label
+      }}</a>
+    }
+  </nav>
+  @if (auth.session()) {
+    <a matButton="filled" class="cta" routerLink="/">Retour à l’application</a>
+  } @else {
+    <a matButton="filled" class="cta" routerLink="/login">Se connecter</a>
+  }
+</header>
+<p class="notice" data-testid="project-notice">
+  Projet personnel, conçu et développé seul pour démontrer. Ce n’est pas un logiciel en production.
+</p>
+<main class="page">
+  <router-outlet />
+</main>

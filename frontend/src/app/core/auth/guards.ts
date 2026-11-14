@@ -3,9 +3,9 @@ import { CanActivateFn, Route, Router } from '@angular/router';
 import { Role } from '../labels';
 import { AuthService, Session } from './auth.service';
 
-/** Page d'arrivée d'un compte : Expéditions pour ADMIN et OPERATOR, Scan pour SCANNER. */
+/** Page d'arrivée d'un compte : Tableau de bord pour ADMIN et OPERATOR, Scan pour SCANNER. */
 export function homeUrl(session: Session): string {
-  return session.roles.includes('ADMIN') || session.roles.includes('OPERATOR') ? '/shipments' : '/scan';
+  return session.roles.includes('ADMIN') || session.roles.includes('OPERATOR') ? '/dashboard' : '/scan';
 }
 
 /** Le compte peut-il ouvrir cette URL ? Selon `data.roles` de la route correspondante. */
@@ -40,9 +40,9 @@ export function roleGuard(...roles: Role[]): CanActivateFn {
   };
 }
 
-/** Racine et URL inconnues : page d'arrivée du compte, ou connexion. */
+/** Racine et URL inconnues : page d'arrivée du compte, ou présentation publique du projet. */
 export const homeGuard: CanActivateFn = () => {
   const router = inject(Router);
   const session = inject(AuthService).session();
-  return router.createUrlTree([session ? homeUrl(session) : '/login']);
+  return router.createUrlTree([session ? homeUrl(session) : '/projet']);
 };

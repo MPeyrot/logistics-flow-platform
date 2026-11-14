@@ -1,5 +1,7 @@
-<div class="shell" [class.with-side]="auth.session()">
-  <app-header />
+<div class="shell" [class.with-side]="auth.session() && !onProject()">
+  @if (!onProject()) {
+    <app-header />
+  }
   <div class="content">
     @if (messages.current(); as message) {
       <div class="banner" role="alert">
