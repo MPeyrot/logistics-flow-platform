@@ -19,7 +19,7 @@ Ce fichier est relu par chaque orchestrateur neuf : il décrit l'état présent,
 | #103 | Chiffres du projet (`project-stats.json`) | #100 | sonnet / medium | fusionné | | 9b8132b |
 | #104 | Données de démo et fumée réaliste | #98, #103 | sonnet / medium | fusionné | | e4bc113 |
 | #105 | `/projet/decisions` | #100 | sonnet / medium | fusionné | | ea3bb8e |
-| #106 | Captures et `/projet/ecrans` | #99, #101, #104 | sonnet / medium | en cours | 1 / (worktree isolé) / ticket/106-captures-ecrans | |
+| #106 | Captures et `/projet/ecrans` | #99, #101, #104 | sonnet / medium | fusionné | | 96329a7 |
 
 Statuts : `à faire`, `en cours`, `partiel`, `décision attendue`, `fusionné`.
 
@@ -30,3 +30,9 @@ Statuts : `à faire`, `en cours`, `partiel`, `décision attendue`, `fusionné`.
 ## Lots
 
 Une ligne par contexte d'orchestrateur : date, tickets fusionnés, contexte final.
+
+- 2026-11-14 : #98 à #106 fusionnés (9 tickets) ; suite complète verte (verify ×3, e2e 118, e2e image 9) ; ~120k.
+
+## Fin de spec
+
+Sha de départ de la revue : `f7d3d26` (merge-base `main`). Revue finale (opus / medium) : en cours. Lots de corrections : à écrire dans `revue-finale.md`.
