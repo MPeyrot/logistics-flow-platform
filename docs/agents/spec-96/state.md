@@ -35,4 +35,10 @@ Une ligne par contexte d'orchestrateur : date, tickets fusionnés, contexte fina
 
 ## Fin de spec
 
-Sha de départ de la revue : `f7d3d26` (merge-base `main`). Revue finale (opus / medium) : en cours. Lots de corrections : à écrire dans `revue-finale.md`.
+Sha de départ de la revue : `f7d3d26` (merge-base `main`). Revue finale (opus / medium) : faite, 10 points dans `revue-finale.md`.
+
+| Lot | Points | Statut | Commit |
+|---|---|---|---|
+| A | 1–4 (tableau de bord, fausse API) | en cours (slot 1, ticket/revue-96-lot-a) | |
+| B | 5–8 (détail et liste des expéditions) | à faire | |
+| C | 9–10 (coquille, amorçage) | à faire | |

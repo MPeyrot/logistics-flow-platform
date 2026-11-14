@@ -1,0 +1,22 @@
+# Revue finale — spec #96
+
+Revue `code-review` (medium, Opus) de `f7d3d26..spec/96-vitrine`, le 2026-11-14. Dix points, en trois lots traités l'un après l'autre sur la branche d'intégration. Chaque lot : TDD, un commit par point ou un commit par lot (« fix(revue #96) : … »), puis les vérifications front de `docs/agents/environnement.md` (lint, test, build, e2e des fichiers touchés).
+
+## Lot A — tableau de bord et fausse API
+
+1. `frontend/src/app/features/dashboard/dashboard.ts:66` — « Messages en échec » = `dltService.list().length` : la liste s'arrête à 100 et compte aussi les messages déjà rejoués (`replayed: true`). Correction : ne compter que les messages où `replayed` est faux ; si la page est pleine (100), afficher « 100+ » plutôt qu'un chiffre faux.
+2. `frontend/scripts/mock-api.mjs:131` — la réponse simulée de `/api/delivery-notes/extract` n'a pas `usage` ; `delivery-notes.html:56` lit `r.usage.inputTokens` sans garde, l'écran plante sous `npm run mock`. Correction : ajouter `usage` (quatre compteurs, format du back #98) à la réponse simulée ; garder le gabarit tel quel (le back garantit `usage`) ou `r.usage?.…`, au choix, avec un test.
+3. `frontend/src/app/features/dashboard/dashboard.ts:49` — le `computed` `due` (« attendues sous 24 h ») appelle `new Date()` mais ne dépend que de `shipments()` : figé à l'heure du dernier chargement. Correction : l'heure dans un signal mis à jour par un minuteur (chaque minute, arrêté à la destruction), lu par le `computed` ; test avec `vi.useFakeTimers`.
+4. `frontend/src/app/features/dashboard/dashboard.ts:62` — l'appel `/api/anomalies?open=true` et le type `OpenAnomalyRow` doublent la requête et `AnomalyRow` de `features/anomalies/anomalies.ts`. Correction : un `AnomalyService` partagé (requête et type), utilisé par les deux écrans.
+
+## Lot B — détail et liste des expéditions
+
+5. `frontend/src/app/features/shipments/shipment-scan-actions.ts:146` — l'effect qui préremplit le site et vide motif et erreur se relance à chaque nouvel objet `shipment()` ; le suivi d'un scan accepté (`fresh.set(detail)` chaque seconde) efface ce que l'utilisateur tape. Correction : ne réinitialiser qu'au changement de référence ou de statut (`computed` sur ces deux valeurs).
+6. `frontend/src/app/features/shipments/shipment-detail.ts:86` — la boucle de suivi `onAccepted` (`setTimeout` + `firstValueFrom`) continue après avoir quitté la page (jusqu'à 10 GET, erreurs en bandeau sur la page suivante). Correction : l'arrêter par `DestroyRef.onDestroy` (drapeau et `clearTimeout`) ; test.
+7. `frontend/src/app/features/shipments/shipment-list.ts:66` — le filtre `status` est lu une fois dans `route.snapshot` : passer de `/shipments?status=DELIVERED` à `/shipments` garde le filtre, précédent/suivant ne le change pas. Correction : lire `route.queryParamMap` (observable ou `toSignal`) et écrire le filtre dans l'URL quand l'utilisateur le change.
+8. `frontend/src/app/features/shipments/timeline.ts:17` — la frise intercale des scans triés par `occurredAt` (date du client) et des anomalies datées par le serveur (`detectedAt`, `resolvedAt`) : un scan en retard éloigne la clôture de STALLED du scan qui l'a causée. Correction : garder l'ordre des scans (`occurredAt` puis `receivedAt`) et placer chaque événement d'anomalie après le dernier scan dont le `receivedAt` le précède (même horloge que STALLED, voir `architecture.md`, décision du 2026-11-06) ; test avec un scan en retard.
+
+## Lot C — coquille et amorçage
+
+9. `frontend/src/app/app.ts:30` — `onProject` part de `false` et ne change qu'au `NavigationEnd` : en ouvrant directement `/projet/…`, la barre latérale et l'en-tête de l'application s'affichent un instant. Correction : valeur initiale calculée depuis l'URL courante (`location.pathname` ou `router.url`) ; test e2e ou unitaire qui ouvre `/projet` directement. Si les captures de `/projet/ecrans` montrent ce flash, les régénérer (`npm run screenshots`).
+10. `scripts/deploy/seed-demo.sh:108` — une référence qui existe déjà (409) est sautée avec tous ses scans : un premier passage interrompu ne se répare pas. Correction : sur 409, envoyer quand même les scans de l'expédition, avec un `eventId` déterministe (rejeu sans doublon, l'écouteur est idempotent ; une transition déjà faite part en DLT, à éviter : ne renvoyer que les scans absents du détail `GET /api/shipments/{reference}`). Garder le format de référence `LFP-<AAMMJJ>-<nn>` du ticket #104. shellcheck vert.
