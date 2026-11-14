@@ -61,6 +61,7 @@
   - Mention des pages de présentation et du `README` : « Projet personnel, conçu et développé seul pour démontrer. Ce n'est pas un logiciel en production. »
   - Données de démo plausibles (`seed-demo.sh`, entrée `seed` de `deploy-up`, villes françaises, aucun nom réel) ; la fumée n'écrit plus « Smoke » dans les données visibles.
   - Aucune dépendance nouvelle : schémas en SVG et CSS écrits à la main ; chiffres du projet générés au déploiement (`project-stats.json`, non commité).
+  - Décidé par Michael le 2026-11-14 (#109, #103) : captures de `/projet/ecrans` régénérées à la main (`npm run screenshots`, avant une démo), sans contrôle en CI ; « décisions du journal » des chiffres du projet = puces de premier niveau de « Décisions » de ce fichier.
 
 ## Ressources GCP (spec #63, #65)
 - `scripts/deploy/infra.sh` (idempotent, ne supprime rien) crée les ressources ; `scripts/deploy/setup-wizard.sh` guide Michael (comptes, facturation, valeurs des secrets) et le lance. Noms dans `scripts/deploy/names.sh`, repris par les workflows via les variables du dépôt (`GCP_PROJECT_ID`, `GCP_PROJECT_NUMBER`, `GCP_REGION`, `GCP_AR_REPOSITORY`, `GCP_WIF_PROVIDER`, `GCP_DEPLOY_SA`, `KAFKA_BOOTSTRAP_SERVERS`, `BOOTSTRAP_ADMIN_USERNAME` ; secret `BOOTSTRAP_ADMIN_PASSWORD` pour la fumée).

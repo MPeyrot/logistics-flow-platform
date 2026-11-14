@@ -214,6 +214,8 @@ Coûts : ~0 $ démo arrêtée (offres gratuites de Neon, Confluent Basic et Arti
 
 **Données de démo** (`scripts/deploy/seed-demo.sh`) : ~20 expéditions `LFP-<AAMMJJ>-<nn>` entre villes françaises, à tous les stades du cycle (scans datés des jours précédents, motifs « Destinataire absent » et « Adresse incomplète », 3 en retard, 3 attendues sous 24 h), scans envoyés par l'ADMIN. À lancer avec **Deploy up**, case `seed` cochée (après la fumée). Rejouable le même jour : une référence existante est sautée. Pour repartir d'une base vide avant un nouveau déploiement : dans Neon, une branche vide, ou `DROP SCHEMA public CASCADE; CREATE SCHEMA public;` ; Flyway recrée le schéma au démarrage. Limites : STALLED n'est pas amorçable (compté depuis la réception du dernier scan, donc depuis l'amorçage) ; LATE n'apparaît qu'à la passe de détection (15 min après le démarrage de `shipment-service`). La fumée écrit une expédition `LFP-CTRL-<suffixe>` et des comptes `smoke-*`, laissés dans la base.
 
+**Captures de `/projet/ecrans`** (`frontend/public/screenshots/`, commitées) : régénérées à la main, jamais par la CI. Avant une démo, si un écran ou le jeu de démo a changé : `cd frontend && npm run screenshots` (fausse API, données de `screenshots/capture.spec.ts`, à garder alignées sur `seed-demo.sh`), puis commiter les JPEG.
+
 ## Front
 
 Angular (zoneless, Material) dans `frontend/`. Node : version de `frontend/.nvmrc` (24, LTS ; la CLI Angular exige au moins 24.15).
