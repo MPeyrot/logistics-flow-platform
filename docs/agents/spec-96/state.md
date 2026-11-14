@@ -1,6 +1,6 @@
 # État — spec #96 : vitrine du projet dans le front Angular
 
-STATUT: en cours
+STATUT: terminé
 <!-- en cours | décision attendue | terminé. Lu par orchestrate.sh : garder « STATUT: » en début de ligne. -->
 
 Spec : issue #96. Branche d'intégration : `spec/96-vitrine` (repo principal). Parallèle : 2.
@@ -31,14 +31,14 @@ Statuts : `à faire`, `en cours`, `partiel`, `décision attendue`, `fusionné`.
 
 Une ligne par contexte d'orchestrateur : date, tickets fusionnés, contexte final.
 
-- 2026-11-14 : #98 à #106 fusionnés (9 tickets) ; suite complète verte (verify ×3, e2e 118, e2e image 9) ; ~120k.
+- 2026-11-14 : #98 à #106 fusionnés (9 tickets) ; suite complète verte (verify ×3, e2e 118, e2e image 9). Revue finale : 10 points, lots A–C fusionnés ; e2e 118 et image 9 verts après (services inchangés depuis le verify) ; ~145k.
 
 ## Fin de spec
 
-Sha de départ de la revue : `f7d3d26` (merge-base `main`). Revue finale (opus / medium) : faite, 10 points dans `revue-finale.md`.
+Sha de départ de la revue : `f7d3d26` (merge-base `main`). Revue finale (opus / medium) : faite, 10 points dans `revue-finale.md`, tous corrigés. Spec terminée le 2026-11-14 ; issue #96 laissée ouverte, rien de poussé.
 
 | Lot | Points | Statut | Commit |
 |---|---|---|---|
 | A | 1–4 (tableau de bord, fausse API) | fusionné | 298df1b |
 | B | 5–8 (détail et liste des expéditions) | fusionné | 3a65da0 |
-| C | 9–10 (coquille, amorçage) | en cours (slot 1, ticket/revue-96-lot-c) | |
+| C | 9–10 (coquille, amorçage) | fusionné | e42fcbe |
