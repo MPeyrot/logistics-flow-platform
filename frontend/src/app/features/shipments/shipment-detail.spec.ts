@@ -73,4 +73,31 @@ describe('ShipmentDetailPage', () => {
     harness.detectChanges();
     expect(harness.routeNativeElement?.textContent).toContain('le statut n’a pas encore changé');
   });
+
+  it('arrête le suivi d’un scan quand on quitte la page', async () => {
+    TestBed.configureTestingModule({
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        { provide: SCAN_POLL, useValue: { intervalMs: 20, attempts: 5 } },
+        provideRouter([
+          { path: 'shipments/:reference', component: ShipmentDetailPage },
+        ]),
+      ],
+    });
+    const http = TestBed.inject(HttpTestingController);
+    const harness = await RouterTestingHarness.create();
+    const component = await harness.navigateByUrl('/shipments/A-1', ShipmentDetailPage);
+    http.expectOne('/api/shipments/A-1').flush(detail('A-1'));
+    harness.detectChanges();
+
+    (
+      component as unknown as {
+        onAccepted(s: { eventId: string; status: string }): Promise<void>;
+      }
+    ).onAccepted({ eventId: 'e1', status: 'CREATED' });
+    harness.fixture.destroy();
+    await new Promise((r) => setTimeout(r, 60));
+    http.verify();
+  });
 });

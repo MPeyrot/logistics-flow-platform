@@ -13,7 +13,7 @@
     </mat-form-field>
     <mat-form-field>
       <mat-label>Statut</mat-label>
-      <select matNativeControl [ngModel]="status()" (ngModelChange)="status.set($event)">
+      <select matNativeControl [ngModel]="status()" (ngModelChange)="setStatus($event)">
         <option value="">Tous</option>
         @for (s of statuses; track s) {
           <option [value]="s">{{ statusLabels[s] }}</option>

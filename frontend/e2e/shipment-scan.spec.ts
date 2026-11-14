@@ -105,7 +105,7 @@ test('livrée : aucun bouton ; la frise mêle scans et anomalies', async ({ page
           id: 'a1',
           type: 'STALLED',
           detectedAt: '2026-11-06T08:00:00Z',
-          resolvedAt: '2026-11-09T08:00:00Z',
+          resolvedAt: '2026-11-09T08:00:02Z',
         },
       ],
     }),

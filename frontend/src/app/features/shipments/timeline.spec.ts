@@ -40,4 +40,21 @@ describe('buildTimeline', () => {
     const entries = buildTimeline([scan('s1', at)], [anomaly('a1', at, at)]);
     expect(entries.map((e) => e.kind)).toEqual(['anomaly-opened', 'scan', 'anomaly-closed']);
   });
+
+  it('un scan en retard (occurredAt ancien, reçu après) ne sépare pas la clôture du scan qui l’a causée', () => {
+    const late: Scan = {
+      ...scan('s2', '2026-11-10T09:00:00Z'),
+      receivedAt: '2026-11-14T08:00:00Z',
+    };
+    const entries = buildTimeline(
+      [scan('s1', '2026-11-10T08:00:00Z'), late],
+      [anomaly('a1', '2026-11-12T08:00:00Z', '2026-11-14T08:00:01Z')],
+    );
+    expect(entries.map((e) => `${e.kind}:${e.key}`)).toEqual([
+      'scan:s1',
+      'anomaly-opened:a1',
+      'scan:s2',
+      'anomaly-closed:a1',
+    ]);
+  });
 });

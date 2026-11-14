@@ -8,6 +8,7 @@ import {
   input,
   output,
   signal,
+  untracked,
 } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButton } from '@angular/material/button';
@@ -121,6 +122,9 @@ export class ShipmentScanActions {
 
   protected readonly labels = ACTION_LABELS;
   protected readonly reasonMax = REASON_MAX;
+  private readonly resetKey = computed(
+    () => `${this.shipment().reference}|${this.shipment().status}`,
+  );
   protected readonly transitions = computed(() => transitionsFrom(this.shipment().status));
   protected readonly hasFailure = computed(() =>
     this.transitions().some((t) => allowsReason(t.scan)),
@@ -142,13 +146,17 @@ export class ShipmentScanActions {
   constructor() {
     this.form.controls.reason.valueChanges.subscribe((v) => this.reason.set(v));
     this.form.controls.site.valueChanges.subscribe((v) => this.site.set(v));
-    // Site prérempli : origine pour la prise en charge, destination sinon ; refait à chaque changement de statut.
+    // Site prérempli : origine pour la prise en charge, destination sinon. Refait seulement quand la
+    // référence ou le statut change : un détail rechargé à l'identique ne doit pas effacer la saisie.
     effect(() => {
-      const s = this.shipment();
-      const first = this.transitions()[0];
-      this.form.controls.site.setValue(first ? defaultSite(first.scan, s) : s.destination);
-      this.form.controls.reason.setValue('');
-      this.error.set(null);
+      this.resetKey();
+      untracked(() => {
+        const s = this.shipment();
+        const first = this.transitions()[0];
+        this.form.controls.site.setValue(first ? defaultSite(first.scan, s) : s.destination);
+        this.form.controls.reason.setValue('');
+        this.error.set(null);
+      });
     });
   }
 

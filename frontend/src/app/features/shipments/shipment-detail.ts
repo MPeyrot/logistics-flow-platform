@@ -2,6 +2,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import {
   ChangeDetectionStrategy,
   Component,
+  DestroyRef,
   InjectionToken,
   computed,
   inject,
@@ -38,6 +39,18 @@ export class ShipmentDetailPage {
   protected readonly formatDate = formatDateTime;
   private readonly poll = inject(SCAN_POLL);
   private generation = 0;
+  private destroyed = false;
+  private timer: ReturnType<typeof setTimeout> | undefined;
+  private wake: (() => void) | undefined;
+
+  constructor() {
+    // Quitter la page arrête le suivi d'un scan : plus d'attente ni de requête, pas d'erreur sur la page suivante.
+    inject(DestroyRef).onDestroy(() => {
+      this.destroyed = true;
+      clearTimeout(this.timer);
+      this.wake?.();
+    });
+  }
   private readonly fresh = signal<ShipmentDetail | null>(null);
   protected readonly waiting = signal(false);
   protected readonly stale = signal(false);
@@ -92,13 +105,16 @@ export class ShipmentDetailPage {
     this.waiting.set(true);
     this.stale.set(false);
     for (let i = 0; i < this.poll.attempts; i++) {
-      await new Promise((resolve) => setTimeout(resolve, this.poll.intervalMs));
-      if (generation !== this.generation) {
+      await new Promise<void>((resolve) => {
+        this.timer = setTimeout(resolve, this.poll.intervalMs);
+        this.wake = resolve;
+      });
+      if (this.destroyed || generation !== this.generation) {
         return;
       }
       try {
         const detail = await firstValueFrom(this.service.get(reference));
-        if (generation !== this.generation) {
+        if (this.destroyed || generation !== this.generation) {
           return;
         }
         this.fresh.set(detail);

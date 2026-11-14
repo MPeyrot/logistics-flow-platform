@@ -63,4 +63,39 @@ describe('ShipmentScanActions', () => {
     req.flush({ eventId: req.request.body.eventId }, { status: 202, statusText: 'Accepted' });
     expect(accepted).toEqual([{ eventId: req.request.body.eventId, status: 'OUT_FOR_DELIVERY' }]);
   });
+
+  it('garde ce que l’utilisateur tape quand le détail est rechargé sans changement de statut', () => {
+    const { fixture, el, site } = setup('OUT_FOR_DELIVERY');
+    const textarea = el.querySelector('textarea') as HTMLTextAreaElement;
+    textarea.value = 'Absent';
+    textarea.dispatchEvent(new Event('input'));
+    const input = el.querySelector('input') as HTMLInputElement;
+    input.value = 'Nantes';
+    input.dispatchEvent(new Event('input'));
+    fixture.componentRef.setInput('shipment', {
+      reference: 'A-1',
+      status: 'OUT_FOR_DELIVERY',
+      origin: 'Paris',
+      destination: 'Lyon',
+    });
+    fixture.detectChanges();
+    expect(textarea.value).toBe('Absent');
+    expect(site()).toBe('Nantes');
+  });
+
+  it('réinitialise au changement de statut', () => {
+    const { fixture, el, site } = setup('OUT_FOR_DELIVERY');
+    const textarea = el.querySelector('textarea') as HTMLTextAreaElement;
+    textarea.value = 'Absent';
+    textarea.dispatchEvent(new Event('input'));
+    fixture.componentRef.setInput('shipment', {
+      reference: 'A-1',
+      status: 'DELIVERY_FAILED',
+      origin: 'Paris',
+      destination: 'Lyon',
+    });
+    fixture.detectChanges();
+    expect(el.querySelector('textarea')).toBeNull();
+    expect(site()).toBe('Lyon');
+  });
 });
