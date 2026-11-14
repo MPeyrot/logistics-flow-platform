@@ -14,12 +14,12 @@ Ce fichier est relu par chaque orchestrateur neuf : il décrit l'état présent,
 | #98 | Back-end : scan ADMIN/OPERATOR, `usage` | — | opus / high | fusionné | | 706e150 |
 | #99 | Tableau de bord `/dashboard` | — | sonnet / medium | fusionné | | e9d8e23 |
 | #100 | Coquille `/projet` et diagramme des statuts | #99 | sonnet / medium | fusionné | | fffbbd5 |
-| #101 | Boutons de scan du détail, frise, `usage` affiché | #98, #100 | sonnet / medium | en cours | 1 / (worktree isolé) / ticket/101-scan-detail | |
+| #101 | Boutons de scan du détail, frise, `usage` affiché | #98, #100 | sonnet / medium | fusionné | | 44f831a |
 | #102 | `/projet/architecture` et CSP de l'image | #100 | sonnet / medium | en cours | 2 / (worktree isolé) / ticket/102-architecture-csp | |
 | #103 | Chiffres du projet (`project-stats.json`) | #100 | sonnet / medium | fusionné | | 9b8132b |
 | #104 | Données de démo et fumée réaliste | #98, #103 | sonnet / medium | fusionné | | e4bc113 |
 | #105 | `/projet/decisions` | #100 | sonnet / medium | à faire | | |
-| #106 | Captures et `/projet/ecrans` | #99, #101, #104 | sonnet / medium | à faire | | |
+| #106 | Captures et `/projet/ecrans` | #99, #101, #104 | sonnet / medium | en cours | 1 / (worktree isolé) / ticket/106-captures-ecrans | |
 
 Statuts : `à faire`, `en cours`, `partiel`, `décision attendue`, `fusionné`.
 
