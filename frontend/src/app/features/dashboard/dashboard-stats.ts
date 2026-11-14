@@ -1,12 +1,15 @@
 import type { AnomalyType, ShipmentStatus } from '../../core/labels';
+import type { DeadLetter } from '../admin/dlt/dlt.model';
+import type { AnomalyRow } from '../anomalies/anomaly.service';
 import type { Shipment } from '../shipments/shipment.model';
 
-export interface OpenAnomalyRow {
-  id: string;
-  shipmentReference: string;
-  type: AnomalyType;
-  detectedAt: string;
-  resolvedAt: string | null;
+/** Taille de la page de `GET /api/admin/dlt/scan-events` : au-delà, le compte n'est qu'un minimum. */
+export const DLT_PAGE_SIZE = 100;
+
+/** Messages en échec pas encore rejoués ; « N+ » si la page est pleine (il peut y en avoir d'autres). */
+export function failedMessagesLabel(letters: DeadLetter[]): string {
+  const pending = letters.filter((l) => !l.replayed).length;
+  return letters.length >= DLT_PAGE_SIZE ? `${pending}+` : String(pending);
 }
 
 export const STATUSES: ShipmentStatus[] = [
@@ -26,7 +29,7 @@ export function countByStatus(shipments: Shipment[]): Record<ShipmentStatus, num
   return counts;
 }
 
-export function countByType(anomalies: OpenAnomalyRow[]): Record<AnomalyType, number> {
+export function countByType(anomalies: AnomalyRow[]): Record<AnomalyType, number> {
   const counts: Record<AnomalyType, number> = { LATE: 0, STALLED: 0 };
   for (const a of anomalies) {
     counts[a.type] += 1;
@@ -35,7 +38,7 @@ export function countByType(anomalies: OpenAnomalyRow[]): Record<AnomalyType, nu
 }
 
 /** Les plus récentes d'abord (`detectedAt`). */
-export function latestAnomalies(anomalies: OpenAnomalyRow[], limit = 5): OpenAnomalyRow[] {
+export function latestAnomalies(anomalies: AnomalyRow[], limit = 5): AnomalyRow[] {
   return [...anomalies]
     .sort((a, b) => Date.parse(b.detectedAt) - Date.parse(a.detectedAt))
     .slice(0, limit);

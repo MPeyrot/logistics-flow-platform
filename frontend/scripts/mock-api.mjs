@@ -128,7 +128,7 @@ function handle(method, url, body) {
     return [200, l];
   }
   if (path === '/api/delivery-notes/extract') {
-    return [200, { costUsd: 0.0004, shipment: strip(shipments[0]), deliveryNote: { reference: ref('01'), deliveryDate: '2026-11-20', senderName: 'Atelier Dupont', recipientName: 'Maison Lambert', recipientAddress: '12 rue des Lilas, 69003 Lyon', packageCount: 3, totalWeightKg: 12.5 } }];
+    return [200, { costUsd: 0.0004, usage: { inputTokens: 1850, outputTokens: 210, cacheWriteTokens: 0, cacheReadTokens: 0 }, shipment: strip(shipments[0]), deliveryNote: { reference: ref('01'), deliveryDate: '2026-11-20', senderName: 'Atelier Dupont', recipientName: 'Maison Lambert', recipientAddress: '12 rue des Lilas, 69003 Lyon', packageCount: 3, totalWeightKg: 12.5 } }];
   }
   if (path === '/api/scans/imports') return [200, { lines: 120, published: 117, rejected: 3, errors: [{ line: 14, detail: 'type inconnu : PICKUP' }, { line: 58, detail: 'occurredAt illisible' }, { line: 90, detail: 'site différent de celui du jeton' }] }];
   if (path === '/api/scans') return [202, { eventId: randomUUID() }];

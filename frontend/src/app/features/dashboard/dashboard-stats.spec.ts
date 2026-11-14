@@ -1,10 +1,10 @@
+import type { AnomalyRow } from '../anomalies/anomaly.service';
 import type { Shipment } from '../shipments/shipment.model';
 import {
   countByStatus,
   countByType,
   dueWithin24h,
   latestAnomalies,
-  type OpenAnomalyRow,
 } from './dashboard-stats';
 
 const NOW = new Date('2026-11-14T12:00:00Z');
@@ -19,7 +19,7 @@ const ship = (over: Partial<Shipment>): Shipment => ({
   openAnomalies: [],
   ...over,
 });
-const anomaly = (id: string, type: 'LATE' | 'STALLED', detectedAt: string): OpenAnomalyRow => ({
+const anomaly = (id: string, type: 'LATE' | 'STALLED', detectedAt: string): AnomalyRow => ({
   id,
   shipmentReference: `REF-${id}`,
   type,

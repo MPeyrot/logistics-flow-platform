@@ -2,7 +2,8 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { Anomalies, type AnomalyRow } from './anomalies';
+import { Anomalies } from './anomalies';
+import type { AnomalyRow } from './anomaly.service';
 
 const row = (id: string, closed: boolean): AnomalyRow => ({
   id,

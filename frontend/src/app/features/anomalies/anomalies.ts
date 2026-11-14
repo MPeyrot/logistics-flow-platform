@@ -1,19 +1,11 @@
-import { HttpClient } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { MatButton } from '@angular/material/button';
 import { MatTab, MatTabGroup } from '@angular/material/tabs';
 import { RouterLink } from '@angular/router';
-import { Observable, type Subscription } from 'rxjs';
-import { ANOMALY_TYPE_LABELS, type AnomalyType } from '../../core/labels';
+import type { Subscription } from 'rxjs';
+import { ANOMALY_TYPE_LABELS } from '../../core/labels';
 import { formatDateTime } from '../shipments/format-date';
-
-export interface AnomalyRow {
-  id: string;
-  shipmentReference: string;
-  type: AnomalyType;
-  detectedAt: string;
-  resolvedAt: string | null;
-}
+import { AnomalyService, type AnomalyRow } from './anomaly.service';
 
 @Component({
   selector: 'app-anomalies',
@@ -23,7 +15,7 @@ export interface AnomalyRow {
   templateUrl: './anomalies.html',
 })
 export class Anomalies {
-  private readonly http = inject(HttpClient);
+  private readonly anomalyService = inject(AnomalyService);
 
   protected readonly typeLabels = ANOMALY_TYPE_LABELS;
   protected readonly formatDate = formatDateTime;
@@ -51,7 +43,7 @@ export class Anomalies {
     this.pending?.unsubscribe();
     this.loading.set(true);
     this.loaded.set(false);
-    this.pending = this.fetch(!this.closed).subscribe({
+    this.pending = this.anomalyService.list(!this.closed).subscribe({
       next: (rows) => {
         this.rows.set(rows);
         this.loaded.set(true);
@@ -59,9 +51,5 @@ export class Anomalies {
       },
       error: () => this.loading.set(false),
     });
-  }
-
-  private fetch(open: boolean): Observable<AnomalyRow[]> {
-    return this.http.get<AnomalyRow[]>('/api/anomalies', { params: { open } });
   }
 }
