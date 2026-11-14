@@ -5,6 +5,11 @@ name: Deploy up
 # Les noms et identifiants viennent des variables du dépôt posées par scripts/deploy/setup-wizard.sh.
 on:
   workflow_dispatch:
+    inputs:
+      seed:
+        description: "Amorcer des données de démo après la fumée (base vide : voir README, « Déployer »)"
+        type: boolean
+        default: false
 
 permissions:
   id-token: write
@@ -261,3 +266,17 @@ jobs:
             echo "- ai-service : $AI_URL"
             echo "Penser à lancer le workflow « Deploy down » après la démo."
           } >> "$GITHUB_STEP_SUMMARY"
+
+      # Facultatif : expéditions plausibles pour la démo (scripts/deploy/seed-demo.sh), jamais un appel à Claude.
+      - name: Amorçage des données de démo
+        if: ${{ inputs.seed }}
+        env:
+          ADMIN_USERNAME: ${{ vars.BOOTSTRAP_ADMIN_USERNAME }}
+          ADMIN_PASSWORD: ${{ secrets.BOOTSTRAP_ADMIN_PASSWORD }}
+        run: |
+          set -euo pipefail
+          url_of() { gcloud run services describe "$1" --project="$PROJECT_ID" --region="$REGION" --format='value(status.url)'; }
+          SHIPMENT_URL="$(url_of shipment-service)"
+          INGESTION_URL="$(url_of ingestion-service)"
+          export SHIPMENT_URL INGESTION_URL
+          scripts/deploy/seed-demo.sh
