@@ -59,7 +59,7 @@ describe('Login', () => {
   it('ignore le returnUrl du scan pour un OPERATOR', () => {
     const { navigate, submit } = setup('/scan');
     submit(fakeToken({ sub: 'o', roles: ['OPERATOR'] }));
-    expect(navigate).toHaveBeenCalledWith('/shipments');
+    expect(navigate).toHaveBeenCalledWith('/dashboard');
   });
 
   it('efface le jeton illisible, affiche une erreur et réactive le bouton', () => {

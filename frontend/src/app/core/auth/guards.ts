@@ -3,9 +3,9 @@ import { CanActivateFn, Route, Router } from '@angular/router';
 import { Role } from '../labels';
 import { AuthService, Session } from './auth.service';
 
-/** Page d'arrivée d'un compte : Expéditions pour ADMIN et OPERATOR, Scan pour SCANNER. */
+/** Page d'arrivée d'un compte : Tableau de bord pour ADMIN et OPERATOR, Scan pour SCANNER. */
 export function homeUrl(session: Session): string {
-  return session.roles.includes('ADMIN') || session.roles.includes('OPERATOR') ? '/shipments' : '/scan';
+  return session.roles.includes('ADMIN') || session.roles.includes('OPERATOR') ? '/dashboard' : '/scan';
 }
 
 /** Le compte peut-il ouvrir cette URL ? Selon `data.roles` de la route correspondante. */

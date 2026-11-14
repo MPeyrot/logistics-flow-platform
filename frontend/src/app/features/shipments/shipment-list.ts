@@ -5,7 +5,7 @@ import { MatCheckbox } from '@angular/material/checkbox';
 import { MatDialog } from '@angular/material/dialog';
 import { MatFormField, MatLabel } from '@angular/material/form-field';
 import { MatInput } from '@angular/material/input';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import {
   ANOMALY_TYPE_LABELS,
   SHIPMENT_STATUS_LABELS,
@@ -27,6 +27,7 @@ import { ShipmentService } from './shipment.service';
 export class ShipmentList {
   private readonly service = inject(ShipmentService);
   private readonly dialog = inject(MatDialog);
+  private readonly route = inject(ActivatedRoute);
 
   protected readonly statusLabels = SHIPMENT_STATUS_LABELS;
   protected readonly anomalyLabels = ANOMALY_TYPE_LABELS;
@@ -61,6 +62,11 @@ export class ShipmentList {
   );
 
   constructor() {
+    // Lien du tableau de bord : `/shipments?status=DELIVERED`.
+    const wanted = this.route.snapshot.queryParamMap.get('status');
+    if (this.statuses.includes(wanted as ShipmentStatus)) {
+      this.status.set(wanted as ShipmentStatus);
+    }
     this.refresh();
   }
 

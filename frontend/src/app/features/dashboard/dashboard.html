@@ -1,0 +1,92 @@
+<main class="page">
+  <div class="title">
+    <h2>Tableau de bord</h2>
+    <span class="spacer"></span>
+    <button matButton type="button" (click)="refresh()" [disabled]="loading()">Actualiser</button>
+  </div>
+
+  <section class="panel" aria-labelledby="by-status">
+    <h3 id="by-status">Expéditions par statut</h3>
+    @if (shipments() !== null) {
+      <div class="stack" role="img" [attr.aria-label]="total() + ' expéditions'">
+        @for (s of statuses; track s) {
+          @if (byStatus()[s] > 0) {
+            <span class="seg" [attr.data-status]="s" [style.width.%]="share(byStatus()[s])"></span>
+          }
+        }
+      </div>
+      <ul class="counters">
+        @for (s of statuses; track s) {
+          <li>
+            <a [routerLink]="['/shipments']" [queryParams]="{ status: s }" [attr.data-testid]="'status-' + s">
+              <span class="count">{{ byStatus()[s] }}</span>
+              <span class="badge" [attr.data-status]="s">{{ statusLabels[s] }}</span>
+            </a>
+          </li>
+        }
+      </ul>
+    }
+  </section>
+
+  <section class="panel" aria-labelledby="anomalies">
+    <h3 id="anomalies">Anomalies ouvertes</h3>
+    @if (anomalies() !== null) {
+      <ul class="counters">
+        <li>
+          <a routerLink="/anomalies"
+            ><span class="count" data-testid="count-LATE">{{ byType().LATE }}</span
+            ><span class="chip late">{{ typeLabels.LATE }}</span></a
+          >
+        </li>
+        <li>
+          <a routerLink="/anomalies"
+            ><span class="count" data-testid="count-STALLED">{{ byType().STALLED }}</span
+            ><span class="chip">{{ typeLabels.STALLED }}</span></a
+          >
+        </li>
+      </ul>
+      @if (latest().length === 0) {
+        <p class="empty">Aucune anomalie ouverte.</p>
+      } @else {
+        <h4>Les plus récentes</h4>
+        <ul class="recent" data-testid="latest">
+          @for (a of latest(); track a.id) {
+            <li>
+              <a [routerLink]="['/shipments', a.shipmentReference]">{{ a.shipmentReference }}</a>
+              <span class="chip" [class.late]="a.type === 'LATE'">{{ typeLabels[a.type] }}</span>
+              <span class="when">{{ formatDate(a.detectedAt) }}</span>
+            </li>
+          }
+        </ul>
+      }
+    }
+  </section>
+
+  @if (shipments() !== null) {
+    <section class="panel" aria-labelledby="due">
+      <h3 id="due">Attendues sous 24 h</h3>
+      @if (due().length === 0) {
+        <p class="empty">Aucune expédition attendue dans les 24 prochaines heures.</p>
+      } @else {
+        <ul class="recent" data-testid="due">
+          @for (s of due(); track s.id) {
+            <li>
+              <a [routerLink]="['/shipments', s.reference]">{{ s.reference }}</a>
+              <span class="badge" [attr.data-status]="s.status">{{ statusLabels[s.status] }}</span>
+              <span class="when">{{ formatDate(s.expectedDeliveryAt) }}</span>
+            </li>
+          }
+        </ul>
+      }
+    </section>
+  }
+
+  @if (isAdmin && dltCount() !== null) {
+    <section class="panel" aria-labelledby="dlt">
+      <h3 id="dlt">Messages en échec</h3>
+      <a routerLink="/admin/dlt" class="dlt-link"
+        ><span class="count" data-testid="dlt-count">{{ dltCount() }}</span> message(s) dans la file des échecs</a
+      >
+    </section>
+  }
+</main>

@@ -46,11 +46,12 @@ describe('menuFor', () => {
   const labels = (roles: Parameters<typeof menuFor>[0]) => menuFor(roles).map((m) => m.label);
 
   it('OPERATOR : Expéditions, Anomalies, Bons de livraison', () => {
-    expect(labels(['OPERATOR'])).toEqual(['Expéditions', 'Anomalies', 'Bons de livraison']);
+    expect(labels(['OPERATOR'])).toEqual(['Tableau de bord', 'Expéditions', 'Anomalies', 'Bons de livraison']);
   });
 
   it('ADMIN : en plus Comptes et Messages en échec', () => {
     expect(labels(['ADMIN'])).toEqual([
+      'Tableau de bord',
       'Expéditions',
       'Anomalies',
       'Bons de livraison',
