@@ -25,7 +25,7 @@ Statuts : `à faire`, `en cours`, `partiel`, `décision attendue`, `fusionné`.
 
 ## En attente de Michael
 
-(rien ; #97, vider Neon, et #107, vérifier l'amorçage en ligne : #104 est fusionné, hors orchestration)
+(rien.) Neon vidé le 2026-11-14 (#97 fermée). Consigne de Michael : à la fin de la spec, PR vers `main` **seulement quand il le dit**, puis s'occuper de #107 (`deploy-up` avec `seed`, vérifier les 20 expéditions puis les 3 LATE 15 min après).
 
 ## Lots
 
