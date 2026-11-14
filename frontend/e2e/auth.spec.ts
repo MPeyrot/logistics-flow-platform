@@ -36,8 +36,7 @@ test.describe('connexion et redirection par rôle', () => {
   ] as const) {
     test(`${role} arrive sur ${url}`, async ({ page }) => {
       await mockLogin(page, { sub: 'alice', roles: [role], site: role === 'SCANNER' ? 'PAR-01' : undefined });
-      await page.goto('/');
-      await expect(page).toHaveURL(/\/login$/);
+      await page.goto('/login');
       await fillAndSubmit(page);
       await expect(page).toHaveURL(new RegExp(`${url}$`));
       await expect(page.getByTestId('user')).toContainText('alice');

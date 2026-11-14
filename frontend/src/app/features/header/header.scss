@@ -77,6 +77,18 @@ nav a {
   }
 }
 
+// En bas de la barre latérale (colonne), à droite du menu sur petit écran.
+.project-link {
+  margin-left: auto;
+}
+
+@media (min-width: 60rem) {
+  .signed-in .project-link {
+    margin-left: 0;
+    margin-top: auto;
+  }
+}
+
 .user {
   display: flex;
   align-items: center;

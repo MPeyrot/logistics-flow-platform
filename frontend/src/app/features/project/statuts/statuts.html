@@ -1,0 +1,98 @@
+<h2>Le cycle de vie d’une expédition</h2>
+<p class="lead">
+  Cinq statuts, six transitions. Chaque scan reçu par <code>shipment-service</code> ne change le statut que s’il
+  correspond à l’une d’elles. Choisissez un statut pour voir ce qu’il accepte et ce qu’il refuse.
+</p>
+
+<div class="layout">
+  <svg
+    class="diagram"
+    viewBox="0 0 360 460"
+    role="group"
+    aria-label="Diagramme des statuts d’une expédition et des scans qui les font changer"
+  >
+    <defs>
+      <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+        <path d="M0 0 L10 5 L0 10 z" class="arrow-head" />
+      </marker>
+    </defs>
+    @for (edge of edges; track edge.key) {
+      <g class="edge" [class.out]="edge.from === selected()" [attr.data-edge]="edge.key">
+        <path [attr.d]="edge.path" marker-end="url(#arrow)" />
+        <text [attr.x]="edge.labelX" [attr.y]="edge.labelY" [attr.text-anchor]="edge.anchor">{{ edge.label }}</text>
+      </g>
+    }
+    @for (node of nodes; track node.status) {
+      <g
+        class="node"
+        role="button"
+        tabindex="0"
+        [class.selected]="node.status === selected()"
+        [attr.aria-pressed]="node.status === selected()"
+        [attr.aria-label]="'Statut ' + node.label"
+        [attr.data-status]="node.status"
+        (click)="select(node.status)"
+        (keydown.enter)="select(node.status)"
+        (keydown.space)="select(node.status); $event.preventDefault()"
+      >
+        <rect [attr.x]="node.x" [attr.y]="node.y" [attr.width]="nodeWidth" [attr.height]="nodeHeight" rx="10" />
+        <text [attr.x]="node.x + nodeWidth / 2" [attr.y]="node.y + nodeHeight / 2" text-anchor="middle" dominant-baseline="central">{{
+          node.label
+        }}</text>
+      </g>
+    }
+  </svg>
+
+  <section class="details" aria-live="polite" data-testid="status-details">
+    @if (details(); as d) {
+      <h3>{{ d.label }}</h3>
+      <h4>Transitions permises</h4>
+      @if (d.outgoing.length) {
+        <ul>
+          @for (t of d.outgoing; track t.scan) {
+            <li>
+              Scan « {{ scanLabel(t.scan) }} » : devient « {{ statusLabel(t.to) }} »
+            </li>
+          }
+        </ul>
+      } @else {
+        <p>Aucune : ce statut est terminal.</p>
+      }
+      <h4>Exemple refusé</h4>
+      <p data-testid="refused-example">
+        Un scan « {{ scanLabel(d.refused) }} » sur une expédition « {{ d.label }} » est refusé : le message part
+        aussitôt dans le DLT (<code>scan-events.DLT</code>), sans nouvelle tentative.
+      </p>
+    } @else {
+      <p class="hint">Aucun statut choisi.</p>
+    }
+  </section>
+</div>
+
+<h3>Toutes les transitions</h3>
+<ul class="all" data-testid="all-transitions">
+  @for (t of transitions; track t.from + t.scan) {
+    <li>{{ describe(t) }}</li>
+  }
+</ul>
+
+<h2>Retards : deux anomalies</h2>
+<div class="anomalies">
+  <section>
+    <h3>En retard (<code>LATE</code>)</h3>
+    <p>
+      <strong>Ouverture</strong> : l’expédition n’est pas livrée alors que la date de livraison prévue
+      (<code>expectedDeliveryAt</code>, saisie à la création) est passée.
+    </p>
+    <p><strong>Clôture</strong> : automatique, à la livraison.</p>
+  </section>
+  <section>
+    <h3>Sans mouvement (<code>STALLED</code>)</h3>
+    <p>
+      <strong>Ouverture</strong> : aucun scan reçu depuis 48 heures (durée configurable) sur une expédition non
+      livrée ; le délai court depuis la réception du dernier scan, ou depuis la création sans scan.
+    </p>
+    <p><strong>Clôture</strong> : automatique, au scan suivant.</p>
+  </section>
+</div>
+<p class="foot">Une tâche planifiée de <code>shipment-service</code> les détecte ; une seule anomalie ouverte par expédition et type.</p>

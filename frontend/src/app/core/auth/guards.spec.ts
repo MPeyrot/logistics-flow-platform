@@ -74,7 +74,7 @@ describe('homeGuard', () => {
     expect(run(homeGuard, '/', role)).toBe(url);
   });
 
-  it('sans session : connexion', () => {
-    expect(run(homeGuard, '/')).toBe('/login');
+  it('sans session : présentation du projet', () => {
+    expect(run(homeGuard, '/')).toBe('/projet');
   });
 });

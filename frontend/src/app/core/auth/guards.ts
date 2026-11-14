@@ -40,9 +40,9 @@ export function roleGuard(...roles: Role[]): CanActivateFn {
   };
 }
 
-/** Racine et URL inconnues : page d'arrivée du compte, ou connexion. */
+/** Racine et URL inconnues : page d'arrivée du compte, ou présentation publique du projet. */
 export const homeGuard: CanActivateFn = () => {
   const router = inject(Router);
   const session = inject(AuthService).session();
-  return router.createUrlTree([session ? homeUrl(session) : '/login']);
+  return router.createUrlTree([session ? homeUrl(session) : '/projet']);
 };

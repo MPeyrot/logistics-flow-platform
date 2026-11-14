@@ -1,0 +1,150 @@
+h2 {
+  margin: 2rem 0 0.75rem;
+  font: var(--mat-sys-headline-medium);
+  letter-spacing: -0.02em;
+}
+
+h3 {
+  margin: 1.25rem 0 0.5rem;
+  font: var(--mat-sys-title-medium);
+}
+
+h4 {
+  margin: 1rem 0 0.25rem;
+  font: var(--mat-sys-label-large);
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.lead {
+  max-width: 42rem;
+  margin: 0 0 1.25rem;
+}
+
+.layout {
+  display: grid;
+  gap: 1rem;
+  align-items: start;
+}
+
+@media (min-width: 50rem) {
+  .layout {
+    grid-template-columns: 26rem 1fr;
+  }
+}
+
+.diagram {
+  width: 100%;
+  max-width: 26rem;
+  height: auto;
+  margin: 0 auto;
+  font-size: 12px;
+}
+
+.arrow-head {
+  fill: var(--mat-sys-outline);
+}
+
+.edge {
+  path {
+    fill: none;
+    stroke: var(--mat-sys-outline);
+    stroke-width: 1.5;
+  }
+
+  text {
+    fill: var(--mat-sys-on-surface-variant);
+    font-size: 11px;
+  }
+
+  &.out path {
+    stroke: var(--mat-sys-primary);
+    stroke-width: 2.5;
+  }
+
+  &.out text {
+    fill: var(--mat-sys-primary);
+    font-weight: 600;
+  }
+}
+
+.node {
+  cursor: pointer;
+  outline: none;
+
+  rect {
+    fill: var(--mat-sys-surface-container-high);
+    stroke: var(--mat-sys-outline);
+    stroke-width: 1.5;
+  }
+
+  text {
+    fill: var(--mat-sys-on-surface);
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  &:hover rect {
+    stroke: var(--mat-sys-primary);
+  }
+
+  &:focus-visible rect {
+    stroke: var(--mat-sys-primary);
+    stroke-width: 3.5;
+  }
+
+  &.selected rect {
+    fill: var(--mat-sys-primary-container);
+    stroke: var(--mat-sys-primary);
+    stroke-width: 2.5;
+  }
+}
+
+.details {
+  padding: 1rem 1.25rem;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 0.85rem;
+  background: var(--mat-sys-surface-container-low);
+
+  h3 {
+    margin-top: 0;
+  }
+
+  ul {
+    margin: 0;
+    padding-left: 1.25rem;
+  }
+
+  p {
+    margin: 0;
+  }
+
+  .hint {
+    color: var(--mat-sys-on-surface-variant);
+  }
+}
+
+.all {
+  margin: 0;
+  padding-left: 1.25rem;
+}
+
+.anomalies {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  gap: 0.75rem;
+
+  section {
+    padding: 0.25rem 1.25rem 0.75rem;
+    border: 1px solid var(--mat-sys-outline-variant);
+    border-radius: 0.85rem;
+  }
+
+  p {
+    margin: 0 0 0.5rem;
+  }
+}
+
+.foot {
+  margin-top: 0.75rem;
+  color: var(--mat-sys-on-surface-variant);
+}
