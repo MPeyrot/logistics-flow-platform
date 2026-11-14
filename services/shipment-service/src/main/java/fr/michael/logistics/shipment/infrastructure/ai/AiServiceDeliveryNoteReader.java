@@ -7,6 +7,7 @@ import fr.michael.logistics.shipment.application.ExtractionRateLimitedException;
 import fr.michael.logistics.shipment.application.ExtractionServiceUnavailableException;
 import fr.michael.logistics.shipment.application.ExtractionServiceUnreachableException;
 import fr.michael.logistics.shipment.application.ServiceTokenProvider;
+import fr.michael.logistics.shipment.application.TokenUsage;
 import fr.michael.logistics.shipment.application.UnreadableDeliveryNoteException;
 import fr.michael.logistics.shipment.application.UnsupportedDocumentException;
 import jakarta.validation.ConstraintViolation;
@@ -117,9 +118,11 @@ class AiServiceDeliveryNoteReader implements DeliveryNoteReader {
             throw new ExtractionServiceUnavailableException("ai-service returned an invalid response: " + violations);
         }
         var n = response.deliveryNote();
+        var u = response.usage();
         return new DeliveryNoteReading(
                 new DeliveryNoteData(n.reference(), n.deliveryDate(), n.senderName(), n.recipientName(),
                         n.recipientAddress(), n.packageCount(), n.totalWeightKg()),
-                response.costUsd());
+                response.costUsd(),
+                new TokenUsage(u.inputTokens(), u.outputTokens(), u.cacheWriteTokens(), u.cacheReadTokens()));
     }
 }

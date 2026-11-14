@@ -23,7 +23,7 @@ class ServiceTokenProviderTest {
         TokenClaims claims = signed.getFirst();
         assertThat(claims.issuer()).isEqualTo("shipment-service");
         assertThat(claims.subject()).isEqualTo("shipment-service");
-        assertThat(claims.audience()).isEqualTo("ai-service");
+        assertThat(claims.audience()).containsExactly("ai-service");
         assertThat(Duration.between(claims.issuedAt(), claims.expiresAt())).isEqualTo(Duration.ofMinutes(5));
     }
 

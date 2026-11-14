@@ -18,6 +18,7 @@ import fr.michael.logistics.shipment.TestAccounts;
 import fr.michael.logistics.shipment.TestSecurityConfiguration;
 import fr.michael.logistics.shipment.TestcontainersConfiguration;
 import fr.michael.logistics.shipment.application.AccountService;
+import fr.michael.logistics.shipment.application.ServiceTokenProvider;
 import fr.michael.logistics.shipment.application.UserAccountRepository;
 import fr.michael.logistics.shipment.domain.Role;
 import java.time.Duration;
@@ -47,6 +48,9 @@ class AuthApiTest {
     @Autowired
     UserAccountRepository repository;
 
+    @Autowired
+    ServiceTokenProvider serviceTokens;
+
     @Test
     void adminTokenIsSignedByTheKeyPublishedInJwks() throws Exception {
         mvc.perform(post("/api/auth/token").contentType(MediaType.APPLICATION_JSON).content(credentials(
@@ -63,20 +67,20 @@ class AuthApiTest {
         assertThat(jwt.getHeader().getAlgorithm()).isEqualTo(JWSAlgorithm.RS256);
         assertThat(claims.getIssuer()).isEqualTo("shipment-service");
         assertThat(claims.getSubject()).isEqualTo(TestSecurityConfiguration.ADMIN_USERNAME);
-        assertThat(claims.getAudience()).containsExactly("shipment-service");
+        assertThat(claims.getAudience()).containsExactly("shipment-service", "ingestion-service");
         assertThat(claims.getStringListClaim("roles")).containsExactly("ADMIN");
         assertThat(claims.getClaim("site")).isNull();
         assertThat(lifetime(claims)).isEqualTo(Duration.ofHours(1));
     }
 
     @Test
-    void operatorTokenTargetsShipmentServiceForOneHour() throws Exception {
+    void operatorTokenTargetsShipmentAndIngestionServicesForOneHour() throws Exception {
         TestAccounts.ensure(accounts, "auth-operator", Role.OPERATOR, null);
 
         JWTClaimsSet claims = verifiedWithJwks(TestAccounts.token(mvc, "auth-operator", TestAccounts.PASSWORD))
                 .getJWTClaimsSet();
 
-        assertThat(claims.getAudience()).containsExactly("shipment-service");
+        assertThat(claims.getAudience()).containsExactly("shipment-service", "ingestion-service");
         assertThat(claims.getStringListClaim("roles")).containsExactly("OPERATOR");
         assertThat(lifetime(claims)).isEqualTo(Duration.ofHours(1));
     }
@@ -92,6 +96,15 @@ class AuthApiTest {
         assertThat(claims.getStringListClaim("roles")).containsExactly("SCANNER");
         assertThat(claims.getStringClaim("site")).isEqualTo("LYON");
         assertThat(lifetime(claims)).isEqualTo(Duration.ofHours(12));
+    }
+
+    @Test
+    void serviceTokenForAiServiceIsRefused() throws Exception {
+        String serviceToken = serviceTokens.token();
+
+        assertThat(SignedJWT.parse(serviceToken).getJWTClaimsSet().getAudience()).containsExactly("ai-service");
+        mvc.perform(get("/api/shipments").header("Authorization", "Bearer " + serviceToken))
+                .andExpect(status().isUnauthorized());
     }
 
     @Test

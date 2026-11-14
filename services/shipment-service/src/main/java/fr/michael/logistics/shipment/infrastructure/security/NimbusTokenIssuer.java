@@ -5,7 +5,6 @@ import com.nimbusds.jose.jwk.RSAKey;
 import com.nimbusds.jose.jwk.source.ImmutableJWKSet;
 import fr.michael.logistics.shipment.application.TokenClaims;
 import fr.michael.logistics.shipment.application.TokenIssuer;
-import java.util.List;
 import org.springframework.security.oauth2.jose.jws.SignatureAlgorithm;
 import org.springframework.security.oauth2.jwt.JwsHeader;
 import org.springframework.security.oauth2.jwt.JwtClaimsSet;
@@ -31,7 +30,7 @@ class NimbusTokenIssuer implements TokenIssuer {
         JwtClaimsSet.Builder set = JwtClaimsSet.builder()
                 .issuer(claims.issuer())
                 .subject(claims.subject())
-                .audience(List.of(claims.audience()))
+                .audience(claims.audience())
                 .issuedAt(claims.issuedAt())
                 .expiresAt(claims.expiresAt())
                 .claim("roles", claims.roles());

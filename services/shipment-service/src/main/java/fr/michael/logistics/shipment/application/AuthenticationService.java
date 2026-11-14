@@ -72,10 +72,13 @@ public class AuthenticationService {
         return account.get();
     }
 
-    /** Un SCANNER ne parle qu'à ingestion-service ; ADMIN et OPERATOR à shipment-service. */
+    /**
+     * Un SCANNER ne parle qu'à ingestion-service. ADMIN et OPERATOR parlent à shipment-service, et aussi à
+     * ingestion-service pour scanner à la main (« saisie manuelle par le bureau », pour les besoins de la démo).
+     */
     private static TokenClaims claimsFor(UserAccount account, Instant now) {
         boolean scanner = account.role() == Role.SCANNER;
-        String audience = scanner ? INGESTION_AUDIENCE : SHIPMENT_AUDIENCE;
+        List<String> audience = scanner ? List.of(INGESTION_AUDIENCE) : List.of(SHIPMENT_AUDIENCE, INGESTION_AUDIENCE);
         Duration lifetime = scanner ? SCANNER_TOKEN_LIFETIME : USER_TOKEN_LIFETIME;
         return new TokenClaims(ISSUER, account.username(), audience, List.of(account.role().name()),
                 account.site(), now, now.plus(lifetime));

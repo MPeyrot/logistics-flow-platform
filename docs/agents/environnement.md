@@ -28,6 +28,7 @@ Lu par l'orchestrateur, les implémenteurs et `/preparer-spec` (skills globaux `
 - `POST /api/auth/token` : corps `{"username","password"}`, réponse `{"accessToken","tokenType":"Bearer","expiresAt"}`. `sub` = identifiant du compte.
 - `POST /api/users` (ADMIN) : corps `{"username","password","role","site"}`, 201 + `Location`, réponse `{"id","username","role","site","active","createdAt"}`. `PATCH /api/users/{id}` : corps `{"active":false}` (désactive) ou `{"active":true}` (réactive, #25), idempotent, 200 + le compte ; `active` absent ou null : 400.
 - Blocage après échecs (`LoginThrottle`, `auth.login.*`) : en mémoire, donc partagé par toutes les classes de test qui partagent le contexte Spring. Échouer la connexion avec un identifiant propre au test, jamais 5 fois avec `test-admin` ; une connexion réussie remet le compteur à zéro.
+- Jetons dans les tests d'ingestion-service (#98) : `TestJwt.scanner(site)` (SCANNER, `aud=ingestion-service`) et `TestJwt.office("OPERATOR"|"ADMIN")` (sans site, `aud` = shipment-service et ingestion-service, comme les émet shipment-service) ; `audience(String...)` pour un autre `aud`.
 
 ## Anomalies (shipment-service, #39)
 - Port `AnomalyRepository` : `openIfAbsent` (INSERT … ON CONFLICT sur l'index partiel de V4, false si déjà ouverte), `resolveOpen`, `findOpen`. Cas d'usage `DetectAnomaliesService.detect()`, bean créé par `infrastructure/scheduling/AnomalyDetectionConfig` (`shipment.anomaly.stalled-after`).

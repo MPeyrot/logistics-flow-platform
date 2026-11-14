@@ -8,7 +8,10 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 
 /** Réponse de l'ai-service : donnée externe, validée avant d'entrer dans l'application. */
-record AiExtractionResponse(@NotNull @Valid Note deliveryNote, @NotNull @PositiveOrZero BigDecimal costUsd) {
+record AiExtractionResponse(
+        @NotNull @Valid Note deliveryNote,
+        @NotNull @Valid Usage usage,
+        @NotNull @PositiveOrZero BigDecimal costUsd) {
 
     record Note(
             @NotBlank String reference,
@@ -18,5 +21,12 @@ record AiExtractionResponse(@NotNull @Valid Note deliveryNote, @NotNull @Positiv
             String recipientAddress,
             Integer packageCount,
             BigDecimal totalWeightKg) {
+    }
+
+    record Usage(
+            @NotNull @PositiveOrZero Long inputTokens,
+            @NotNull @PositiveOrZero Long outputTokens,
+            @NotNull @PositiveOrZero Long cacheWriteTokens,
+            @NotNull @PositiveOrZero Long cacheReadTokens) {
     }
 }

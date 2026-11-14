@@ -57,8 +57,8 @@ class ScanImportApiTest {
     void requiresAScannerToken() throws Exception {
         String csv = HEADER + "A-1,PICKED_UP,Nantes,2026-11-07T08:00:00Z\n";
         mvc.perform(upload(csv, null)).andExpect(status().isUnauthorized());
-        mvc.perform(upload(csv, TestJwt.scanner("Nantes").roles("OPERATOR").build())).andExpect(status().isForbidden());
-        mvc.perform(upload(csv, TestJwt.scanner("Nantes").roles("ADMIN").build())).andExpect(status().isForbidden());
+        mvc.perform(upload(csv, TestJwt.office("OPERATOR").build())).andExpect(status().isForbidden());
+        mvc.perform(upload(csv, TestJwt.office("ADMIN").build())).andExpect(status().isForbidden());
     }
 
     @Test
