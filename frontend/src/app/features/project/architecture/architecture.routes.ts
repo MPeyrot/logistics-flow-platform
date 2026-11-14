@@ -1,6 +1,9 @@
 import { Routes } from '@angular/router';
-import { PlaceholderPage } from '../../../shared/placeholder-page';
 
 export const PROJECT_ARCHITECTURE_ROUTES: Routes = [
-  { path: '', data: { title: 'Architecture' }, component: PlaceholderPage },
+  {
+    path: '',
+    data: { title: 'Architecture' },
+    loadComponent: () => import('./architecture').then((m) => m.Architecture),
+  },
 ];
