@@ -1,20 +1,27 @@
-<header class="bar">
-  <h1>Logistics Flow</h1>
+<header class="bar" [class.signed-in]="auth.session()">
+  <div class="brand">
+    <span class="mark material-symbols-outlined" aria-hidden="true">route</span>
+    <h1>Logistics Flow</h1>
+  </div>
   @if (auth.session(); as session) {
-    <div class="user" data-testid="user">
-      <span class="name">{{ session.username }}</span>
-      <span class="role">{{ roleLabel() }}</span>
-      @if (session.site) {
-        <span class="site">Site {{ session.site }}</span>
-      }
-      <button matButton type="button" (click)="auth.logout()">Se déconnecter</button>
-    </div>
     <nav aria-label="Menu principal">
       @for (item of menu(); track item.path) {
-        <a [routerLink]="item.path" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">{{
-          item.label
-        }}</a>
+        <a [routerLink]="item.path" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }"
+          ><span class="material-symbols-outlined" aria-hidden="true">{{ item.icon }}</span
+          >{{ item.label }}</a
+        >
       }
     </nav>
+    <div class="user" data-testid="user">
+      <span class="avatar" aria-hidden="true">{{ initial() }}</span>
+      <div class="who">
+        <span class="name">{{ session.username }}</span>
+        <span class="role">{{ roleLabel() }}</span>
+        @if (session.site) {
+          <span class="site">Site {{ session.site }}</span>
+        }
+      </div>
+      <button matButton type="button" (click)="auth.logout()">Se déconnecter</button>
+    </div>
   }
 </header>

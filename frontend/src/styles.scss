@@ -1,39 +1,74 @@
-// Include theming for Angular Material with `mat.theme()`.
-// This Sass mixin will define CSS variables that are used for styling Angular Material
-// components according to the Material 3 design spec.
-// Learn more about theming and how to use it for your application's
-// custom components at https://material.angular.dev/guide/theming
 @use '@angular/material' as mat;
+@use 'styles/ui';
 
 html {
   height: 100%;
   @include mat.theme(
     (
       color: (
-        primary: mat.$azure-palette,
-        tertiary: mat.$blue-palette,
+        primary: mat.$violet-palette,
+        tertiary: mat.$cyan-palette,
       ),
       typography: Roboto,
-      density: 0,
+      density: -1,
     )
   );
+
+  // Neutres teintés vers l'indigo, jamais de noir ni de blanc purs.
+  --mat-sys-surface: light-dark(oklch(97.8% 0.006 280), oklch(17% 0.015 280));
+  --mat-sys-background: var(--mat-sys-surface);
+  --mat-sys-surface-container: light-dark(oklch(99.4% 0.003 280), oklch(21% 0.016 280));
+  --mat-sys-surface-container-low: light-dark(oklch(96.5% 0.007 280), oklch(19.5% 0.015 280));
+  --mat-sys-surface-container-high: light-dark(oklch(94.5% 0.01 280), oklch(25% 0.018 280));
+  --mat-sys-outline-variant: light-dark(oklch(90.5% 0.01 280), oklch(31% 0.02 280));
+  --mat-sys-on-surface: light-dark(oklch(22% 0.03 280), oklch(94% 0.01 280));
+  --mat-sys-on-surface-variant: light-dark(oklch(48% 0.025 280), oklch(75% 0.02 280));
+
+  // Indigo posé, moins saturé que la palette violette de Material.
+  --mat-sys-primary: light-dark(oklch(50% 0.19 272), oklch(80% 0.11 278));
+  --mat-sys-on-primary: light-dark(oklch(98% 0.01 280), oklch(25% 0.1 275));
+
+  // Boutons et champs : angles doux plutôt que pilules.
+  --mat-button-filled-container-shape: 0.625rem;
+  --mat-button-outlined-container-shape: 0.625rem;
+  --mat-button-text-container-shape: 0.625rem;
+  --mat-button-tonal-container-shape: 0.625rem;
 }
 
 body {
-  // Default the application to a light color theme. This can be changed to
-  // `dark` to enable the dark color theme, or to `light dark` to defer to the
-  // user's system settings.
-  color-scheme: light;
-
-  // Set a default background, font and text colors for the application using
-  // Angular Material's system-level CSS variables. Learn more about these
-  // variables at https://material.angular.dev/guide/system-variables
+  color-scheme: light dark;
   background-color: var(--mat-sys-surface);
   color: var(--mat-sys-on-surface);
   font: var(--mat-sys-body-medium);
-
-  // Reset the user agent margin.
+  font-size: 0.9375rem;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
   margin: 0;
   height: 100%;
 }
-/* You can add global styles to this file, and also import other style files */
+
+// Champs : cadre fin aux angles doux (apparence « fill » de Material, sans le fond grisé ni le trait du bas).
+.mat-mdc-form-field {
+  --mat-form-field-filled-container-color: var(--mat-sys-surface-container);
+  --mat-form-field-filled-hover-state-layer-opacity: 0;
+  --mat-form-field-filled-focus-state-layer-opacity: 0;
+
+  .mdc-text-field--filled:not(.mdc-text-field--disabled) {
+    border: 1px solid var(--mat-sys-outline-variant);
+    border-radius: 0.625rem;
+    transition: border-color 0.15s cubic-bezier(0.22, 1, 0.36, 1);
+
+    &:hover {
+      border-color: var(--mat-sys-outline);
+    }
+
+    &:focus-within {
+      border-color: var(--mat-sys-primary);
+      box-shadow: 0 0 0 3px color-mix(in oklch, var(--mat-sys-primary) 18%, transparent);
+    }
+  }
+
+  .mdc-line-ripple {
+    display: none;
+  }
+}

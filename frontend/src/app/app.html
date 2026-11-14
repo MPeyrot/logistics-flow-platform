@@ -1,8 +1,12 @@
-<app-header />
-@if (messages.current(); as message) {
-  <div class="message" role="alert">
-    <span>{{ message }}</span>
-    <button matIconButton type="button" aria-label="Fermer le message" (click)="messages.clear()">×</button>
+<div class="shell" [class.with-side]="auth.session()">
+  <app-header />
+  <div class="content">
+    @if (messages.current(); as message) {
+      <div class="banner" role="alert">
+        <span>{{ message }}</span>
+        <button matIconButton type="button" aria-label="Fermer le message" (click)="messages.clear()">×</button>
+      </div>
+    }
+    <router-outlet />
   </div>
-}
-<router-outlet />
+</div>

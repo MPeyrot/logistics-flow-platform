@@ -7,20 +7,21 @@ import { ROLE_LABELS, Role } from '../../core/labels';
 interface MenuItem {
   label: string;
   path: string;
+  icon: string;
 }
 
 const STAFF_MENU: MenuItem[] = [
-  { label: 'Expéditions', path: '/shipments' },
-  { label: 'Anomalies', path: '/anomalies' },
-  { label: 'Bons de livraison', path: '/delivery-notes' },
+  { label: 'Expéditions', path: '/shipments', icon: 'inventory_2' },
+  { label: 'Anomalies', path: '/anomalies', icon: 'warning' },
+  { label: 'Bons de livraison', path: '/delivery-notes', icon: 'description' },
 ];
 const ADMIN_MENU: MenuItem[] = [
-  { label: 'Comptes', path: '/admin/users' },
-  { label: 'Messages en échec', path: '/admin/dlt' },
+  { label: 'Comptes', path: '/admin/users', icon: 'group' },
+  { label: 'Messages en échec', path: '/admin/dlt', icon: 'report' },
 ];
 const SCANNER_MENU: MenuItem[] = [
-  { label: 'Scan', path: '/scan' },
-  { label: 'Import CSV', path: '/scan/import' },
+  { label: 'Scan', path: '/scan', icon: 'qr_code_scanner' },
+  { label: 'Import CSV', path: '/scan/import', icon: 'upload_file' },
 ];
 
 /** Menu d'un compte selon ses rôles. */
@@ -47,6 +48,7 @@ export function menuFor(roles: Role[]): MenuItem[] {
 })
 export class Header {
   protected readonly auth = inject(AuthService);
+  protected readonly initial = computed(() => (this.auth.session()?.username ?? '?').charAt(0).toUpperCase());
   protected readonly menu = computed(() => menuFor(this.auth.session()?.roles ?? []));
   protected readonly roleLabel = computed(() =>
     (this.auth.session()?.roles ?? []).map((r) => ROLE_LABELS[r]).join(', '),
