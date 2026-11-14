@@ -83,7 +83,7 @@ SUFFIX="$(date -u +%Y%m%d%H%M%S)-$RANDOM$RANDOM"
 SCANNER_USER="smoke-scanner-$SUFFIX"
 OPERATOR_USER="smoke-operator-$SUFFIX"
 SITE="SMOKE-$SUFFIX"
-REFERENCE="SMOKE-$SUFFIX"
+REFERENCE="LFP-CTRL-$SUFFIX"
 # Mot de passe jetable des comptes de fumée, jamais affiché.
 ACCOUNT_PASSWORD="$(LC_ALL=C tr -dc 'A-Za-z0-9' </dev/urandom | head -c 24 || true)"
 
@@ -104,7 +104,7 @@ OPERATOR_TOKEN="$(token_for "$OPERATOR_USER" "$ACCOUNT_PASSWORD")"
 
 step "4. Création de l'expédition $REFERENCE (OPERATOR)"
 call POST "$SHIPMENT_URL/api/shipments" "$OPERATOR_TOKEN" \
-  "$(jq -nc --arg r "$REFERENCE" --arg d "$(in_three_days)" '{reference:$r,origin:"Smoke origin",destination:"Smoke destination",expectedDeliveryAt:$d}')"
+  "$(jq -nc --arg r "$REFERENCE" --arg d "$(in_three_days)" '{reference:$r,origin:"Lyon",destination:"Bordeaux",expectedDeliveryAt:$d}')"
 expect 201 "Expédition $REFERENCE créée"
 [ "$(jq -r '.status' "$BODY_FILE")" = "CREATED" ] || fail_response "Statut initial différent de CREATED"
 
@@ -113,6 +113,12 @@ call POST "$INGESTION_URL/api/scans" "$SCANNER_TOKEN" \
   "$(jq -nc --arg r "$REFERENCE" --arg s "$SITE" --arg t "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
     '{shipmentReference:$r,type:"PICKED_UP",site:$s,occurredAt:$t}')"
 case "$STATUS" in 2??) echo "OK  Scan accepté ($STATUS)" ;; *) fail_response "Scan refusé par ingestion-service" ;; esac
+
+step "5b. Scan ARRIVED_AT_SITE par ingestion-service (OPERATOR, site libre)"
+call POST "$INGESTION_URL/api/scans" "$OPERATOR_TOKEN" \
+  "$(jq -nc --arg r "$REFERENCE" --arg t "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+    '{shipmentReference:$r,type:"ARRIVED_AT_SITE",site:"Lyon",occurredAt:$t}')"
+expect 202 "Scan de l'OPERATOR accepté"
 
 step "6. Import CSV de 2 lignes par ingestion-service (SCANNER) : une valide, une invalide"
 IMPORT_FILE="$(mktemp)"
