@@ -10,7 +10,8 @@
 # sont envoyés (un premier passage interrompu se répare). Chaque scan a un eventId déterministe (référence et rang) :
 # un scan parti mais pas encore consommé est renvoyé sans doublon.
 # Pas de STALLED amorçable : il se compte depuis la réception du dernier scan, donc depuis l'amorçage.
-# LATE apparaît à la prochaine passe de détection (15 min après le démarrage de shipment-service, puis toutes les 15 min).
+# LATE : 07, 08 et 15 sont créées avec une échéance dans 5 min (l'API refuse une échéance passée) ; LATE s'ouvre
+# à la première passe de détection qui suit (15 min après le démarrage de shipment-service, puis toutes les 15 min).
 set -euo pipefail
 
 for v in SHIPMENT_URL INGESTION_URL ADMIN_USERNAME ADMIN_PASSWORD; do
@@ -57,24 +58,34 @@ hours_from_now() {
   date -u -d "$gnu" +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || date -u -v"$bsd" +%Y-%m-%dT%H:%M:%SZ
 }
 
-# Une expédition par ligne : n | origine | étape | destination | parcours | échéance (heures depuis maintenant).
+# Échéance d'une expédition. L'API la refuse dans le passé (400) : « late » = dans 5 min, dépassée à la
+# première passe de détection (LATE) ; sinon H heures d'ici (H > 0).
+due_at() {
+  if [ "$1" = late ]; then
+    date -u -d "+5 minutes" +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || date -u -v+5M +%Y-%m-%dT%H:%M:%SZ
+  else
+    hours_from_now "$1"
+  fi
+}
+
+# Une expédition par ligne : n | origine | étape | destination | parcours | échéance (heures d'ici, ou « late »).
 # Parcours (heures dans le passé de chaque scan) : created, transit, out, delivered, failed, retry.
 # Le site d'un scan est une ville : départ = origine, passage = étape, tournée et livraison = destination.
-SHIPMENTS='01|Paris|Lyon|Marseille|delivered|-60
-02|Lille|Paris|Nantes|delivered|-30
-03|Strasbourg|Dijon|Lyon|delivered|-18
-04|Bordeaux|Toulouse|Montpellier|delivered|-90
+SHIPMENTS='01|Paris|Lyon|Marseille|delivered|12
+02|Lille|Paris|Nantes|delivered|6
+03|Strasbourg|Dijon|Lyon|delivered|20
+04|Bordeaux|Toulouse|Montpellier|delivered|2
 05|Nantes|Rennes|Brest|transit|40
 06|Paris|Orléans|Tours|transit|60
-07|Marseille|Lyon|Grenoble|transit|-30
-08|Lille|Reims|Strasbourg|transit|-12
+07|Marseille|Lyon|Grenoble|transit|late
+08|Lille|Reims|Strasbourg|transit|late
 09|Toulouse|Bordeaux|Nantes|transit|30
 10|Lyon|Dijon|Besançon|out|8
 11|Paris|Rouen|Caen|out|6
 12|Nice|Marseille|Montpellier|out|20
 13|Bordeaux|Limoges|Clermont-Ferrand|failed|40
 14|Rennes|Le Mans|Angers|failed|30
-15|Strasbourg|Metz|Nancy|failed|-8
+15|Strasbourg|Metz|Nancy|failed|late
 16|Lyon|Saint-Étienne|Clermont-Ferrand|retry|36
 17|Paris|Lille|Rouen|created|72
 18|Nantes|Tours|Toulouse|created|96
@@ -119,7 +130,7 @@ echo "== Expéditions LFP-$DAY-nn"
 while IFS='|' read -r n origin hub dest course due; do
   ref="LFP-$DAY-$n"
   call POST "$SHIPMENT_URL/api/shipments" "$ADMIN_TOKEN" \
-    "$(jq -nc --arg r "$ref" --arg o "$origin" --arg d "$dest" --arg e "$(hours_from_now "$due")" \
+    "$(jq -nc --arg r "$ref" --arg o "$origin" --arg d "$dest" --arg e "$(due_at "$due")" \
       '{reference:$r,origin:$o,destination:$d,expectedDeliveryAt:$e}')"
   SCAN_RANK=0
   SCANS_PRESENT=0
