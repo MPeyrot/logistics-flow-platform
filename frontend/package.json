@@ -8,7 +8,8 @@
     "test": "ng test --no-watch",
     "build": "ng build",
     "e2e": "playwright test",
-    "mock": "node scripts/mock-api.mjs"
+    "mock": "node scripts/mock-api.mjs",
+    "stats": "node scripts/project-stats.mjs"
   },
   "private": true,
   "packageManager": "npm@11.19.1",

@@ -68,6 +68,8 @@ jobs:
           done
 
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0 # tout l'historique : project-stats.json compte les commits
 
       - uses: actions/setup-java@v6
         with:
@@ -96,6 +98,13 @@ jobs:
             (cd "services/$service" && ./mvnw -B -ntp -DskipTests package spring-boot:build-image "-Dimage.name=$image")
             docker push "$image"
           done
+
+      # Chiffres de la page /projet : écrits dans frontend/public (ignoré par git), donc copiés dans l'image.
+      - name: Générer les chiffres du projet
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        working-directory: frontend
+        run: npm run stats
 
       # Le front est la seule image par Dockerfile (nginx non root) : écart assumé à Paketo.
       - name: Construire et pousser l'image du front

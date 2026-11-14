@@ -154,7 +154,7 @@ call_front_page() { # call_front_page CHEMIN : comme call GET, et garde les en-t
   STATUS="$(curl -sS --max-time 60 -D "$HEADERS_FILE" -o "$BODY_FILE" -w '%{http_code}' "$FRONTEND_URL$1")" \
     || fail "GET $FRONTEND_URL$1 injoignable"
 }
-for path in / /shipments; do
+for path in / /shipments /projet; do
   call_front_page "$path"
   expect 200 "Front GET $path"
   grep -qi '^content-type:.*text/html' "$HEADERS_FILE" || fail_response "Front GET $path : Content-Type text/html attendu"
@@ -162,6 +162,9 @@ for path in / /shipments; do
 done
 grep -qi '^content-security-policy:' "$HEADERS_FILE" || fail_response "Front : en-tête Content-Security-Policy absent"
 echo "OK  Content-Security-Policy présent"
+call_front_page /project-stats.json
+expect 200 "Front GET /project-stats.json (chiffres générés au déploiement)"
+jq -e '.commit | strings | length > 0' "$BODY_FILE" >/dev/null || fail_response "Front : project-stats.json sans champ commit"
 call POST "$FRONTEND_URL/api/auth/token" "" "$(U="$ADMIN_USERNAME" P="$ADMIN_PASSWORD" jq -nc '{username:env.U,password:env.P}')"
 expect 200 "Connexion de l'ADMIN par le front (/api/auth/token)"
 jq -e '.accessToken' "$BODY_FILE" >/dev/null || fail_response "Front : pas de jeton dans la réponse"

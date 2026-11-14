@@ -68,6 +68,36 @@ test.describe('visiteur sans session', () => {
     );
     expect(overflow).toBeLessThanOrEqual(0);
   });
+
+  test('vue d’ensemble : le bloc des chiffres s’affiche avec un JSON simulé', async ({ page }) => {
+    await page.route('**/project-stats.json', (route) =>
+      route.fulfill({
+        contentType: 'application/json',
+        body: JSON.stringify({
+          services: 4,
+          javaLines: 12345,
+          generatedAt: '2026-11-14T10:00:00Z',
+          commit: 'abc1234',
+        }),
+      }),
+    );
+    await page.goto('/projet');
+    const block = page.getByTestId('project-stats');
+    await expect(block).toContainText('Lignes de Java');
+    await expect(block).toContainText('abc1234');
+    await expect(block).toContainText('14 novembre 2026');
+  });
+
+  test('vue d’ensemble : le bloc des chiffres est masqué sur 404', async ({ page }) => {
+    await page.route('**/project-stats.json', (route) =>
+      route.fulfill({ status: 404, body: 'Not found' }),
+    );
+    await page.goto('/projet');
+    await expect(
+      page.getByRole('heading', { name: 'Suivre un colis de bout en bout' }),
+    ).toBeVisible();
+    await expect(page.getByTestId('project-stats')).toHaveCount(0);
+  });
 });
 
 test.describe('avec une session', () => {
