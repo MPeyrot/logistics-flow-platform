@@ -15,6 +15,7 @@ import fr.michael.logistics.shipment.application.ExtractionServiceUnavailableExc
 import fr.michael.logistics.shipment.application.ExtractionServiceUnreachableException;
 import fr.michael.logistics.shipment.application.ExtractionRateLimitedException;
 import fr.michael.logistics.shipment.application.ServiceTokenProvider;
+import fr.michael.logistics.shipment.application.TokenUsage;
 import fr.michael.logistics.shipment.application.UnreadableDeliveryNoteException;
 import fr.michael.logistics.shipment.application.UnsupportedDocumentException;
 import jakarta.validation.Validation;
@@ -52,7 +53,7 @@ class AiServiceDeliveryNoteReaderTest {
         stubJson(200, """
                 {"deliveryNote":{"reference":"BL-42","deliveryDate":"2026-10-30","senderName":"Acme",
                  "recipientName":"Dupont","recipientAddress":"12 rue des Lilas, Lyon","packageCount":3,"totalWeightKg":42.5},
-                 "usage":{"inputTokens":1,"outputTokens":1,"cacheWriteTokens":0,"cacheReadTokens":0},"costUsd":0.0089}""");
+                 "usage":{"inputTokens":1,"outputTokens":2,"cacheWriteTokens":3,"cacheReadTokens":4},"costUsd":0.0089}""");
 
         DeliveryNoteReading reading = reader(wireMock.baseUrl()).read("%PDF-1.4 fake".getBytes(), "bl.pdf");
 
@@ -60,6 +61,7 @@ class AiServiceDeliveryNoteReaderTest {
         assertThat(reading.note().deliveryDate()).isEqualTo(LocalDate.of(2026, 10, 30));
         assertThat(reading.note().packageCount()).isEqualTo(3);
         assertThat(reading.costUsd()).isEqualByComparingTo("0.0089");
+        assertThat(reading.usage()).isEqualTo(new TokenUsage(1, 2, 3, 4));
         wireMock.verify(postRequestedFor(urlEqualTo("/api/delivery-notes/extract"))
                 .withHeader("Authorization", com.github.tomakehurst.wiremock.client.WireMock.equalTo("Bearer signed-token"))
                 .withHeader("Content-Type", containing("multipart/form-data"))
@@ -101,11 +103,37 @@ class AiServiceDeliveryNoteReaderTest {
 
     @Test
     void rejectsResponseWithoutReference() {
-        stubJson(200, "{\"deliveryNote\":{\"reference\":\"\"},\"costUsd\":0.01}");
+        stubJson(200, "{\"deliveryNote\":{\"reference\":\"\"}," + USAGE + ",\"costUsd\":0.01}");
 
         assertThatThrownBy(() -> reader(wireMock.baseUrl()).read(new byte[] {1}, "x"))
                 .isInstanceOf(ExtractionServiceUnavailableException.class);
     }
+
+    @Test
+    void rejectsResponseWithoutUsage() {
+        stubJson(200, "{\"deliveryNote\":{\"reference\":\"BL-1\"},\"costUsd\":0.01}");
+
+        assertThatThrownBy(() -> reader(wireMock.baseUrl()).read(new byte[] {1}, "x"))
+                .isInstanceOf(ExtractionServiceUnavailableException.class);
+    }
+
+    @Test
+    void rejectsUsageWithAMissingOrNegativeTokenCount() {
+        stubJson(200, """
+                {"deliveryNote":{"reference":"BL-1"},"costUsd":0.01,
+                 "usage":{"inputTokens":1,"outputTokens":1,"cacheWriteTokens":0}}""");
+        assertThatThrownBy(() -> reader(wireMock.baseUrl()).read(new byte[] {1}, "x"))
+                .isInstanceOf(ExtractionServiceUnavailableException.class);
+
+        stubJson(200, """
+                {"deliveryNote":{"reference":"BL-1"},"costUsd":0.01,
+                 "usage":{"inputTokens":-1,"outputTokens":1,"cacheWriteTokens":0,"cacheReadTokens":0}}""");
+        assertThatThrownBy(() -> reader(wireMock.baseUrl()).read(new byte[] {1}, "x"))
+                .isInstanceOf(ExtractionServiceUnavailableException.class);
+    }
+
+    private static final String USAGE =
+            "\"usage\":{\"inputTokens\":1,\"outputTokens\":1,\"cacheWriteTokens\":0,\"cacheReadTokens\":0}";
 
     @Test
     void reportsUnreachableService() {

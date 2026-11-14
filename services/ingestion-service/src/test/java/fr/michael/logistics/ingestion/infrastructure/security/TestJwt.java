@@ -39,9 +39,14 @@ public final class TestJwt {
         return new Builder().roles("SCANNER").site(site);
     }
 
+    /** Jeton ADMIN ou OPERATOR tel que shipment-service l'émet : sans site, pour shipment-service et ingestion-service. */
+    public static Builder office(String role) {
+        return new Builder().roles(role).audience("shipment-service", "ingestion-service");
+    }
+
     public static final class Builder {
         private String issuer = "shipment-service";
-        private String audience = "ingestion-service";
+        private List<String> audience = List.of("ingestion-service");
         private List<String> roles = List.of();
         private String site;
         private Instant expiresAt = Instant.now().plusSeconds(3600);
@@ -57,8 +62,8 @@ public final class TestJwt {
             return this;
         }
 
-        public Builder audience(String audience) {
-            this.audience = audience;
+        public Builder audience(String... audience) {
+            this.audience = List.of(audience);
             return this;
         }
 

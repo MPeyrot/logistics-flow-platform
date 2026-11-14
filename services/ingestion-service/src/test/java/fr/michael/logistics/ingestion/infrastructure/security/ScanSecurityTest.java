@@ -67,8 +67,41 @@ class ScanSecurityTest {
     }
 
     @Test
-    void rejectsTokenWithoutScannerRole() throws Exception {
-        mvc.perform(scan("Nantes", TestJwt.scanner("Nantes").roles("OPERATOR").build()))
+    void rejectsServiceTokenForAiService() throws Exception {
+        mvc.perform(scan("Nantes", TestJwt.scanner(null).roles().audience("ai-service").build()))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void operatorCanScanForAnySite() throws Exception {
+        mvc.perform(scan("Lyon", TestJwt.office("OPERATOR").build()))
+                .andExpect(status().isAccepted());
+        mvc.perform(scan("Brest", TestJwt.office("OPERATOR").build()))
+                .andExpect(status().isAccepted());
+    }
+
+    @Test
+    void adminCanScanForAnySite() throws Exception {
+        mvc.perform(scan("Marseille", TestJwt.office("ADMIN").build()))
+                .andExpect(status().isAccepted());
+    }
+
+    @Test
+    void operatorScanIsStillValidated() throws Exception {
+        mvc.perform(scan(" ", TestJwt.office("OPERATOR").build()))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON));
+    }
+
+    @Test
+    void scannerKeepsItsSiteEvenWithAnOfficeRole() throws Exception {
+        mvc.perform(scan("Lyon", TestJwt.scanner("Nantes").roles("SCANNER", "OPERATOR").build()))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void rejectsTokenWithoutAScanningRole() throws Exception {
+        mvc.perform(scan("Nantes", TestJwt.scanner("Nantes").roles("VIEWER").build()))
                 .andExpect(status().isForbidden())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
                 .andExpect(jsonPath("$.status").value(403));

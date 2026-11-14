@@ -1,0 +1,54 @@
+<h2>Les décisions qui ont façonné le projet</h2>
+<p class="lead">
+  {{ decisions.length }} choix parmi ceux pris en construisant la plateforme : le contexte, ce qui a été retenu, ce qui
+  a été écarté, et l’issue GitHub où la discussion est écrite.
+</p>
+
+<ol class="list" data-testid="decision-list">
+  @for (d of decisions; track d.id) {
+    <li class="decision" [attr.data-decision]="d.id">
+      <h3>{{ d.title }}</h3>
+      <p class="meta">
+        <time [attr.datetime]="d.date">{{ d.date }}</time>
+        <a [href]="issueUrl(d.issue)" target="_blank" rel="noopener noreferrer">Issue #{{ d.issue }}</a>
+      </p>
+      <dl>
+        <dt>Contexte</dt>
+        <dd>
+          @for (p of parts(d.context); track $index) {
+            @if (p.code) {
+              <code>{{ p.text }}</code>
+            } @else {
+              {{ p.text }}
+            }
+          }
+        </dd>
+        <dt>Choix</dt>
+        <dd>
+          @for (p of parts(d.choice); track $index) {
+            @if (p.code) {
+              <code>{{ p.text }}</code>
+            } @else {
+              {{ p.text }}
+            }
+          }
+        </dd>
+        <dt>Écarté</dt>
+        <dd>
+          @for (p of parts(d.rejected); track $index) {
+            @if (p.code) {
+              <code>{{ p.text }}</code>
+            } @else {
+              {{ p.text }}
+            }
+          }
+        </dd>
+      </dl>
+    </li>
+  }
+</ol>
+
+<p class="journal">
+  <a [href]="journalUrl" target="_blank" rel="noopener noreferrer">Journal complet</a>
+  des décisions, sur GitHub.
+</p>

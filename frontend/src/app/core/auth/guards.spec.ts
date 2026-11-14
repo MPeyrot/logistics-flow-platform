@@ -67,14 +67,14 @@ describe('homeGuard', () => {
   afterEach(() => localStorage.clear());
 
   it.each<[Role, string]>([
-    ['ADMIN', '/shipments'],
-    ['OPERATOR', '/shipments'],
+    ['ADMIN', '/dashboard'],
+    ['OPERATOR', '/dashboard'],
     ['SCANNER', '/scan'],
   ])('%s arrive sur %s', (role, url) => {
     expect(run(homeGuard, '/', role)).toBe(url);
   });
 
-  it('sans session : connexion', () => {
-    expect(run(homeGuard, '/')).toBe('/login');
+  it('sans session : présentation du projet', () => {
+    expect(run(homeGuard, '/')).toBe('/projet');
   });
 });

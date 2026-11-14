@@ -4,7 +4,7 @@
 
 Suivi de flux logistiques : des scanners envoient des événements (colis pris en charge, arrivé sur un site, en livraison, livré), la plateforme met à jour l'état des expéditions de façon asynchrone, détecte les retards et lit les bons de livraison avec l'API Claude.
 
-**Projet personnel**, pour s'exercer à une stack Java d'entreprise : Spring Boot, Kafka, PostgreSQL, architecture hexagonale, tests d'intégration avec de vrais conteneurs. Ce n'est pas un système en production.
+**Projet personnel**, conçu et développé seul pour démontrer une stack Java d'entreprise : Spring Boot, Kafka, PostgreSQL, architecture hexagonale, tests d'intégration avec de vrais conteneurs. Ce n'est pas un logiciel en production.
 
 ## Architecture
 
@@ -211,6 +211,10 @@ Démo à la demande sur Google Cloud Run (`europe-west1`), base Neon, Kafka sur 
 Coûts : ~0 $ démo arrêtée (offres gratuites de Neon, Confluent Basic et Artifact Registry ; quelques centimes de Secret Manager). Démo en marche, `shipment-service` reste actif (détection des anomalies, consommateur Kafka) : quelques dollars par jour. Lancer **down** une fois la démo finie.
 
 **Comptes de la démo** : la base ne contient que l'ADMIN d'amorçage (identifiant `BOOTSTRAP_ADMIN_USERNAME`, mot de passe `BOOTSTRAP_ADMIN_PASSWORD`). Se connecter avec lui sur l'URL de la démo, puis créer les comptes OPERATOR et SCANNER (un SCANNER est rattaché à un site) depuis l'écran des comptes.
+
+**Données de démo** (`scripts/deploy/seed-demo.sh`) : ~20 expéditions `LFP-<AAMMJJ>-<nn>` entre villes françaises, à tous les stades du cycle (scans datés des jours précédents, motifs « Destinataire absent » et « Adresse incomplète », 3 en retard, 3 attendues sous 24 h), scans envoyés par l'ADMIN. À lancer avec **Deploy up**, case `seed` cochée (après la fumée). Rejouable le même jour : une référence existante est sautée. Pour repartir d'une base vide avant un nouveau déploiement : dans Neon, une branche vide, ou `DROP SCHEMA public CASCADE; CREATE SCHEMA public;` ; Flyway recrée le schéma au démarrage. Limites : STALLED n'est pas amorçable (compté depuis la réception du dernier scan, donc depuis l'amorçage) ; LATE n'apparaît qu'à la passe de détection (15 min après le démarrage de `shipment-service`). La fumée écrit une expédition `LFP-CTRL-<suffixe>` et des comptes `smoke-*`, laissés dans la base.
+
+**Captures de `/projet/ecrans`** (`frontend/public/screenshots/`, commitées) : régénérées à la main, jamais par la CI. Avant une démo, si un écran ou le jeu de démo a changé : `cd frontend && npm run screenshots` (fausse API, données de `screenshots/capture.spec.ts`, à garder alignées sur `seed-demo.sh`), puis commiter les JPEG.
 
 ## Front
 

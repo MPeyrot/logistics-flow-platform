@@ -13,12 +13,24 @@ const STAFF: Role[] = ['ADMIN', 'OPERATOR'];
 
 export const routes: Routes = [
   { path: '', pathMatch: 'full', canActivate: [homeGuard], children: [] },
+  // Espace public : pas de garde, aucun appel à l'API.
+  {
+    path: 'projet',
+    loadChildren: () => import('./features/project/project.routes').then((m) => m.PROJECT_ROUTES),
+  },
   { path: 'login', loadComponent: () => import('./features/login/login').then((m) => m.Login) },
   {
     path: 'access-denied',
     canActivate: [authGuard],
     loadComponent: () =>
       import('./features/access-denied/access-denied').then((m) => m.AccessDenied),
+  },
+  {
+    path: 'dashboard',
+    canActivate: staff,
+    data: { roles: STAFF },
+    loadChildren: () =>
+      import('./features/dashboard/dashboard.routes').then((m) => m.DASHBOARD_ROUTES),
   },
   {
     path: 'shipments',

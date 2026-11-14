@@ -1,5 +1,6 @@
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
+import { Location } from '@angular/common';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { App } from './app';
@@ -7,7 +8,7 @@ import { EXPIRES_AT_KEY, TOKEN_KEY } from './core/auth/auth.service';
 import { fakeToken } from './core/auth/fake-token';
 import { menuFor } from './features/header/header';
 
-async function render(claims?: Record<string, unknown>) {
+async function render(claims?: Record<string, unknown>, path = '/') {
   localStorage.clear();
   if (claims) {
     localStorage.setItem(TOKEN_KEY, fakeToken(claims));
@@ -15,7 +16,12 @@ async function render(claims?: Record<string, unknown>) {
   }
   await TestBed.configureTestingModule({
     imports: [App],
-    providers: [provideRouter([]), provideHttpClient(), provideHttpClientTesting()],
+    providers: [
+      provideRouter([]),
+      { provide: Location, useValue: { path: () => path } },
+      provideHttpClient(),
+      provideHttpClientTesting(),
+    ],
   }).compileComponents();
   const fixture = TestBed.createComponent(App);
   await fixture.whenStable();
@@ -42,15 +48,31 @@ describe('App', () => {
   });
 });
 
+describe('App ouverte sur /projet', () => {
+  afterEach(() => localStorage.clear());
+
+  it("n'affiche pas l'en-tête de l'application dès le premier rendu", async () => {
+    const el = await render({ sub: 'alice', roles: ['ADMIN'] }, '/projet/ecrans');
+    expect(el.querySelector('app-header')).toBeNull();
+    expect(el.querySelector('.shell')?.classList.contains('with-side')).toBe(false);
+  });
+});
+
 describe('menuFor', () => {
   const labels = (roles: Parameters<typeof menuFor>[0]) => menuFor(roles).map((m) => m.label);
 
   it('OPERATOR : Expéditions, Anomalies, Bons de livraison', () => {
-    expect(labels(['OPERATOR'])).toEqual(['Expéditions', 'Anomalies', 'Bons de livraison']);
+    expect(labels(['OPERATOR'])).toEqual([
+      'Tableau de bord',
+      'Expéditions',
+      'Anomalies',
+      'Bons de livraison',
+    ]);
   });
 
   it('ADMIN : en plus Comptes et Messages en échec', () => {
     expect(labels(['ADMIN'])).toEqual([
+      'Tableau de bord',
       'Expéditions',
       'Anomalies',
       'Bons de livraison',

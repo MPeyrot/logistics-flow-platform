@@ -5,7 +5,9 @@ import { MatCheckbox } from '@angular/material/checkbox';
 import { MatDialog } from '@angular/material/dialog';
 import { MatFormField, MatLabel } from '@angular/material/form-field';
 import { MatInput } from '@angular/material/input';
-import { RouterLink } from '@angular/router';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { map } from 'rxjs';
 import {
   ANOMALY_TYPE_LABELS,
   SHIPMENT_STATUS_LABELS,
@@ -27,6 +29,8 @@ import { ShipmentService } from './shipment.service';
 export class ShipmentList {
   private readonly service = inject(ShipmentService);
   private readonly dialog = inject(MatDialog);
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
 
   protected readonly statusLabels = SHIPMENT_STATUS_LABELS;
   protected readonly anomalyLabels = ANOMALY_TYPE_LABELS;
@@ -45,7 +49,16 @@ export class ShipmentList {
   protected readonly loading = signal(false);
   protected readonly loaded = signal(false);
   protected readonly search = signal('');
-  protected readonly status = signal<ShipmentStatus | ''>('');
+  /** Le filtre vit dans l'URL (`?status=`) : lien du tableau de bord, retour arrière, bouton « tous ». */
+  protected readonly status = toSignal(
+    this.route.queryParamMap.pipe(
+      map((params): ShipmentStatus | '' => {
+        const wanted = params.get('status');
+        return this.statuses.includes(wanted as ShipmentStatus) ? (wanted as ShipmentStatus) : '';
+      }),
+    ),
+    { initialValue: '' as ShipmentStatus | '' },
+  );
   protected readonly withAnomaly = signal(false);
   protected readonly sort = signal<SortState>({ column: 'reference', direction: '' });
 
@@ -62,6 +75,14 @@ export class ShipmentList {
 
   constructor() {
     this.refresh();
+  }
+
+  protected setStatus(value: ShipmentStatus | ''): void {
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { status: value || null },
+      queryParamsHandling: 'merge',
+    });
   }
 
   protected refresh(): void {

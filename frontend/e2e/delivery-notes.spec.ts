@@ -2,7 +2,9 @@ import { expect, test, type Page } from '@playwright/test';
 import { mockApi, mockProblem } from './mock-api';
 
 async function signIn(page: Page) {
-  const payload = Buffer.from(JSON.stringify({ sub: 'olivia', roles: ['OPERATOR'] })).toString('base64url');
+  const payload = Buffer.from(JSON.stringify({ sub: 'olivia', roles: ['OPERATOR'] })).toString(
+    'base64url',
+  );
   const expiresAt = new Date(Date.now() + 3_600_000).toISOString();
   await page.addInitScript(
     ([token, exp]) => {
@@ -14,6 +16,8 @@ async function signIn(page: Page) {
 }
 
 const pdf = { name: 'bon.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-1.4') };
+
+const USAGE = { inputTokens: 1200, outputTokens: 85, cacheWriteTokens: 0, cacheReadTokens: 0 };
 
 const NOTE = {
   reference: 'BL-42',
@@ -28,13 +32,14 @@ const NOTE = {
 test('bon sans expédition : création préremplie', async ({ page }) => {
   await signIn(page);
   await mockApi(page, '**/api/delivery-notes/extract', {
-    body: { deliveryNote: NOTE, costUsd: 0.0004, shipment: null },
+    body: { deliveryNote: NOTE, costUsd: 0.0004, usage: USAGE, shipment: null },
   });
   await page.goto('/delivery-notes');
   await page.getByLabel('Fichier du bon').setInputFiles(pdf);
 
   await expect(page.getByText('BL-42', { exact: true })).toBeVisible();
   await expect(page.getByText(/0,0004\s\$/)).toBeVisible();
+  await expect(page.getByText('1200 en entrée · 85 en sortie')).toBeVisible();
   await expect(page.getByText('Aucune expédition pour cette référence')).toBeVisible();
 
   await page.getByRole('button', { name: 'Créer l’expédition' }).click();
@@ -51,6 +56,7 @@ test('bon avec expédition : lien vers le détail', async ({ page }) => {
     body: {
       deliveryNote: NOTE,
       costUsd: 0.0004,
+      usage: USAGE,
       shipment: {
         id: 's1',
         reference: 'BL-42',
@@ -65,12 +71,17 @@ test('bon avec expédition : lien vers le détail', async ({ page }) => {
   });
   await page.goto('/delivery-notes');
   await page.getByLabel('Fichier du bon').setInputFiles(pdf);
-  await expect(page.getByRole('link', { name: 'BL-42' })).toHaveAttribute('href', '/shipments/BL-42');
+  await expect(page.getByRole('link', { name: 'BL-42' })).toHaveAttribute(
+    'href',
+    '/shipments/BL-42',
+  );
 });
 
 test('fichier refusé côté client, puis 429 avec compte à rebours', async ({ page }) => {
   await signIn(page);
-  await mockProblem(page, '**/api/delivery-notes/extract', 429, 'quota', { headers: { 'Retry-After': '30' } });
+  await mockProblem(page, '**/api/delivery-notes/extract', 429, 'quota', {
+    headers: { 'Retry-After': '30' },
+  });
   await page.goto('/delivery-notes');
 
   await page

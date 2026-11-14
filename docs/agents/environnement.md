@@ -28,6 +28,7 @@ Lu par l'orchestrateur, les implémenteurs et `/preparer-spec` (skills globaux `
 - `POST /api/auth/token` : corps `{"username","password"}`, réponse `{"accessToken","tokenType":"Bearer","expiresAt"}`. `sub` = identifiant du compte.
 - `POST /api/users` (ADMIN) : corps `{"username","password","role","site"}`, 201 + `Location`, réponse `{"id","username","role","site","active","createdAt"}`. `PATCH /api/users/{id}` : corps `{"active":false}` (désactive) ou `{"active":true}` (réactive, #25), idempotent, 200 + le compte ; `active` absent ou null : 400.
 - Blocage après échecs (`LoginThrottle`, `auth.login.*`) : en mémoire, donc partagé par toutes les classes de test qui partagent le contexte Spring. Échouer la connexion avec un identifiant propre au test, jamais 5 fois avec `test-admin` ; une connexion réussie remet le compteur à zéro.
+- Jetons dans les tests d'ingestion-service (#98) : `TestJwt.scanner(site)` (SCANNER, `aud=ingestion-service`) et `TestJwt.office("OPERATOR"|"ADMIN")` (sans site, `aud` = shipment-service et ingestion-service, comme les émet shipment-service) ; `audience(String...)` pour un autre `aud`.
 
 ## Anomalies (shipment-service, #39)
 - Port `AnomalyRepository` : `openIfAbsent` (INSERT … ON CONFLICT sur l'index partiel de V4, false si déjà ouverte), `resolveOpen`, `findOpen`. Cas d'usage `DetectAnomaliesService.detect()`, bean créé par `infrastructure/scheduling/AnomalyDetectionConfig` (`shipment.anomaly.stalled-after`).
@@ -82,3 +83,10 @@ Lu par l'orchestrateur, les implémenteurs et `/preparer-spec` (skills globaux `
 - `ReplayTracker` (fourni par `Dlt`) garde l'identifiant du « tout rejouer » dans `localStorage` (`dlt.replayAllId`), interroge `GET …/replay/{id}` chaque seconde, l'efface à `finished` ou sur 404. Mot de passe d'un compte : 12 caractères au moins (`UserAccount.PASSWORD_MIN_LENGTH`) ; le backend refuse un site hors SCANNER, le front n'en envoie pas.
 - Rôles d'une route : `data: { roles }` dans `app.routes.ts` (en plus de `roleGuard`) ; `canAccess(router, session, url)` (`core/auth/guards.ts`) les lit, la connexion ne suit un `returnUrl` que si le compte y a accès. Une nouvelle route protégée déclare ses `data.roles`.
 - Heredocs et `cd` composés : le garde-fou d'un worktree isolé les refuse parfois ; préférer `Write` pour créer un fichier.
+
+## Espace public /projet (frontend/, #100)
+- `features/project/` : `ProjectShell` (barre du haut, mention `data-testid="project-notice"`, `<router-outlet>`) enveloppe les pages ; `project.routes.ts` charge `<page>/<page>.routes.ts` (overview, architecture, statuts, decisions, ecrans) : un ticket de page n'édite que le sien (`PlaceholderPage` encore pour architecture, decisions, ecrans). `App` masque `app-header` sur `/projet` (signal `onProject`). `homeGuard` sans session → `/projet` (plus `/login`) ; un e2e qui veut la connexion fait `page.goto('/login')`.
+- `core/shipment-transitions.ts` : `SHIPMENT_TRANSITIONS`, `transitionsFrom/To`, `REFUSED_EXAMPLE`. Diagramme SVG de `statuts` : géométrie dans `statuts.ts` (`EDGE_SHAPES`, clé `de>scan`).
+
+## Captures des écrans (frontend/, #106)
+- `npm run screenshots` (dans `frontend/`, `E2E_PORT` en worktree) : `screenshots/capture.spec.ts` et `playwright.screenshots.config.ts`, hors de `npm run e2e` ; données en dur dans le script, API simulée par `e2e/mock-api.ts`. Écrit 16 JPEG (`<écran>-light.jpg` et `-dark.jpg`, 1280x800, qualité 72, ~0,8 Mo) dans `public/screenshots/`, commités ; à relancer quand un écran ou le jeu de démo change. Page `features/project/ecrans/ecrans.ts` (`<picture>` et `prefers-color-scheme`), e2e `e2e/project-screens.spec.ts`.

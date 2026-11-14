@@ -32,7 +32,7 @@ public class ServiceTokenProvider {
         Instant now = clock.instant();
         if (token == null || !now.isBefore(expiresAt.minus(RENEW_MARGIN))) {
             expiresAt = now.plus(LIFETIME);
-            token = issuer.sign(new TokenClaims(AuthenticationService.ISSUER, SUBJECT, audience, List.of(), null, now, expiresAt));
+            token = issuer.sign(new TokenClaims(AuthenticationService.ISSUER, SUBJECT, List.of(audience), List.of(), null, now, expiresAt));
         }
         return token;
     }

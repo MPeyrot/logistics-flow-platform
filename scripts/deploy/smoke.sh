@@ -83,7 +83,7 @@ SUFFIX="$(date -u +%Y%m%d%H%M%S)-$RANDOM$RANDOM"
 SCANNER_USER="smoke-scanner-$SUFFIX"
 OPERATOR_USER="smoke-operator-$SUFFIX"
 SITE="SMOKE-$SUFFIX"
-REFERENCE="SMOKE-$SUFFIX"
+REFERENCE="LFP-CTRL-$SUFFIX"
 # Mot de passe jetable des comptes de fumée, jamais affiché.
 ACCOUNT_PASSWORD="$(LC_ALL=C tr -dc 'A-Za-z0-9' </dev/urandom | head -c 24 || true)"
 
@@ -104,7 +104,7 @@ OPERATOR_TOKEN="$(token_for "$OPERATOR_USER" "$ACCOUNT_PASSWORD")"
 
 step "4. Création de l'expédition $REFERENCE (OPERATOR)"
 call POST "$SHIPMENT_URL/api/shipments" "$OPERATOR_TOKEN" \
-  "$(jq -nc --arg r "$REFERENCE" --arg d "$(in_three_days)" '{reference:$r,origin:"Smoke origin",destination:"Smoke destination",expectedDeliveryAt:$d}')"
+  "$(jq -nc --arg r "$REFERENCE" --arg d "$(in_three_days)" '{reference:$r,origin:"Lyon",destination:"Bordeaux",expectedDeliveryAt:$d}')"
 expect 201 "Expédition $REFERENCE créée"
 [ "$(jq -r '.status' "$BODY_FILE")" = "CREATED" ] || fail_response "Statut initial différent de CREATED"
 
@@ -113,6 +113,12 @@ call POST "$INGESTION_URL/api/scans" "$SCANNER_TOKEN" \
   "$(jq -nc --arg r "$REFERENCE" --arg s "$SITE" --arg t "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
     '{shipmentReference:$r,type:"PICKED_UP",site:$s,occurredAt:$t}')"
 case "$STATUS" in 2??) echo "OK  Scan accepté ($STATUS)" ;; *) fail_response "Scan refusé par ingestion-service" ;; esac
+
+step "5b. Scan ARRIVED_AT_SITE par ingestion-service (OPERATOR, site libre)"
+call POST "$INGESTION_URL/api/scans" "$OPERATOR_TOKEN" \
+  "$(jq -nc --arg r "$REFERENCE" --arg t "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+    '{shipmentReference:$r,type:"ARRIVED_AT_SITE",site:"Lyon",occurredAt:$t}')"
+expect 202 "Scan de l'OPERATOR accepté"
 
 step "6. Import CSV de 2 lignes par ingestion-service (SCANNER) : une valide, une invalide"
 IMPORT_FILE="$(mktemp)"
@@ -154,7 +160,7 @@ call_front_page() { # call_front_page CHEMIN : comme call GET, et garde les en-t
   STATUS="$(curl -sS --max-time 60 -D "$HEADERS_FILE" -o "$BODY_FILE" -w '%{http_code}' "$FRONTEND_URL$1")" \
     || fail "GET $FRONTEND_URL$1 injoignable"
 }
-for path in / /shipments; do
+for path in / /shipments /projet; do
   call_front_page "$path"
   expect 200 "Front GET $path"
   grep -qi '^content-type:.*text/html' "$HEADERS_FILE" || fail_response "Front GET $path : Content-Type text/html attendu"
@@ -162,6 +168,9 @@ for path in / /shipments; do
 done
 grep -qi '^content-security-policy:' "$HEADERS_FILE" || fail_response "Front : en-tête Content-Security-Policy absent"
 echo "OK  Content-Security-Policy présent"
+call_front_page /project-stats.json
+expect 200 "Front GET /project-stats.json (chiffres générés au déploiement)"
+jq -e '.commit | strings | length > 0' "$BODY_FILE" >/dev/null || fail_response "Front : project-stats.json sans champ commit"
 call POST "$FRONTEND_URL/api/auth/token" "" "$(U="$ADMIN_USERNAME" P="$ADMIN_PASSWORD" jq -nc '{username:env.U,password:env.P}')"
 expect 200 "Connexion de l'ADMIN par le front (/api/auth/token)"
 jq -e '.accessToken' "$BODY_FILE" >/dev/null || fail_response "Front : pas de jeton dans la réponse"

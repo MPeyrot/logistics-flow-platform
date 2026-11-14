@@ -100,6 +100,10 @@ class DeliveryNoteApiTest {
                 .andExpect(jsonPath("$.deliveryNote.reference").value("BL-MATCH"))
                 .andExpect(jsonPath("$.deliveryNote.packageCount").value(2))
                 .andExpect(jsonPath("$.costUsd").value(0.0089))
+                .andExpect(jsonPath("$.usage.inputTokens").value(1000))
+                .andExpect(jsonPath("$.usage.outputTokens").value(100))
+                .andExpect(jsonPath("$.usage.cacheWriteTokens").value(500))
+                .andExpect(jsonPath("$.usage.cacheReadTokens").value(2000))
                 .andExpect(jsonPath("$.shipment.status").value("CREATED"))
                 .andExpect(jsonPath("$.shipment.origin").value("Nantes"))
                 .andExpect(jsonPath("$.shipment.expectedDeliveryAt").value(ShipmentApiTest.DUE.toString()));

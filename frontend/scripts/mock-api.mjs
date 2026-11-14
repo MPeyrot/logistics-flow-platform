@@ -6,16 +6,18 @@ import { randomUUID } from 'node:crypto';
 const PORTS = [8080, 8081]; // ceux de proxy.conf.json
 const ago = (h) => new Date(Date.now() - h * 3_600_000).toISOString();
 const ahead = (h) => new Date(Date.now() + h * 3_600_000).toISOString();
+const DAY = new Date().toISOString().slice(2, 10).replaceAll('-', ''); // AAMMJJ, comme seed-demo.sh
+const ref = (n) => `LFP-${DAY}-${n}`;
 
 const shipments = [
-  ['FR-24001', 'Paris', 'Lyon', 'IN_TRANSIT', 30, [], 'ARRIVED_AT_SITE'],
-  ['FR-24002', 'Lille', 'Marseille', 'DELIVERED', -20, [], 'DELIVERED'],
-  ['FR-24003', 'Nantes', 'Bordeaux', 'OUT_FOR_DELIVERY', 4, [], 'OUT_FOR_DELIVERY'],
-  ['FR-24004', 'Rennes', 'Toulouse', 'DELIVERY_FAILED', -6, [['LATE', 5]], 'DELIVERY_FAILED'],
-  ['FR-24005', 'Strasbourg', 'Nice', 'IN_TRANSIT', -30, [['LATE', 28], ['STALLED', 52]], 'ARRIVED_AT_SITE'],
-  ['FR-24006', 'Paris', 'Brest', 'CREATED', 72, [], null],
-  ['FR-24007', 'Lyon', 'Grenoble', 'IN_TRANSIT', 20, [['STALLED', 50]], 'PICKED_UP'],
-  ['FR-24008', 'Dijon', 'Metz', 'DELIVERED', -70, [], 'DELIVERED'],
+  [ref('01'), 'Paris', 'Lyon', 'IN_TRANSIT', 30, [], 'ARRIVED_AT_SITE'],
+  [ref('02'), 'Lille', 'Marseille', 'DELIVERED', -20, [], 'DELIVERED'],
+  [ref('03'), 'Nantes', 'Bordeaux', 'OUT_FOR_DELIVERY', 4, [], 'OUT_FOR_DELIVERY'],
+  [ref('04'), 'Rennes', 'Toulouse', 'DELIVERY_FAILED', -6, [['LATE', 5]], 'DELIVERY_FAILED'],
+  [ref('05'), 'Strasbourg', 'Nice', 'IN_TRANSIT', -30, [['LATE', 28], ['STALLED', 52]], 'ARRIVED_AT_SITE'],
+  [ref('06'), 'Paris', 'Brest', 'CREATED', 72, [], null],
+  [ref('07'), 'Lyon', 'Grenoble', 'IN_TRANSIT', 20, [['STALLED', 50]], 'PICKED_UP'],
+  [ref('08'), 'Dijon', 'Metz', 'DELIVERED', -70, [], 'DELIVERED'],
 ].map(([reference, origin, destination, status, due, anomalies, last], i) => ({
   id: `s${i + 1}`,
   reference,
@@ -38,7 +40,7 @@ const scansOf = (s) => {
     site: ['PAR', 'LYO', 'MRS', 'BOR'][i % 4],
     occurredAt: ago(100 - i * 12),
     receivedAt: ago(100 - i * 12 - 0.01),
-    ...(type === 'DELIVERY_FAILED' ? { reason: 'Destinataire absent' } : {}),
+    ...(type === 'DELIVERY_FAILED' ? { reason: i % 2 ? 'Adresse incomplète' : 'Destinataire absent' } : {}),
   }));
 };
 
@@ -51,9 +53,9 @@ const users = [
 ].map(([username, role, site, active], i) => ({ id: `u${i + 1}`, username, role, site, active, createdAt: ago(900 - i * 100) }));
 
 const letters = [
-  ['FR-24005', 'org.example.InvalidScanException', 'Transition interdite : IN_TRANSIT -> DELIVERED', false],
-  ['FR-24099', 'org.example.UnknownShipmentException', 'Expédition inconnue : FR-24099', false],
-  ['FR-24002', 'org.example.InvalidScanException', 'Transition interdite : DELIVERED -> PICKED_UP', true],
+  [ref('05'), 'org.example.InvalidScanException', 'Transition interdite : IN_TRANSIT -> DELIVERED', false],
+  [ref('99'), 'org.example.UnknownShipmentException', `Expédition inconnue : ${ref('99')}`, false],
+  [ref('02'), 'org.example.InvalidScanException', 'Transition interdite : DELIVERED -> PICKED_UP', true],
 ].map(([key, exceptionClass, exceptionMessage, replayed], i) => ({
   partition: i % 3,
   offset: 40 + i,
@@ -70,8 +72,8 @@ let replay = null;
 
 const anomalies = () =>
   shipments.flatMap((s) => s.openAnomalies.map((a, i) => ({ id: `${s.id}-a${i}`, type: a.type, shipmentReference: s.reference, detectedAt: a.detectedAt, resolvedAt: null }))).concat([
-    { id: 'old-1', type: 'LATE', shipmentReference: 'FR-24002', detectedAt: ago(60), resolvedAt: ago(20) },
-    { id: 'old-2', type: 'STALLED', shipmentReference: 'FR-24008', detectedAt: ago(90), resolvedAt: ago(70) },
+    { id: 'old-1', type: 'LATE', shipmentReference: ref('02'), detectedAt: ago(60), resolvedAt: ago(20) },
+    { id: 'old-2', type: 'STALLED', shipmentReference: ref('08'), detectedAt: ago(90), resolvedAt: ago(70) },
   ]);
 
 const strip = ({ _last, ...s }) => s;
@@ -126,7 +128,7 @@ function handle(method, url, body) {
     return [200, l];
   }
   if (path === '/api/delivery-notes/extract') {
-    return [200, { costUsd: 0.0004, shipment: strip(shipments[0]), deliveryNote: { reference: 'FR-24001', deliveryDate: '2026-11-20', senderName: 'Atelier Dupont', recipientName: 'Maison Lambert', recipientAddress: '12 rue des Lilas, 69003 Lyon', packageCount: 3, totalWeightKg: 12.5 } }];
+    return [200, { costUsd: 0.0004, usage: { inputTokens: 1850, outputTokens: 210, cacheWriteTokens: 0, cacheReadTokens: 0 }, shipment: strip(shipments[0]), deliveryNote: { reference: ref('01'), deliveryDate: '2026-11-20', senderName: 'Atelier Dupont', recipientName: 'Maison Lambert', recipientAddress: '12 rue des Lilas, 69003 Lyon', packageCount: 3, totalWeightKg: 12.5 } }];
   }
   if (path === '/api/scans/imports') return [200, { lines: 120, published: 117, rejected: 3, errors: [{ line: 14, detail: 'type inconnu : PICKUP' }, { line: 58, detail: 'occurredAt illisible' }, { line: 90, detail: 'site différent de celui du jeton' }] }];
   if (path === '/api/scans') return [202, { eventId: randomUUID() }];

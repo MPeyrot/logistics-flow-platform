@@ -64,6 +64,28 @@ test('la page de connexion s’affiche sans violation de la CSP', async ({ page 
   expect(violations).toEqual([]);
 });
 
+test('les pages /projet et /projet/architecture s’affichent avec la CSP, sans violation', async ({
+  page,
+  request,
+}) => {
+  const violations = watchCsp(page);
+  for (const path of ['/projet', '/projet/architecture']) {
+    const res = await request.get(path);
+    expect(res.status(), path).toBe(200);
+    expect(res.headers()['content-security-policy'], path).toBe(CSP);
+  }
+  await page.goto('/projet');
+  await expect(page.getByTestId('project-notice')).toBeVisible();
+  await page.goto('/projet/architecture');
+  await expect(page.getByRole('heading', { name: 'L’architecture en un schéma' })).toBeVisible();
+  // Le style en ligne du SVG et l'animation des flèches passent sous `style-src 'self' 'unsafe-inline'`.
+  await page.getByRole('button', { name: 'Bloc Kafka' }).click();
+  await expect(page.getByTestId('block-details')).toContainText('scan-events.DLT');
+  await page.getByRole('button', { name: 'Suivre un scan' }).click();
+  await expect(page.locator('[data-edge="browser-nginx"]')).toHaveClass(/active/);
+  expect(violations).toEqual([]);
+});
+
 test('un écran Material après connexion s’affiche sans violation de la CSP', async ({ page }) => {
   const violations = watchCsp(page);
   const claims = Buffer.from(JSON.stringify({ sub: 'alice', roles: ['ADMIN'] })).toString(
@@ -86,7 +108,7 @@ test('un écran Material après connexion s’affiche sans violation de la CSP',
   await page.getByLabel('Identifiant').fill('alice');
   await page.getByLabel('Mot de passe').fill('secret');
   await page.getByRole('button', { name: 'Se connecter' }).click();
-  await expect(page).toHaveURL(/\/shipments$/);
+  await expect(page).toHaveURL(/\/dashboard$/);
   await expect(page.getByRole('button', { name: 'Se déconnecter' })).toBeVisible();
   expect(violations).toEqual([]);
 });

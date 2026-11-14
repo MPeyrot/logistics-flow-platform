@@ -18,3 +18,4 @@ docs/agents/*/STOP
 dist/
 playwright-report/
 test-results/
+frontend/public/project-stats.json
