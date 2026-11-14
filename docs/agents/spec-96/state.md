@@ -11,8 +11,8 @@ Ce fichier est relu par chaque orchestrateur neuf : il décrit l'état présent,
 
 | Issue | Titre court | Bloqué par | Modèle / effort | Statut | Slot / worktree / branche | Commit |
 |---|---|---|---|---|---|---|
-| #98 | Back-end : scan ADMIN/OPERATOR, `usage` | — | opus / high | à faire | | |
-| #99 | Tableau de bord `/dashboard` | — | sonnet / medium | à faire | | |
+| #98 | Back-end : scan ADMIN/OPERATOR, `usage` | — | opus / high | en cours | 1 / (worktree isolé) / ticket/98-scan-bureau-usage | |
+| #99 | Tableau de bord `/dashboard` | — | sonnet / medium | en cours | 2 / (worktree isolé) / ticket/99-dashboard | |
 | #100 | Coquille `/projet` et diagramme des statuts | #99 | sonnet / medium | à faire | | |
 | #101 | Boutons de scan du détail, frise, `usage` affiché | #98, #100 | sonnet / medium | à faire | | |
 | #102 | `/projet/architecture` et CSP de l'image | #100 | sonnet / medium | à faire | | |
