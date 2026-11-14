@@ -21,6 +21,13 @@ export const routes: Routes = [
       import('./features/access-denied/access-denied').then((m) => m.AccessDenied),
   },
   {
+    path: 'dashboard',
+    canActivate: staff,
+    data: { roles: STAFF },
+    loadChildren: () =>
+      import('./features/dashboard/dashboard.routes').then((m) => m.DASHBOARD_ROUTES),
+  },
+  {
     path: 'shipments',
     canActivate: staff,
     data: { roles: STAFF },

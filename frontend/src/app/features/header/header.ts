@@ -11,6 +11,7 @@ interface MenuItem {
 }
 
 const STAFF_MENU: MenuItem[] = [
+  { label: 'Tableau de bord', path: '/dashboard', icon: 'dashboard' },
   { label: 'Expéditions', path: '/shipments', icon: 'inventory_2' },
   { label: 'Anomalies', path: '/anomalies', icon: 'warning' },
   { label: 'Bons de livraison', path: '/delivery-notes', icon: 'description' },

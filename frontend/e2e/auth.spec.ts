@@ -30,8 +30,8 @@ async function fillAndSubmit(page: Page) {
 
 test.describe('connexion et redirection par rôle', () => {
   for (const [role, url] of [
-    ['ADMIN', '/shipments'],
-    ['OPERATOR', '/shipments'],
+    ['ADMIN', '/dashboard'],
+    ['OPERATOR', '/dashboard'],
     ['SCANNER', '/scan'],
   ] as const) {
     test(`${role} arrive sur ${url}`, async ({ page }) => {
@@ -88,7 +88,7 @@ test.describe('connexion et redirection par rôle', () => {
     await mockLogin(page, { sub: 'alice', roles: ['ADMIN'] });
     await page.goto('/login');
     await fillAndSubmit(page);
-    await expect(page).toHaveURL(/\/shipments$/);
+    await expect(page).toHaveURL(/\/dashboard$/);
 
     const other = await context.newPage();
     await other.goto('/shipments');
@@ -118,7 +118,7 @@ test('expiration : la session est effacée et la connexion affiche « Session ex
   await mockLogin(page, { sub: 'alice', roles: ['ADMIN'] }, 2000);
   await page.goto('/login');
   await fillAndSubmit(page);
-  await expect(page).toHaveURL(/\/shipments$/);
+  await expect(page).toHaveURL(/\/dashboard$/);
   await expect(page).toHaveURL(/\/login/, { timeout: 5000 });
   await expect(page.getByText('Session expirée')).toBeVisible();
   expect(await page.evaluate(() => localStorage.getItem('auth.token'))).toBeNull();
