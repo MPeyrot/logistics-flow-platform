@@ -18,7 +18,7 @@ Ce fichier est relu par chaque orchestrateur neuf : il décrit l'état présent,
 | #102 | `/projet/architecture` et CSP de l'image | #100 | sonnet / medium | fusionné | | b65a5e3 |
 | #103 | Chiffres du projet (`project-stats.json`) | #100 | sonnet / medium | fusionné | | 9b8132b |
 | #104 | Données de démo et fumée réaliste | #98, #103 | sonnet / medium | fusionné | | e4bc113 |
-| #105 | `/projet/decisions` | #100 | sonnet / medium | en cours | 2 / (worktree isolé) / ticket/105-decisions | |
+| #105 | `/projet/decisions` | #100 | sonnet / medium | fusionné | | ea3bb8e |
 | #106 | Captures et `/projet/ecrans` | #99, #101, #104 | sonnet / medium | en cours | 1 / (worktree isolé) / ticket/106-captures-ecrans | |
 
 Statuts : `à faire`, `en cours`, `partiel`, `décision attendue`, `fusionné`.
