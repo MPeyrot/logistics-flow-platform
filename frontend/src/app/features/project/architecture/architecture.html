@@ -1,0 +1,109 @@
+<h2>L’architecture en un schéma</h2>
+<p class="lead">
+  Trois services Spring Boot qui échangent par REST et Kafka, derrière un front servi par nginx. Choisissez un bloc
+  pour voir son rôle, ses technologies, ce qu’il valide et ses limites, ou suivez le trajet d’un scan.
+</p>
+
+<div class="steps-bar">
+  <button type="button" class="action" data-testid="step-next" [disabled]="atLastStep()" (click)="next()">
+    {{ step() ? 'Étape suivante' : 'Suivre un scan' }}
+  </button>
+  @if (step()) {
+    <button type="button" class="action" data-testid="step-previous" [disabled]="stepIndex() === 0" (click)="previous()">
+      Étape précédente
+    </button>
+    <button type="button" class="action" data-testid="step-stop" (click)="stop()">Arrêter</button>
+  }
+</div>
+
+<section class="step" aria-live="polite" data-testid="step-details">
+  @if (step(); as s) {
+    <h3>Étape {{ stepIndex()! + 1 }} sur {{ steps.length }} : {{ s.title }}</h3>
+    <p>{{ s.text }}</p>
+  } @else {
+    <p class="hint">Aucun parcours en cours.</p>
+  }
+</section>
+
+<div class="layout">
+  <svg
+    class="diagram"
+    viewBox="0 0 640 340"
+    role="group"
+    aria-label="Schéma de l’architecture : navigateur, nginx, ingestion-service, Kafka, shipment-service, PostgreSQL, ai-service et API Claude"
+  >
+    <defs>
+      <marker id="arch-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto">
+        <path d="M0 0 L10 5 L0 10 z" class="arrow-head" />
+      </marker>
+    </defs>
+    @for (edge of edges; track edge.id) {
+      <g class="edge" [class]="edge.kind" [class.active]="activeEdges().has(edge.id)" [attr.data-edge]="edge.id">
+        <path [attr.d]="edge.path" marker-end="url(#arch-arrow)" />
+        <text [attr.x]="edge.labelX" [attr.y]="edge.labelY" [attr.text-anchor]="edge.anchor">{{ edge.label }}</text>
+      </g>
+    }
+    @for (block of blocks; track block.id) {
+      <g
+        class="node"
+        role="button"
+        tabindex="0"
+        [class.selected]="block.id === selectedId()"
+        [class.in-step]="activeBlocks().has(block.id)"
+        [attr.aria-pressed]="block.id === selectedId()"
+        [attr.aria-label]="'Bloc ' + block.label"
+        [attr.data-block]="block.id"
+        (click)="select(block.id)"
+        (keydown.enter)="select(block.id)"
+        (keydown.space)="select(block.id); $event.preventDefault()"
+      >
+        <rect [attr.x]="block.x" [attr.y]="block.y" [attr.width]="block.width" [attr.height]="block.height" rx="10" />
+        <text [attr.x]="block.x + block.width / 2" [attr.y]="block.y + 22" text-anchor="middle" class="name">{{ block.label }}</text>
+        <text [attr.x]="block.x + block.width / 2" [attr.y]="block.y + 40" text-anchor="middle" class="caption">{{ block.caption }}</text>
+      </g>
+    }
+  </svg>
+
+  <section class="details" aria-live="polite" data-testid="block-details">
+    @if (selected(); as b) {
+      <h3>{{ b.label }}</h3>
+      <h4>Rôle</h4>
+      <p>{{ b.role }}</p>
+      <h4>Technologies</h4>
+      <ul>
+        @for (t of b.technologies; track t) {
+          <li>{{ t }}</li>
+        }
+      </ul>
+      <h4>Ce qu’il valide</h4>
+      <ul>
+        @for (v of b.validates; track v) {
+          <li>{{ v }}</li>
+        }
+      </ul>
+      <h4>Limites</h4>
+      <ul>
+        @for (l of b.limits; track l) {
+          <li>{{ l }}</li>
+        }
+      </ul>
+    } @else {
+      <p class="hint">Aucun bloc choisi.</p>
+    }
+  </section>
+</div>
+
+<p class="legend">
+  <span class="key rest">REST / HTTPS</span>
+  <span class="key kafka">Kafka</span>
+  <span class="key jwt">JWT / JWKS</span>
+</p>
+
+<h3>Les blocs, en texte</h3>
+<ul class="block-list" data-testid="block-list">
+  @for (block of blocks; track block.id) {
+    <li>
+      <strong>{{ block.label }}</strong> : {{ block.role }}
+    </li>
+  }
+</ul>
