@@ -9,7 +9,8 @@
     "build": "ng build",
     "e2e": "playwright test",
     "mock": "node scripts/mock-api.mjs",
-    "stats": "node scripts/project-stats.mjs"
+    "stats": "node scripts/project-stats.mjs",
+    "screenshots": "playwright test -c playwright.screenshots.config.ts"
   },
   "private": true,
   "packageManager": "npm@11.19.1",

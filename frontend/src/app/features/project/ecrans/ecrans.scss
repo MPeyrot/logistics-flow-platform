@@ -1,0 +1,43 @@
+h2 {
+  margin: 0 0 1rem;
+  font: var(--mat-sys-headline-medium);
+  letter-spacing: -0.02em;
+}
+
+.intro {
+  margin: 0 0 0.75rem;
+  max-width: 42rem;
+  font: var(--mat-sys-body-large);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 24rem), 1fr));
+  gap: 1.5rem;
+  margin: 1.5rem 0;
+}
+
+figure {
+  margin: 0;
+  min-width: 0;
+}
+
+img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 0.75rem;
+}
+
+figcaption {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  margin-top: 0.6rem;
+  color: var(--mat-sys-on-surface-variant);
+
+  strong {
+    color: var(--mat-sys-on-surface);
+  }
+}
