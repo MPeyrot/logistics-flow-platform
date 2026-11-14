@@ -3,7 +3,9 @@ import { mockApi, mockProblem } from './mock-api';
 
 /** Ouvre une session OPERATOR sans passer par l'écran de connexion. */
 async function signIn(page: Page) {
-  const payload = Buffer.from(JSON.stringify({ sub: 'olivia', roles: ['OPERATOR'] })).toString('base64url');
+  const payload = Buffer.from(JSON.stringify({ sub: 'olivia', roles: ['OPERATOR'] })).toString(
+    'base64url',
+  );
   const expiresAt = new Date(Date.now() + 3_600_000).toISOString();
   await page.addInitScript(
     ([token, exp]) => {
@@ -60,7 +62,12 @@ test('liste filtrée puis détail', async ({ page }) => {
       ],
       anomalies: [
         { id: 'a1', type: 'LATE', detectedAt: '2026-11-13T10:00:00Z', resolvedAt: null },
-        { id: 'a2', type: 'STALLED', detectedAt: '2026-11-05T10:00:00Z', resolvedAt: '2026-11-06T10:00:00Z' },
+        {
+          id: 'a2',
+          type: 'STALLED',
+          detectedAt: '2026-11-05T10:00:00Z',
+          resolvedAt: '2026-11-06T10:00:00Z',
+        },
       ],
     },
   });
@@ -83,9 +90,11 @@ test('liste filtrée puis détail', async ({ page }) => {
   await page.getByRole('link', { name: 'XYZ-2' }).click();
   await expect(page).toHaveURL(/\/shipments\/XYZ-2$/);
   await expect(page.getByRole('heading', { name: 'XYZ-2' })).toBeVisible();
-  const scans = page.getByRole('list', { name: 'Frise des scans' }).getByRole('listitem');
-  await expect(scans).toHaveCount(2);
-  await expect(scans.nth(1)).toContainText('Motif : Destinataire absent');
+  const scans = page
+    .getByRole('list', { name: 'Frise des scans et des anomalies' })
+    .getByRole('listitem');
+  await expect(scans).toHaveCount(5);
+  await expect(scans.filter({ hasText: 'Motif' })).toContainText('Motif : Destinataire absent');
   await expect(page.getByText('ouverte', { exact: true })).toBeVisible();
   await expect(page.getByText(/close le/)).toBeVisible();
 });

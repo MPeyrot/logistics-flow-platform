@@ -56,3 +56,27 @@
     border-bottom: 1px solid var(--mat-sys-outline-variant);
   }
 }
+
+.timeline li.anomaly::before {
+  background: var(--mat-sys-error);
+}
+
+.timeline li.closed::before {
+  background: var(--mat-sys-outline);
+}
+
+app-shipment-scan-actions .actions {
+  margin: 1rem 0;
+  padding: 1rem;
+
+  .buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .note {
+    color: var(--mat-sys-on-surface-variant);
+    font-size: 0.875rem;
+  }
+}
