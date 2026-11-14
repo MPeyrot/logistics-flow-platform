@@ -54,6 +54,13 @@
   - **Image du front par Dockerfile** multi-étapes (`node` puis `nginxinc/nginx-unprivileged`, épinglées par digest) : écart assumé à Paketo, qui vaut pour les services Spring. `frontend` : min 0, max 1, 256 Mio, compte `frontend-run` sans secret ; déployé et supprimé avec les services.
   - Dépendances validées : Angular (dernière majeure stable) et Angular Material/CDK, Vitest, Playwright (Chromium), angular-eslint, `jsdom`, `prettier`, `typescript-eslint`, `@eslint/js` (dev, validées le 2026-11-13), `@fontsource/roboto`, `material-symbols`. Interface en français, sans i18n.
 - Décidé par Michael le 2026-11-13 (#91) : `actions/setup-node` validée, épinglée par SHA de commit (version en commentaire), comme `google-github-actions/auth` et `setup-gcloud`.
+- Décidé par Michael le 2026-11-14, pour la spec « vitrine du projet » (#96, à implémenter) :
+  - **Pages `/projet/…` publiques** (sans connexion, statiques, aucun appel à l'API) ; `/` sans session mène à `/projet`. **Pas de compte public** : écrans connectés montrés en captures, compte OPERATOR donné à la demande par Michael (écartés : compte en clair, ADMIN public, rôle `VIEWER`).
+  - **OPERATOR et ADMIN peuvent scanner, pour les besoins de la démo** (« saisie manuelle par le bureau ») : leurs jetons portent `aud = ["shipment-service", "ingestion-service"]`, `POST /api/scans` les admet avec un site libre ; SCANNER inchangé (site = claim `site`) ; l'import CSV reste SCANNER seulement.
+  - `shipment-service` relaie l'`usage` d'ai-service dans la réponse d'extraction.
+  - Mention des pages de présentation et du `README` : « Projet personnel, conçu et développé seul pour démontrer. Ce n'est pas un logiciel en production. »
+  - Données de démo plausibles (`seed-demo.sh`, entrée `seed` de `deploy-up`, villes françaises, aucun nom réel) ; la fumée n'écrit plus « Smoke » dans les données visibles.
+  - Aucune dépendance nouvelle : schémas en SVG et CSS écrits à la main ; chiffres du projet générés au déploiement (`project-stats.json`, non commité).
 
 ## Ressources GCP (spec #63, #65)
 - `scripts/deploy/infra.sh` (idempotent, ne supprime rien) crée les ressources ; `scripts/deploy/setup-wizard.sh` guide Michael (comptes, facturation, valeurs des secrets) et le lance. Noms dans `scripts/deploy/names.sh`, repris par les workflows via les variables du dépôt (`GCP_PROJECT_ID`, `GCP_PROJECT_NUMBER`, `GCP_REGION`, `GCP_AR_REPOSITORY`, `GCP_WIF_PROVIDER`, `GCP_DEPLOY_SA`, `KAFKA_BOOTSTRAP_SERVERS`, `BOOTSTRAP_ADMIN_USERNAME` ; secret `BOOTSTRAP_ADMIN_PASSWORD` pour la fumée).
